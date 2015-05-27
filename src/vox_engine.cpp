@@ -1,6 +1,13 @@
 #include "vox_engine.h"
 
-#define LOADINTERFACE(_module_, _version_, _out_) Sys_LoadInterface(_module_, _version_, NULL, reinterpret_cast<void**>(& _out_ ))
+
+#ifdef USE_SERVER_MODULES
+#define MODULENAME(_module_) _module_  "_srv"
+#else
+#define MODULENAME(_module_) _module_
+#endif
+
+#define LOADINTERFACE(_module_, _version_, _out_) Sys_LoadInterface(MODULENAME(_module_), _version_, NULL, reinterpret_cast<void**>(& _out_ ))
 
 IMaterialSystem* iface_materials;
 IPhysicsCollision* iface_collision;
@@ -36,18 +43,16 @@ bool determine_state(lua_State* state) {
 }
 
 bool init_interfaces() {
-	//todo move make clinet load only
-	if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, iface_materials))
+	if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, iface_collision))
 		return false;
 
-	if (!LOADINTERFACE("vphysics_srv", VPHYSICS_COLLISION_INTERFACE_VERSION, iface_collision))
-		return false;
-
-	if (!LOADINTERFACE("vphysics_srv", VPHYSICS_INTERFACE_VERSION, iface_physics))
+	if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, iface_physics))
 		return false;
 
 	if (STATE_CLIENT) {
 		if (!LOADINTERFACE("client", VCLIENTENTITYLIST_INTERFACE_VERSION, iface_cl_entlist))
+			return false;
+		if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, iface_materials))
 			return false;
 	}
 	else {
