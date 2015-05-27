@@ -1,6 +1,5 @@
 #include "vox_engine.h"
 
-
 #ifdef USE_SERVER_MODULES
 #define MODULENAME(_module_) _module_  "_srv"
 #else
