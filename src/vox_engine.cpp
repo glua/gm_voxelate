@@ -8,7 +8,7 @@ IPhysics* iface_physics;
 
 IClientEntityList* iface_cl_entlist;
 
-VEngineServerV21::IVEngineServer* iface_sv_ents;
+IVEngineServer* iface_sv_ents;
 
 bool STATE_CLIENT = false;
 bool STATE_SERVER = false;
@@ -36,14 +36,14 @@ bool determine_state(lua_State* state) {
 }
 
 bool init_interfaces() {
-	
+	//todo move make clinet load only
 	if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, iface_materials))
 		return false;
 
-	if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, iface_collision))
+	if (!LOADINTERFACE("vphysics_srv", VPHYSICS_COLLISION_INTERFACE_VERSION, iface_collision))
 		return false;
 
-	if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, iface_physics))
+	if (!LOADINTERFACE("vphysics_srv", VPHYSICS_INTERFACE_VERSION, iface_physics))
 		return false;
 
 	if (STATE_CLIENT) {
@@ -51,7 +51,7 @@ bool init_interfaces() {
 			return false;
 	}
 	else {
-		if (!LOADINTERFACE("engine", VENGINESERVER_INTERFACEVERSION_21, iface_sv_ents))
+		if (!LOADINTERFACE("engine_srv", INTERFACEVERSION_VENGINESERVER_VERSION_21, iface_sv_ents))
 			return false;
 	}
 

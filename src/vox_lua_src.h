@@ -255,10 +255,8 @@ function ENT:_initMisc(size_x,size_y,size_z)
 	self:EnableCustomCollisions(true)
 	self:SetSolid(SOLID_BBOX)
 
-	local mins = Vector()
+	local mins = Vector(0,0,0)
 	local maxs = Vector(size_x,size_y,size_z)
-	
-	self.correct_maxs = maxs
 
 	self:SetCollisionBounds(mins,maxs)
 	if CLIENT then
@@ -269,18 +267,12 @@ end
 function ENT:Think()
 	local index = self:GetInternalIndex()	
 	IMPORTS.voxUpdate(index,10,self,self:GetPos())
-	
-	if CLIENT and self.correct_maxs then
-		local _,maxs = self:GetRenderBounds()
-		if maxs!=self.correct_maxs then
-			self:SetRenderBounds(Vector(),self.correct_maxs)
-			print("Corrected render bounds on Voxel System #"..index..".")
-		end
-	end
 
 	self:NextThink(CurTime())
 	return true
 end
+
+local mat = Material("models/wireframe")
 
 function ENT:Draw()
 	local index = self:GetInternalIndex()
@@ -289,6 +281,10 @@ function ENT:Draw()
 	m:Translate(self:GetPos())
 
 	cam.PushModelMatrix(m)
+	render.SetMaterial(mat)
+	local lower, upper = self:GetRenderBounds()
+	render.DrawBox(Vector(),Angle(), upper, lower)
+	render.DrawBox(Vector(),Angle(), Vector(10,10,10), Vector(-10,-10,-10))
 	IMPORTS.voxDraw(index)
 	cam.PopModelMatrix()
 end
@@ -440,23 +436,5 @@ end)
 hook.Add("CanTool", "voxelate_notool", function(ply,tr,tool)
 	if IsValid( tr.Entity ) and tr.Entity:GetClass() == "voxels" then return false end
 end)
-
-
-
-
-
-
-if CLIENT then
-	concommand.Add("voxelate_save",function(ply,cmd,args,argstr)
-		local index = tonumber(args[1])
-		local name = args[2]
-
-		local f = file.Open("voxelate/"..name..".bin","wb","DATA")
-		f:Write("eyylmao "..index)
-		f:Close()
-	end)
-
-
-end
 
 )>>";

@@ -169,7 +169,7 @@ void Voxels::getRealSize(double& x, double& y, double& z) {
 }
 
 void Voxels::doUpdates(int count, CBaseEntity* ent, const Vector& pos) {
-	if (STATE_CLIENT || sv_useMeshCollisions) {
+	if (STATE_CLIENT || (sv_useMeshCollisions && ent!=nullptr)) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
@@ -184,7 +184,6 @@ VoxelTraceRes Voxels::doTrace(double startX,double startY,double startZ, double 
 	getRealSize(maxX, maxY, maxZ);
 
 	if (startX > 0 && startY > 0 && startZ > 0 && startX < maxX && startY < maxY && startZ < maxZ) {
-		
 		return iTrace(startX/_scale, startY/_scale, startZ/_scale, deltaX/_scale, deltaY/_scale, deltaZ/_scale, 0, 0, 0) * _scale;
 	
 	}
@@ -298,6 +297,7 @@ VoxelTraceRes Voxels::doTrace(double startX,double startY,double startZ, double 
 			}
 		}
 	}
+
 	return VoxelTraceRes();
 }
 
@@ -371,9 +371,9 @@ VoxelTraceRes Voxels::iTrace(double startX, double startY, double startZ, double
 		tMaxZ = fmod(startZ, 1) / -deltaZ;
 	}
 
-	double tDeltaX = abs(1 / deltaX);
-	double tDeltaY = abs(1 / deltaY);
-	double tDeltaZ = abs(1 / deltaZ);
+	double tDeltaX = fabs(1 / deltaX);
+	double tDeltaY = fabs(1 / deltaY);
+	double tDeltaZ = fabs(1 / deltaZ);
 
 	int failsafe = 0;
 	while (failsafe++<10000) {
@@ -528,9 +528,9 @@ VoxelTraceRes Voxels::iTraceHull(double startX, double startY, double startZ, do
 		tMaxZ = fmod(startZ, 1) / -deltaZ;
 	}
 
-	double tDeltaX = abs(1 / deltaX);
-	double tDeltaY = abs(1 / deltaY);
-	double tDeltaZ = abs(1 / deltaZ);
+	double tDeltaX = fabs(1 / deltaX);
+	double tDeltaY = fabs(1 / deltaY);
+	double tDeltaZ = fabs(1 / deltaZ);
 
 	int failsafe = 0;
 	bool bail = false;

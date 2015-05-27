@@ -1,11 +1,9 @@
 #include "vox_lua_bridge.h"
+#include "vox_lua_src.h"
 
 #include "vox_engine.h"
 #include "vox_util.h"
 #include "vox_Voxels.h"
-
-//#include "vox_lua_net.h"
-#include "vox_lua_src.h"
 
 using namespace GarrysMod::Lua;
 
@@ -231,7 +229,12 @@ CBaseEntity* elua_getEntity(lua_State* state,int index) {
 	GarrysMod::Lua::UserData* ud = (GarrysMod::Lua::UserData*)(LUA->GetUserdata(index));
 
 	int e_index = ((CBaseHandle*)(ud->data))->GetEntryIndex();
-	return iface_sv_ents->PEntityOfEntIndex(e_index)->GetUnknown()->GetBaseEntity();
+
+	auto edict = iface_sv_ents->PEntityOfEntIndex(e_index);
+
+	if (edict==nullptr)
+		return nullptr;
+	return edict->GetUnknown()->GetBaseEntity();
 }
 
 Vector elua_getVector(lua_State* state, int index) {
@@ -251,6 +254,7 @@ int luaf_voxUpdate(lua_State* state) {
 	pos = elua_getVector(state, 4);
 
 	Voxels* v = getIndexedVoxels(index);
+
 	if (v != nullptr) {
 		v->doUpdates(10, ent, pos);
 	}
