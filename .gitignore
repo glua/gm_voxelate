@@ -1,0 +1,7 @@
+# Build directory
+bin/**
+
+# Project directories
+windows/**
+linux/**
+macosx/**
