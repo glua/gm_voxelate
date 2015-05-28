@@ -189,118 +189,17 @@ VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
 	if (startPos.WithinAABox(Vector(0,0,0), voxel_extents)) {
 		return iTrace(startPos/_scale , delta/_scale, Vector(0,0,0)) * _scale;
 	}
-	/*else {
-		if (startX < 0 && deltaX>0) {
-			double frac = -startX / deltaX;
+	else {
+		Ray_t ray;
+		ray.Init(startPos,startPos+delta);
+		CBaseTrace tr;
+		IntersectRayWithBox(ray, Vector(0, 0, 0), voxel_extents, 0, &tr);
 
-			double iy = startY + frac*deltaY;
-			double iz = startZ + frac*deltaZ;
+		startPos = tr.endpos;
+		delta *= 1-tr.fraction;
 
-			if (iy > 0 && iy < maxY && iz>0 && iz < maxZ) {				
-				deltaX = (deltaX + startX) / _scale;
-				deltaY = deltaY * (1-frac) / _scale;
-				deltaZ = deltaZ * (1-frac) / _scale;
-
-				startX = 0;
-				startY = iy / _scale;
-				startZ = iz / _scale;
-
-				return iTrace(startX, startY, startZ, deltaX, deltaY, deltaZ, -1, 0, 0) * _scale;
-			}
-		}
-		else if (startX > maxX && deltaX<0) {
-			double frac = (startX-maxX) / -deltaX;
-
-			double iy = startY + frac*deltaY;
-			double iz = startZ + frac*deltaZ;
-
-			if (iy > 0 && iy < maxY && iz>0 && iz < maxZ) {
-				deltaX = (deltaX + startX - maxX) / _scale;
-				deltaY = deltaY * (1 - frac) / _scale;
-				deltaZ = deltaZ * (1 - frac) / _scale;
-
-				startX = maxX / _scale;
-				startY = iy / _scale;
-				startZ = iz / _scale;
-
-				return iTrace(startX, startY, startZ, deltaX, deltaY, deltaZ, 1, 0, 0) * _scale;
-			}
-		}
-		if (startY < 0 && deltaY>0) {
-			double frac = -startY / deltaY;
-
-			double ix = startX + frac*deltaX;
-			double iz = startZ + frac*deltaZ;
-
-			if (ix > 0 && ix < maxX && iz>0 && iz < maxZ) {
-				deltaY = (deltaY + startY) / _scale;
-				deltaX = deltaX * (1 - frac) / _scale;
-				deltaZ = deltaZ * (1 - frac) / _scale;
-
-				startY = 0;
-				startX = ix / _scale;
-				startZ = iz / _scale;
-
-				return iTrace(startX, startY, startZ, deltaX, deltaY, deltaZ, 0, -1, 0) * _scale;
-			}
-		}
-		else if (startY > maxY && deltaY<0) {
-			double frac = (startY - maxY) / -deltaY;
-
-			double ix = startX + frac*deltaX;
-			double iz = startZ + frac*deltaZ;
-
-			if (ix > 0 && ix < maxY && iz>0 && iz < maxZ) {
-				deltaY = (deltaY + startY - maxY) / _scale;
-				deltaX = deltaX * (1 - frac) / _scale;
-				deltaZ = deltaZ * (1 - frac) / _scale;
-
-				startY = maxY / _scale;
-				startX = ix / _scale;
-				startZ = iz / _scale;
-
-				return iTrace(startX, startY, startZ, deltaX, deltaY, deltaZ, 0, 1, 0) * _scale;
-			}
-		}
-		if (startZ < 0 && deltaZ>0) {
-			double frac = -startZ / deltaZ;
-
-			double ix = startX + frac*deltaX;
-			double iy = startY + frac*deltaY;
-
-			if (ix > 0 && ix < maxX && iy>0 && iy < maxY) {
-				deltaZ = (deltaZ + startZ) / _scale;
-				deltaX = deltaX * (1 - frac) / _scale;
-				deltaY = deltaY * (1 - frac) / _scale;
-
-				startZ = 0;
-				startX = ix / _scale;
-				startY = iy / _scale;
-
-				return iTrace(startX, startY, startZ, deltaX, deltaY, deltaZ, 0, 0, -1) * _scale;
-			}
-		}
-		else if (startZ > maxZ && deltaZ<0) {
-			double frac = (startZ - maxZ) / -deltaZ;
-
-			double ix = startX + frac*deltaX;
-			double iy = startY + frac*deltaY;
-
-			if (ix > 0 && ix < maxX && iy>0 && iy < maxY) {
-				deltaZ = (deltaZ + startZ - maxZ) / _scale;
-				deltaX = deltaX * (1 - frac) / _scale;
-				deltaY = deltaY * (1 - frac) / _scale;
-
-				startZ = maxZ / _scale;
-				startX = ix / _scale;
-				startY = iy / _scale;
-
-				return iTrace(startX, startY, startZ, deltaX, deltaY, deltaZ, 0, 0, 1) * _scale;
-			}
-		}
-	}*/
-
-	return VoxelTraceRes();
+		return iTrace(startPos / _scale, delta / _scale, tr.plane.normal) * _scale;
+	}
 }
 
 VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents) {
@@ -314,7 +213,17 @@ VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents)
 	if (IsBoxIntersectingBox(box_lower,box_upper,Vector(0,0,0),voxel_extents)) {
 		return iTraceHull(startPos/_scale,delta/_scale,extents/_scale, Vector(0,0,0)) * _scale;
 	}
-	return VoxelTraceRes();
+	else {
+		Ray_t ray;
+		ray.Init(startPos, startPos + delta, box_lower, box_upper);
+		CBaseTrace tr;
+		IntersectRayWithBox(ray, Vector(0, 0, 0), voxel_extents, 0, &tr);
+
+		startPos = tr.endpos;
+		delta *= 1 - tr.fraction;
+
+		return iTraceHull(startPos / _scale, delta / _scale, extents / _scale, tr.plane.normal) * _scale;
+	}
 }
 
 VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
