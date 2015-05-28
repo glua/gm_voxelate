@@ -266,13 +266,11 @@ end
 
 function ENT:Think()
 	local index = self:GetInternalIndex()	
-	IMPORTS.voxUpdate(index,10,self,self:GetPos())
+	IMPORTS.voxUpdate(index,10,self)
 
 	self:NextThink(CurTime())
 	return true
 end
-
-local mat = Material("models/wireframe")
 
 function ENT:Draw()
 	local index = self:GetInternalIndex()
@@ -281,10 +279,6 @@ function ENT:Draw()
 	m:Translate(self:GetPos())
 
 	cam.PushModelMatrix(m)
-	render.SetMaterial(mat)
-	local lower, upper = self:GetRenderBounds()
-	render.DrawBox(Vector(),Angle(), upper, lower)
-	render.DrawBox(Vector(),Angle(), Vector(10,10,10), Vector(-10,-10,-10))
 	IMPORTS.voxDraw(index)
 	cam.PopModelMatrix()
 end

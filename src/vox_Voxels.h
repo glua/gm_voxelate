@@ -47,7 +47,6 @@ class Voxels {
 public:
 	~Voxels();
 	
-	//void init(lua_State* state);
 	uint16 generate(int x, int y, int z);
 
 	void pushConfig(lua_State* state);
@@ -64,10 +63,7 @@ public:
 
 	Vector getExtents();
 
-	//void beginTransmit(int id);
-	//void doTransmit(int sys_index);
-
-	void doUpdates(int count, CBaseEntity* ent, const Vector& pos);
+	void doUpdates(int count, CBaseEntity* ent);
 
 	VoxelTraceRes doTrace(Vector startPos, Vector delta);
 	VoxelTraceRes doTraceHull(Vector startPos, Vector delta, Vector extents);
@@ -109,7 +105,7 @@ class VoxelChunk {
 public:
 	VoxelChunk(Voxels* sys, int x, int y, int z);
 	~VoxelChunk();
-	void build(CBaseEntity* ent, const Vector& pos);
+	void build(CBaseEntity* ent);
 	void draw(CMatRenderContextPtr& pRenderContext);
 
 	uint16 get(int x, int y, int z);
@@ -122,7 +118,7 @@ private:
 	void meshClearAll();
 
 	void meshStart();
-	void meshStop(CBaseEntity* ent, const Vector& pos);
+	void meshStop(CBaseEntity* ent);
 
 	void addFullVoxelFace(int x,int y,int z,int tx, int ty, byte dir);
 

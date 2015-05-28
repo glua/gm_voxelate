@@ -246,16 +246,12 @@ int luaf_voxUpdate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 	int chunk_count = LUA->GetNumber(2);
 
-	CBaseEntity* ent;
-	Vector pos;
-
-	ent = elua_getEntity(state, 3);
-	pos = elua_getVector(state, 4);
+	CBaseEntity* ent = elua_getEntity(state, 3);
 
 	Voxels* v = getIndexedVoxels(index);
 
 	if (v != nullptr) {
-		v->doUpdates(10, ent, pos);
+		v->doUpdates(10, ent);
 	}
 	
 	return 0;

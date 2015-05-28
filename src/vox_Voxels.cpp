@@ -172,12 +172,12 @@ Vector Voxels::getExtents() {
 	);
 }
 
-void Voxels::doUpdates(int count, CBaseEntity* ent, const Vector& pos) {
+void Voxels::doUpdates(int count, CBaseEntity* ent) {
 	if (STATE_CLIENT || (sv_useMeshCollisions && ent!=nullptr)) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
-			(*iter)->build(ent, pos);
+			(*iter)->build(ent);
 			chunks_flagged_for_update.erase(iter);
 		}
 	}
@@ -694,7 +694,7 @@ VoxelChunk::~VoxelChunk() {
 	meshClearAll();
 }
 
-void VoxelChunk::build(CBaseEntity* ent, const Vector& pos) {
+void VoxelChunk::build(CBaseEntity* ent) {
 
 	meshClearAll();
 
@@ -789,7 +789,7 @@ void VoxelChunk::build(CBaseEntity* ent, const Vector& pos) {
 	}
 
 	//final build
-	meshStop(ent,pos);
+	meshStop(ent);
 
 }
 
@@ -871,7 +871,12 @@ void VoxelChunk::meshStart() {
 	}
 }
 
-void VoxelChunk::meshStop(CBaseEntity* ent, const Vector& pos) {
+Vector eent_getPos(CBaseEntity* ent) {
+	byte* pos_ptr = reinterpret_cast<byte*>(ent)+772;
+	return *reinterpret_cast<Vector*>(pos_ptr);
+}
+
+void VoxelChunk::meshStop(CBaseEntity* ent) {
 	if (STATE_CLIENT) {
 		meshBuilder.End();
 
@@ -897,6 +902,8 @@ void VoxelChunk::meshStop(CBaseEntity* ent, const Vector& pos) {
 		//vox_print("v %f %f %f :: %f %f %f", sys_bounds.x, sys_bounds.y, sys_bounds.z, pos.x, pos.y, pos.z);
 
 		//vox_print("pre-create");
+		Vector pos = eent_getPos(ent);
+
 		IPhysicsEnvironment* env = iface_sv_physics->GetActiveEnvironmentByIndex(0);
 		phys_obj = env->CreatePolyObjectStatic(phys_collider, 3, pos, QAngle(0, 0, 0), &op);
 		//vox_print("post-create");
@@ -913,7 +920,7 @@ void VoxelChunk::addFullVoxelFace(int x, int y, int z, int tx, int ty, byte dir)
 	
 	if (STATE_CLIENT) {
 		if (verts_remaining < 4) {
-			meshStop(nullptr,Vector());
+			meshStop(nullptr);
 			meshStart();
 		}
 		verts_remaining -= 4;
