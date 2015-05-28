@@ -31,6 +31,27 @@ Vector elua_getVector(lua_State* state, int index) {
 }
 
 
+//Can't figure out how to push vectors without crashing the game when they get GC'd
+void elua_pushVector(lua_State* state, Vector v) {
+	LUA->PushSpecial(SPECIAL_GLOB);
+	LUA->GetField(-1, "Vector");
+	LUA->Remove(-2);
+	LUA->PushNumber(v.x);
+	LUA->PushNumber(v.y);
+	LUA->PushNumber(v.z);
+	LUA->Call(3, 1);
+	
+	/*
+	GarrysMod::Lua::UserData* ud = (UserData*)(LUA->NewUserdata(sizeof(UserData)));
+	ud->type = Type::VECTOR;
+	ud->data = new Vector(v);
+	
+	LUA->CreateMetaTableType("Vector", Type::VECTOR);
+	LUA->SetMetaTable(-2);
+	*/
+}
+
+
 
 int luaf_voxNew(lua_State* state) {
 	LUA->PushNumber(newIndexedVoxels(LUA->GetNumber(1)));
@@ -363,6 +384,9 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");
+
+	elua_pushVector(state, Vector(10, 20, 30));
+	LUA->SetField(-2, "TEST_VECTOR");
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
 

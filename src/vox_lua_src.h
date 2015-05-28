@@ -420,9 +420,6 @@ end
 
 scripted_ents.Register(ENT,"voxels")
 
-
-
-
 hook.Add("PhysgunPickup", "voxelate_nograb", function(ply,ent)
 	if ent:GetClass() == "voxels" then return false end
 end)
@@ -430,5 +427,8 @@ end)
 hook.Add("CanTool", "voxelate_notool", function(ply,tr,tool)
 	if IsValid( tr.Entity ) and tr.Entity:GetClass() == "voxels" then return false end
 end)
+
+
+TEST_VECTOR = IMPORTS.TEST_VECTOR
 
 )>>";
