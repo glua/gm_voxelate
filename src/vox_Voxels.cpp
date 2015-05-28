@@ -559,18 +559,14 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					VoxelType& vt = voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = t;
+						res.fraction = t - tDeltaX*.0001;
 
 						res.hitPos = startPos + res.fraction*delta;
 
-						if (dir == DIR_X_POS) {
+						if (dir == DIR_X_POS)
 							res.hitNormal.x = -1;
-							res.hitPos.x -= .00002;
-						}
-						else {
+						else
 							res.hitNormal.x = 1;
-							res.hitPos.x += .00002;
-						}
 						return res;
 					}
 				}
@@ -586,18 +582,14 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					VoxelType& vt = voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = t;
+						res.fraction = t - tDeltaY*.0001;
 
 						res.hitPos = startPos + res.fraction*delta;
 
-						if (dir == DIR_Y_POS) {
+						if (dir == DIR_Y_POS)
 							res.hitNormal.y = -1;
-							res.hitPos.y -= .00002;
-						}
-						else {
+						else
 							res.hitNormal.y = 1;
-							res.hitNormal.y += .00002;
-						}
 						return res;
 					}
 				}
@@ -613,18 +605,14 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					VoxelType& vt = voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = t;
+						res.fraction = t - tDeltaZ*.0001;
 
 						res.hitPos = startPos + res.fraction*delta;
 						
-						if (dir == DIR_Z_POS) {
+						if (dir == DIR_Z_POS)
 							res.hitNormal.z = -1;
-							res.hitPos.z -= .00002;
-						}
-						else {
+						else
 							res.hitNormal.z = 1;
-							res.hitPos.z += .00002;
-						}
 						return res;
 					}
 				}
