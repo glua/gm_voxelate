@@ -658,8 +658,19 @@ void Voxels::draw() {
 	}
 }
 
+//floored division, credit http://www.microhowto.info/howto/round_towards_minus_infinity_when_dividing_integers_in_c_or_c++.html
+int div_floor(int x, int y) {
+	int q = x / y;
+	int r = x%y;
+	if ((r != 0) && ((r<0) != (y<0))) --q;
+	return q;
+}
+
 uint16 Voxels::get(int x, int y, int z) {
-	VoxelChunk* chunk = getChunk(x/VOXEL_CHUNK_SIZE, y/VOXEL_CHUNK_SIZE, z/VOXEL_CHUNK_SIZE);
+	int qx = x / VOXEL_CHUNK_SIZE;
+	
+	
+	VoxelChunk* chunk = getChunk(div_floor(x,VOXEL_CHUNK_SIZE), div_floor(y,VOXEL_CHUNK_SIZE), div_floor(z,VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr) {
 		return 0;
 	}
@@ -667,7 +678,7 @@ uint16 Voxels::get(int x, int y, int z) {
 }
 
 bool Voxels::set(int x, int y, int z, uint16 d) {
-	VoxelChunk* chunk = getChunk(x / VOXEL_CHUNK_SIZE, y / VOXEL_CHUNK_SIZE, z / VOXEL_CHUNK_SIZE);
+	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr)
 		return false;
 

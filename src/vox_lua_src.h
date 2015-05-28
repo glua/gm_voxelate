@@ -155,9 +155,9 @@ else
 
 	net.Receive("voxelate_set_region",function(len)
 		local index = net.ReadUInt(16)
-		local x = net.ReadUInt(16)
-		local y = net.ReadUInt(16)
-		local z = net.ReadUInt(16)
+		local x = net.ReadInt(16)
+		local y = net.ReadInt(16)
+		local z = net.ReadInt(16)
 		local sx = net.ReadUInt(16)
 		local sy = net.ReadUInt(16)
 		local sz = net.ReadUInt(16)
@@ -344,9 +344,9 @@ if SERVER then
 
 		net.Start("voxelate_set_region")
 		net.WriteUInt(index,16)
-		net.WriteUInt(x,16)
-		net.WriteUInt(y,16)
-		net.WriteUInt(z,16)
+		net.WriteInt(x,16)
+		net.WriteInt(y,16)
+		net.WriteInt(z,16)
 		net.WriteUInt(sx,16)
 		net.WriteUInt(sy,16)
 		net.WriteUInt(sz,16)
@@ -427,8 +427,5 @@ end)
 hook.Add("CanTool", "voxelate_notool", function(ply,tr,tool)
 	if IsValid( tr.Entity ) and tr.Entity:GetClass() == "voxels" then return false end
 end)
-
-
-TEST_VECTOR = IMPORTS.TEST_VECTOR
 
 )>>";
