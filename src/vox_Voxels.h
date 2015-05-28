@@ -3,6 +3,7 @@
 #include <map>
 #include <set>
 #include <list>
+
 #include "materialsystem/imesh.h"
 #include "GarrysMod/Lua/Interface.h"
 
@@ -27,9 +28,9 @@ struct VoxelType {
 
 struct VoxelTraceRes {
 	double fraction = -1;
-	double hitX, hitY, hitZ;
-	double normX, normY, normZ;
-	VoxelTraceRes& operator*(double n) { hitX *= n; hitY *= n; hitZ *= n; return *this; }
+	Vector hitPos;
+	Vector hitNormal = Vector(0,0,0);
+	VoxelTraceRes& operator*(double n) { hitPos *= n; return *this; }
 };
 
 class Voxels;
@@ -61,18 +62,18 @@ public:
 
 	bool isInitialized();
 
-	void getRealSize(double& x, double& y, double& z);
+	Vector getExtents();
 
 	//void beginTransmit(int id);
 	//void doTransmit(int sys_index);
 
 	void doUpdates(int count, CBaseEntity* ent, const Vector& pos);
 
-	VoxelTraceRes doTrace(double startX, double startY, double startZ, double deltaX, double deltaY, double deltaZ);
-	VoxelTraceRes doTraceHull(double startX, double startY, double startZ, double deltaX, double deltaY, double deltaZ, double extX, double extY, double extZ);
+	VoxelTraceRes doTrace(Vector startPos, Vector delta);
+	VoxelTraceRes doTraceHull(Vector startPos, Vector delta, Vector extents);
 
-	VoxelTraceRes iTrace(double startX, double startY, double startZ, double deltaX, double deltaY, double deltaZ, double defNormX, double defNormY, double defNormZ);
-	VoxelTraceRes iTraceHull(double startX, double startY, double startZ, double deltaX, double deltaY, double deltaZ, double extX, double extY, double extZ, double defNormX, double defNormY, double defNormZ);
+	VoxelTraceRes iTrace(Vector startPos, Vector delta, Vector defNormal);
+	VoxelTraceRes iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal);
 
 	void draw();
 

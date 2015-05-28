@@ -8,13 +8,11 @@
 
 #define LOADINTERFACE(_module_, _version_, _out_) Sys_LoadInterface(MODULENAME(_module_), _version_, NULL, reinterpret_cast<void**>(& _out_ ))
 
-IMaterialSystem* iface_materials;
-IPhysicsCollision* iface_collision;
-IPhysics* iface_physics;
-
-IClientEntityList* iface_cl_entlist;
-
 IVEngineServer* iface_sv_ents;
+IPhysicsCollision* iface_sv_collision;
+IPhysics* iface_sv_physics;
+
+IMaterialSystem* iface_cl_materials;
 
 bool STATE_CLIENT = false;
 bool STATE_SERVER = false;
@@ -42,20 +40,17 @@ bool determine_state(lua_State* state) {
 }
 
 bool init_interfaces() {
-	if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, iface_collision))
-		return false;
-
-	if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, iface_physics))
-		return false;
 
 	if (STATE_CLIENT) {
-		if (!LOADINTERFACE("client", VCLIENTENTITYLIST_INTERFACE_VERSION, iface_cl_entlist))
-			return false;
-		if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, iface_materials))
+		if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, iface_cl_materials))
 			return false;
 	}
 	else {
-		if (!LOADINTERFACE("engine_srv", INTERFACEVERSION_VENGINESERVER_VERSION_21, iface_sv_ents))
+		if (!LOADINTERFACE("engine", INTERFACEVERSION_VENGINESERVER_VERSION_21, iface_sv_ents))
+			return false;
+		if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, iface_sv_physics))
+			return false;
+		if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, iface_sv_collision))
 			return false;
 	}
 

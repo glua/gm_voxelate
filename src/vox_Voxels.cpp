@@ -13,6 +13,8 @@
 #include "cbase.h"
 #undef GAME_DLL
 
+#include "collisionutils.h"
+
 #include "fastlz.h"
 
 #define STD_VERT_FMT VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2)
@@ -162,10 +164,12 @@ bool Voxels::isInitialized() {
 	return chunks != nullptr;
 }
 
-void Voxels::getRealSize(double& x, double& y, double& z) {
-	x = _dimX*_scale*VOXEL_CHUNK_SIZE;
-	y = _dimY*_scale*VOXEL_CHUNK_SIZE;
-	z = _dimZ*_scale*VOXEL_CHUNK_SIZE;
+Vector Voxels::getExtents() {
+	return Vector(
+		_dimX*_scale*VOXEL_CHUNK_SIZE,
+		_dimY*_scale*VOXEL_CHUNK_SIZE,
+		_dimZ*_scale*VOXEL_CHUNK_SIZE
+	);
 }
 
 void Voxels::doUpdates(int count, CBaseEntity* ent, const Vector& pos) {
@@ -179,15 +183,13 @@ void Voxels::doUpdates(int count, CBaseEntity* ent, const Vector& pos) {
 	}
 }
 
-VoxelTraceRes Voxels::doTrace(double startX,double startY,double startZ, double deltaX, double deltaY, double deltaZ) {
-	double maxX, maxY, maxZ;
-	getRealSize(maxX, maxY, maxZ);
+VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
+	Vector voxel_extents = getExtents();
 
-	if (startX > 0 && startY > 0 && startZ > 0 && startX < maxX && startY < maxY && startZ < maxZ) {
-		return iTrace(startX/_scale, startY/_scale, startZ/_scale, deltaX/_scale, deltaY/_scale, deltaZ/_scale, 0, 0, 0) * _scale;
-	
+	if (startPos.WithinAABox(Vector(0,0,0), voxel_extents)) {
+		return iTrace(startPos/_scale , delta/_scale, Vector(0,0,0)) * _scale;
 	}
-	else {
+	/*else {
 		if (startX < 0 && deltaX>0) {
 			double frac = -startX / deltaX;
 
@@ -296,84 +298,73 @@ VoxelTraceRes Voxels::doTrace(double startX,double startY,double startZ, double 
 				return iTrace(startX, startY, startZ, deltaX, deltaY, deltaZ, 0, 0, 1) * _scale;
 			}
 		}
-	}
+	}*/
 
 	return VoxelTraceRes();
 }
 
-VoxelTraceRes Voxels::doTraceHull(double startX, double startY, double startZ, double deltaX, double deltaY, double deltaZ, double extX, double extY, double extZ) {
-	double maxX, maxY, maxZ;
-	getRealSize(maxX, maxY, maxZ);
+VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents) {
+	Vector voxel_extents = getExtents();
 	
 	//Calculate our bounds based on the offsets used by the player hull. This will not work for everything, but will preserve player movement.
-	double lowerX = startX - extX;
-	double lowerY = startY - extY;
-	double lowerZ = startZ;
+	Vector box_lower = startPos - Vector(extents.x, extents.y, 0);
 
-	double upperX = startX + extX;
-	double upperY = startY + extY;
-	double upperZ = startZ + extZ * 2;
+	Vector box_upper = startPos + Vector(extents.x, extents.y, extents.z*2);
 
-	if (upperX > 0 && upperY > 0 && upperZ > 0 && lowerX < maxX && lowerY < maxY && lowerZ < maxZ) {
-		
-		return iTraceHull(startX/_scale,startY/_scale,startZ/_scale,deltaX/_scale,deltaY/_scale,deltaZ/_scale,extX/_scale,extY/_scale,extZ/_scale, 0, 0, 0) * _scale;
-
+	if (IsBoxIntersectingBox(box_lower,box_upper,Vector(0,0,0),voxel_extents)) {
+		return iTraceHull(startPos/_scale,delta/_scale,extents/_scale, Vector(0,0,0)) * _scale;
 	}
 	return VoxelTraceRes();
 }
 
-VoxelTraceRes Voxels::iTrace(double startX, double startY, double startZ, double deltaX, double deltaY, double deltaZ, double defNormX, double defNormY, double defNormZ) {
-	int vx = startX;
-	int vy = startY;
-	int vz = startZ;
+VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
+	int vx = startPos.x;
+	int vy = startPos.y;
+	int vz = startPos.z;
 
 	uint16 vdata = get(vx, vy, vz);
 	VoxelType& vt = voxelTypes[vdata];
 	if (vt.form == VFORM_CUBE) {
 		VoxelTraceRes res;
 		res.fraction = 0;
-		res.hitX = startX;
-		res.hitY = startY;
-		res.hitZ = startZ;
-		res.normX = defNormX;
-		res.normY = defNormY;
-		res.normZ = defNormZ;
+		res.hitPos = startPos;
+		res.hitNormal = defNormal;
 		return res;
 	}
 
 	int stepX, stepY, stepZ;
 	double tMaxX, tMaxY, tMaxZ;
 
-	if (deltaX >= 0) {
+	if (delta.x >= 0) {
 		stepX = 1;
-		tMaxX = (1 - fmod(startX, 1)) / deltaX;
+		tMaxX = (1 - fmod(startPos.x, 1)) / delta.x;
 	}
 	else {
 		stepX = -1;
-		tMaxX = fmod(startX, 1) / -deltaX;
+		tMaxX = fmod(startPos.x, 1) / -delta.x;
 	}
 
-	if (deltaY >= 0) {
+	if (delta.y >= 0) {
 		stepY = 1;
-		tMaxY = (1 - fmod(startY, 1)) / deltaY;
+		tMaxY = (1 - fmod(startPos.y, 1)) / delta.y;
 	}
 	else {
 		stepY = -1;
-		tMaxY = fmod(startY, 1) / -deltaY;
+		tMaxY = fmod(startPos.y, 1) / -delta.y;
 	}
 
-	if (deltaZ >= 0) {
+	if (delta.z >= 0) {
 		stepZ = 1;
-		tMaxZ = (1 - fmod(startZ, 1)) / deltaZ;
+		tMaxZ = (1 - fmod(startPos.z, 1)) / delta.z;
 	}
 	else {
 		stepZ = -1;
-		tMaxZ = fmod(startZ, 1) / -deltaZ;
+		tMaxZ = fmod(startPos.z, 1) / -delta.z;
 	}
 
-	double tDeltaX = fabs(1 / deltaX);
-	double tDeltaY = fabs(1 / deltaY);
-	double tDeltaZ = fabs(1 / deltaZ);
+	double tDeltaX = fabs(1 / delta.x);
+	double tDeltaY = fabs(1 / delta.y);
+	double tDeltaZ = fabs(1 / delta.z);
 
 	int failsafe = 0;
 	while (failsafe++<10000) {
@@ -424,67 +415,48 @@ VoxelTraceRes Voxels::iTrace(double startX, double startY, double startZ, double
 			VoxelTraceRes res;
 			if (dir == DIR_X_POS) {
 				res.fraction = tMaxX -tDeltaX;
-				res.normX = -1;
-				res.normY = 0;
-				res.normZ = 0;
+				res.hitNormal = Vector(-1,0,0);
 			}
 			else if (dir == DIR_X_NEG) {
 				res.fraction = tMaxX - tDeltaX;
-				res.normX = 1;
-				res.normY = 0;
-				res.normZ = 0;
+				res.hitNormal = Vector(1, 0, 0);
 			}
 			else if (dir == DIR_Y_POS) {
 				res.fraction = tMaxY - tDeltaY;
-				res.normX = 0;
-				res.normY = -1;
-				res.normZ = 0;
+				res.hitNormal = Vector(0, -1, 0);
 			}
 			else if (dir == DIR_Y_NEG) {
 				res.fraction = tMaxY - tDeltaY;
-				res.normX = 0;
-				res.normY = 1;
-				res.normZ = 0;
+				res.hitNormal = Vector(0, 1, 0);
 			}
 			else if (dir == DIR_Z_POS) {
 				res.fraction = tMaxZ - tDeltaZ;
-				res.normX = 0;
-				res.normY = 0;
-				res.normZ = -1;
+				res.hitNormal = Vector(0, 0, -1);
 			}
 			else if (dir == DIR_Z_NEG) {
 				res.fraction = tMaxZ - tDeltaZ;
-				res.normX = 0;
-				res.normY = 0;
-				res.normZ = 1;
+				res.hitNormal = Vector(0, 0, 1);
 			}
-			res.hitX = startX + res.fraction*deltaX;
-			res.hitY = startY + res.fraction*deltaY;
-			res.hitZ = startZ + res.fraction*deltaZ;
+			res.hitPos = startPos + res.fraction*delta; // todo plz improve 
 			return res;
 		}
 	}
 
-	vox_print("[bail] %f %f %f :: %f %f %f", startX, startY, startZ, deltaX, deltaY, deltaZ);
+	vox_print("[bail] %f %f %f :: %f %f %f", startPos.x, startPos.y, startPos.z, delta.x, delta.y, delta.z);
 	return VoxelTraceRes();
 }
 
-VoxelTraceRes Voxels::iTraceHull(double startX, double startY, double startZ, double deltaX, double deltaY, double deltaZ, double extX, double extY, double extZ, double defNormX, double defNormY, double defNormZ) {
-
-	for (int ix = startX - extX; ix <= startX + extX; ix++) {
-		for (int iy = startY - extY; iy <= startY + extY; iy++) {
-			for (int iz = startZ; iz <= startZ + extZ * 2; iz++) {
+VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal) {
+	for (int ix = startPos.x - extents.x; ix <= startPos.x + extents.x; ix++) {
+		for (int iy = startPos.y - extents.y; iy <= startPos.y + extents.y; iy++) {
+			for (int iz = startPos.z; iz <= startPos.z + extents.z * 2; iz++) {
 				uint16 vdata = get(ix, iy, iz);
 				VoxelType& vt = voxelTypes[vdata];
 				if (vt.form == VFORM_CUBE) {
 					VoxelTraceRes res;
 					res.fraction = 0;
-					res.hitX = startX;
-					res.hitY = startY;
-					res.hitZ = startZ;
-					res.normX = defNormX;
-					res.normY = defNormY;
-					res.normZ = defNormZ;
+					res.hitPos = startPos;
+					res.hitNormal = defNormal;
 					return res;
 				}
 			}
@@ -495,42 +467,42 @@ VoxelTraceRes Voxels::iTraceHull(double startX, double startY, double startZ, do
 	int stepX, stepY, stepZ;
 	double tMaxX, tMaxY, tMaxZ;
 
-	if (deltaX >= 0) {
-		vx = startX + extX;
+	if (delta.x >= 0) {
+		vx = startPos.x + extents.x;
 		stepX = 1;
-		tMaxX = (1 - fmod(startX + extX, 1)) / deltaX;
+		tMaxX = (1 - fmod(startPos.x + extents.x, 1)) / delta.x;
 	}
 	else {
-		vx = startX - extX;
+		vx = startPos.x - extents.x;
 		stepX = -1;
-		tMaxX = fmod(startX - extX, 1) / -deltaX;
+		tMaxX = fmod(startPos.x - extents.x, 1) / -delta.x;
 	}
 
-	if (deltaY >= 0) {
-		vy = startY + extY;
+	if (delta.y >= 0) {
+		vy = startPos.y + extents.y;
 		stepY = 1;
-		tMaxY = (1 - fmod(startY + extY, 1)) / deltaY;
+		tMaxY = (1 - fmod(startPos.y + extents.y, 1)) / delta.y;
 	}
 	else {
-		vy = startY - extY;
+		vy = startPos.y - extents.y;
 		stepY = -1;
-		tMaxY = fmod(startY - extY, 1) / -deltaY;
+		tMaxY = fmod(startPos.y - extents.y, 1) / -delta.y;
 	}
 
-	if (deltaZ >= 0) {
-		vz = startZ + extZ*2;
+	if (delta.z >= 0) {
+		vz = startPos.z + extents.z*2;
 		stepZ = 1;
-		tMaxZ = (1 - fmod(startZ + extZ*2, 1)) / deltaZ;
+		tMaxZ = (1 - fmod(startPos.z + extents.z*2, 1)) / delta.z;
 	}
 	else {
-		vz = startZ;
+		vz = startPos.z;
 		stepZ = -1;
-		tMaxZ = fmod(startZ, 1) / -deltaZ;
+		tMaxZ = fmod(startPos.z, 1) / -delta.z;
 	}
 
-	double tDeltaX = fabs(1 / deltaX);
-	double tDeltaY = fabs(1 / deltaY);
-	double tDeltaZ = fabs(1 / deltaZ);
+	double tDeltaX = fabs(1 / delta.x);
+	double tDeltaY = fabs(1 / delta.y);
+	double tDeltaZ = fabs(1 / delta.z);
 
 	int failsafe = 0;
 	bool bail = false;
@@ -579,29 +551,25 @@ VoxelTraceRes Voxels::iTraceHull(double startX, double startY, double startZ, do
 		
 		if (dir == DIR_X_POS || dir == DIR_X_NEG) {
 			double t = tMaxX - tDeltaX;
-			double baseY = startY + t*deltaY;
-			double baseZ = startZ + t*deltaZ;
-			for (int iy = baseY - extY; iy <= baseY + extY; iy++) {
-				for (int iz = baseZ; iz <= baseZ + extZ * 2; iz++) {
+			double baseY = startPos.y + t*delta.y;
+			double baseZ = startPos.z + t*delta.z;
+			for (int iy = baseY - extents.y; iy <= baseY + extents.y; iy++) {
+				for (int iz = baseZ; iz <= baseZ + extents.z * 2; iz++) {
 					uint16 vdata = get(vx, iy, iz);
 					VoxelType& vt = voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
 						res.fraction = t;
-						res.normY = 0;
-						res.normZ = 0;
 
-						res.hitX = startX + res.fraction*deltaX;
-						res.hitY = startY + res.fraction*deltaY;
-						res.hitZ = startZ + res.fraction*deltaZ;
+						res.hitPos = startPos + res.fraction*delta;
 
 						if (dir == DIR_X_POS) {
-							res.normX = -1;
-							res.hitX -= .00002;
+							res.hitNormal.x = -1;
+							res.hitPos.x -= .00002;
 						}
 						else {
-							res.normX = 1;
-							res.hitX += .00002;
+							res.hitNormal.x = 1;
+							res.hitPos.x += .00002;
 						}
 						return res;
 					}
@@ -610,29 +578,25 @@ VoxelTraceRes Voxels::iTraceHull(double startX, double startY, double startZ, do
 		}
 		else if (dir == DIR_Y_POS || dir == DIR_Y_NEG) {
 			double t = tMaxY - tDeltaY;
-			double baseX = startX + t*deltaX;
-			double baseZ = startZ + t*deltaZ;
-			for (int ix = baseX - extX; ix <= baseX + extX; ix++) {
-				for (int iz = baseZ; iz <= baseZ + extZ * 2; iz++) {
+			double baseX = startPos.x + t*delta.x;
+			double baseZ = startPos.z + t*delta.z;
+			for (int ix = baseX - extents.x; ix <= baseX + extents.x; ix++) {
+				for (int iz = baseZ; iz <= baseZ + extents.z * 2; iz++) {
 					uint16 vdata = get(ix, vy, iz);
 					VoxelType& vt = voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
 						res.fraction = t;
-						res.normX = 0;
-						res.normZ = 0;
 
-						res.hitX = startX + res.fraction*deltaX;
-						res.hitY = startY + res.fraction*deltaY;
-						res.hitZ = startZ + res.fraction*deltaZ;
+						res.hitPos = startPos + res.fraction*delta;
 
 						if (dir == DIR_Y_POS) {
-							res.normY = -1;
-							res.hitY -= .00002;
+							res.hitNormal.y = -1;
+							res.hitPos.y -= .00002;
 						}
 						else {
-							res.normY = 1;
-							res.hitY += .00002;
+							res.hitNormal.y = 1;
+							res.hitNormal.y += .00002;
 						}
 						return res;
 					}
@@ -641,29 +605,25 @@ VoxelTraceRes Voxels::iTraceHull(double startX, double startY, double startZ, do
 		}
 		else {
 			double t = tMaxZ - tDeltaZ;
-			double baseX = startX + t*deltaX;
-			double baseY = startY + t*deltaY;
-			for (int ix = baseX-extX; ix <= baseX+extX; ix++) {
-				for (int iy = baseY-extY; iy <= baseY+extY; iy++) {
+			double baseX = startPos.x + t*delta.x;
+			double baseY = startPos.y + t*delta.y;
+			for (int ix = baseX-extents.x; ix <= baseX+extents.x; ix++) {
+				for (int iy = baseY-extents.y; iy <= baseY+extents.y; iy++) {
 					uint16 vdata = get(ix, iy, vz);
 					VoxelType& vt = voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
 						res.fraction = t;
-						res.normX = 0;
-						res.normY = 0;
 
-						res.hitX = startX + res.fraction*deltaX;
-						res.hitY = startY + res.fraction*deltaY;
-						res.hitZ = startZ + res.fraction*deltaZ;
+						res.hitPos = startPos + res.fraction*delta;
 						
 						if (dir == DIR_Z_POS) {
-							res.normZ = -1;
-							res.hitZ -= .00002;
+							res.hitNormal.z = -1;
+							res.hitPos.z -= .00002;
 						}
 						else {
-							res.normZ = 1;
-							res.hitZ += .00002;
+							res.hitNormal.z = 1;
+							res.hitPos.z += .00002;
 						}
 						return res;
 					}
@@ -681,7 +641,7 @@ void Voxels::draw() {
 	if (cl_atlasMaterial == nullptr)
 		return;
 
-	CMatRenderContextPtr pRenderContext(iface_materials);
+	CMatRenderContextPtr pRenderContext(iface_cl_materials);
 
 	//Bind material
 	pRenderContext->Bind(cl_atlasMaterial);
@@ -873,7 +833,7 @@ void VoxelChunk::send(int sys_index, int ply_id, bool init, int chunk_num) {
 */
 void VoxelChunk::meshClearAll() {
 	if (STATE_CLIENT) {
-		CMatRenderContextPtr pRenderContext(iface_materials);
+		CMatRenderContextPtr pRenderContext(iface_cl_materials);
 
 		while (meshes.begin() != meshes.end()) {
 			pRenderContext->DestroyStaticMesh(*meshes.begin());
@@ -882,7 +842,7 @@ void VoxelChunk::meshClearAll() {
 	}
 	else {
 		if (phys_obj!=nullptr) {
-			IPhysicsEnvironment* env = iface_physics->GetActiveEnvironmentByIndex(0);
+			IPhysicsEnvironment* env = iface_sv_physics->GetActiveEnvironmentByIndex(0);
 			phys_obj->SetGameData(nullptr);
 			phys_obj->EnableCollisions(false);
 			phys_obj->RecheckCollisionFilter();
@@ -891,14 +851,14 @@ void VoxelChunk::meshClearAll() {
 			phys_obj = nullptr;
 
 			//Not sure if we should be calling this, but it may be required to prevent a leak.
-			iface_collision->DestroyCollide(phys_collider);
+			iface_sv_collision->DestroyCollide(phys_collider);
 		}
 	}
 }
 
 void VoxelChunk::meshStart() {
 	if (STATE_CLIENT) {
-		CMatRenderContextPtr pRenderContext(iface_materials);
+		CMatRenderContextPtr pRenderContext(iface_cl_materials);
 		current_mesh = pRenderContext->CreateStaticMesh(STD_VERT_FMT, "");
 
 		//try MATERIAL_INSTANCED_QUADS
@@ -907,7 +867,7 @@ void VoxelChunk::meshStart() {
 		verts_remaining = BUILD_MAX_VERTS;
 	}
 	else {
-		phys_soup = iface_collision->PolysoupCreate();
+		phys_soup = iface_sv_collision->PolysoupCreate();
 	}
 }
 
@@ -916,7 +876,7 @@ void VoxelChunk::meshStop(CBaseEntity* ent, const Vector& pos) {
 		meshBuilder.End();
 
 		if (verts_remaining == BUILD_MAX_VERTS) {
-			CMatRenderContextPtr pRenderContext(iface_materials);
+			CMatRenderContextPtr pRenderContext(iface_cl_materials);
 			pRenderContext->DestroyStaticMesh(current_mesh);
 		}
 		else {
@@ -924,8 +884,8 @@ void VoxelChunk::meshStop(CBaseEntity* ent, const Vector& pos) {
 		}
 	}
 	else {
-		phys_collider = iface_collision->ConvertPolysoupToCollide(phys_soup, false); //todo what the fuck is MOPP?
-		iface_collision->PolysoupDestroy(phys_soup);
+		phys_collider = iface_sv_collision->ConvertPolysoupToCollide(phys_soup, false); //todo what the fuck is MOPP?
+		iface_sv_collision->PolysoupDestroy(phys_soup);
 
 		objectparams_t op = { 0 };
 		op.enableCollisions = true;
@@ -937,7 +897,7 @@ void VoxelChunk::meshStop(CBaseEntity* ent, const Vector& pos) {
 		//vox_print("v %f %f %f :: %f %f %f", sys_bounds.x, sys_bounds.y, sys_bounds.z, pos.x, pos.y, pos.z);
 
 		//vox_print("pre-create");
-		IPhysicsEnvironment* env = iface_physics->GetActiveEnvironmentByIndex(0);
+		IPhysicsEnvironment* env = iface_sv_physics->GetActiveEnvironmentByIndex(0);
 		phys_obj = env->CreatePolyObjectStatic(phys_collider, 3, pos, QAngle(0, 0, 0), &op);
 		//vox_print("post-create");
 		//CALLBACK_NEVER_DELETED
@@ -1130,7 +1090,7 @@ void VoxelChunk::addFullVoxelFace(int x, int y, int z, int tx, int ty, byte dir)
 			v4 = Vector(realX, realY + realStep, realZ + realStep);
 		}
 
-		iface_collision->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
-		iface_collision->PolysoupAddTriangle(phys_soup, v1, v3, v4, 3);
+		iface_sv_collision->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
+		iface_sv_collision->PolysoupAddTriangle(phys_soup, v1, v3, v4, 3);
 	}
 }

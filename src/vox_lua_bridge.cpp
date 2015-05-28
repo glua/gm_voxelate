@@ -34,9 +34,9 @@ int luaf_voxInit(lua_State* state) {
 
 			LUA->GetField(2, "atlasMaterial");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::STRING))
-				v->cl_atlasMaterial = iface_materials->FindMaterial(LUA->GetString(-1), nullptr);
+				v->cl_atlasMaterial = iface_cl_materials->FindMaterial(LUA->GetString(-1), nullptr);
 			else
-				v->cl_atlasMaterial = iface_materials->FindMaterial("models/debug/debugwhite", nullptr);
+				v->cl_atlasMaterial = iface_cl_materials->FindMaterial("models/debug/debugwhite", nullptr);
 			v->cl_atlasMaterial->IncrementReferenceCount();
 			v->cl_pixel_bias_x = 1.0 / v->cl_atlasMaterial->GetMappingWidth();
 			v->cl_pixel_bias_y = 1.0 / v->cl_atlasMaterial->GetMappingHeight();
@@ -100,11 +100,10 @@ int luaf_voxInit(lua_State* state) {
 	LUA->GetField(2, "_ent");
 	LUA->GetField(-1, "_initMisc");
 	LUA->Push(-2);
-	double x, y, z;
-	v->getRealSize(x,y,z);
-	LUA->PushNumber(x);
-	LUA->PushNumber(y);
-	LUA->PushNumber(z);
+	Vector extents = v->getExtents();
+	LUA->PushNumber(extents.x);
+	LUA->PushNumber(extents.y);
+	LUA->PushNumber(extents.z);
 	LUA->Call(4, 0);
 	LUA->Pop();
 
@@ -338,48 +337,23 @@ int luaf_ENT_TestCollision(lua_State* state) {
 		LUA->Push(1);
 		LUA->Call(1, 1);
 
-		LUA->GetField(-1, "x");
-		double offX = LUA->GetNumber();
-		LUA->GetField(-2, "y");
-		double offY = LUA->GetNumber();
-		LUA->GetField(-3, "z");
-		double offZ = LUA->GetNumber();
-		LUA->Pop(4);
+		Vector offset = elua_getVector(state, -1);
+		LUA->Pop();
 
-		LUA->GetField(2, "x");
-		double startX = LUA->GetNumber();
-		LUA->GetField(2, "y");
-		double startY = LUA->GetNumber();
-		LUA->GetField(2, "z");
-		double startZ = LUA->GetNumber();
-		LUA->Pop(3);
+		Vector start = elua_getVector(state, 2);
 
-		startX -= offX;
-		startY -= offY;
-		startZ -= offZ;
+		start -= offset;
 
-		LUA->GetField(3, "x");
-		double deltaX = LUA->GetNumber();
-		LUA->GetField(3, "y");
-		double deltaY = LUA->GetNumber();
-		LUA->GetField(3, "z");
-		double deltaZ = LUA->GetNumber();
-		LUA->Pop(3);
+		Vector delta = elua_getVector(state, 3);
 
 		VoxelTraceRes r;
 		if (LUA->GetBool(4)) {
-			LUA->GetField(5, "x");
-			double extX = LUA->GetNumber();
-			LUA->GetField(5, "y");
-			double extY = LUA->GetNumber();
-			LUA->GetField(5, "z");
-			double extZ = LUA->GetNumber();
-			LUA->Pop(3);
+			Vector extents = elua_getVector(state,5);
 
-			r = v->doTraceHull(startX, startY, startZ, deltaX, deltaY, deltaZ, extX, extY, extZ);
+			r = v->doTraceHull(start, delta, extents);
 		}
 		else {
-			r = v->doTrace(startX, startY, startZ, deltaX, deltaY, deltaZ);
+			r = v->doTrace(start, delta);
 		}
 
 		if (r.fraction != -1) {
@@ -393,15 +367,15 @@ int luaf_ENT_TestCollision(lua_State* state) {
 			LUA->GetField(-1, "Vector"); //HitPos, Fraction and Normal
 			LUA->Push(-1);
 
-			LUA->PushNumber(r.hitX+offX);
-			LUA->PushNumber(r.hitY+offY);
-			LUA->PushNumber(r.hitZ+offZ);
+			LUA->PushNumber(r.hitPos.x+offset.x);
+			LUA->PushNumber(r.hitPos.y+offset.y);
+			LUA->PushNumber(r.hitPos.z+offset.z);
 			LUA->Call(3, 1);
 			LUA->SetField(-4, "HitPos");
 
-			LUA->PushNumber(r.normX);
-			LUA->PushNumber(r.normY);
-			LUA->PushNumber(r.normZ);
+			LUA->PushNumber(r.hitNormal.x);
+			LUA->PushNumber(r.hitNormal.y);
+			LUA->PushNumber(r.hitNormal.z);
 			LUA->Call(3, 1);
 			LUA->SetField(-3, "Normal");
 
