@@ -145,7 +145,7 @@ VoxelChunk* Voxels::getChunk(int x, int y, int z) {
 
 const int Voxels::getChunkData(int chunk_num,char* out) {
 	if (chunk_num >= 0 && chunk_num < _dimX*_dimY*_dimZ) {
-		const char* input = (const char*)(chunks[chunk_num]->voxel_data);
+		const char* input = reinterpret_cast<const char*>(chunks[chunk_num]->voxel_data);
 
 		return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
 	}

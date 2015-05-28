@@ -13,9 +13,9 @@ CBaseEntity* elua_getEntity(lua_State* state, int index) {
 	if (STATE_CLIENT)
 		return nullptr;
 
-	GarrysMod::Lua::UserData* ud = (GarrysMod::Lua::UserData*)(LUA->GetUserdata(index));
+	GarrysMod::Lua::UserData* ud = reinterpret_cast<GarrysMod::Lua::UserData*>(LUA->GetUserdata(index));
 
-	int e_index = ((CBaseHandle*)(ud->data))->GetEntryIndex();
+	int e_index = reinterpret_cast<CBaseHandle*>(ud->data)->GetEntryIndex();
 
 	auto edict = iface_sv_ents->PEntityOfEntIndex(e_index);
 
@@ -25,8 +25,8 @@ CBaseEntity* elua_getEntity(lua_State* state, int index) {
 }
 
 Vector elua_getVector(lua_State* state, int index) {
-	GarrysMod::Lua::UserData* ud = (GarrysMod::Lua::UserData*)(LUA->GetUserdata(index));
-	Vector v = *((Vector*)(ud->data));
+	GarrysMod::Lua::UserData* ud = reinterpret_cast<GarrysMod::Lua::UserData*>(LUA->GetUserdata(index));
+	Vector v = *reinterpret_cast<Vector*>(ud->data);
 	return v;
 }
 
@@ -123,7 +123,7 @@ int luaf_voxInit(lua_State* state) {
 		LUA->PushNil();
 		while (LUA->Next(-2)) {
 			if (LUA->IsType(-2, GarrysMod::Lua::Type::NUMBER)) {
-				VoxelType& vt = v->voxelTypes[(int)LUA->GetNumber(-2)];
+				VoxelType& vt = v->voxelTypes[static_cast<int>(LUA->GetNumber(-2))];
 				vt.form = VFORM_CUBE;
 				if (LUA->IsType(-1, GarrysMod::Lua::Type::TABLE)) {
 					LUA->GetField(-1, "atlasIndex");
@@ -370,9 +370,6 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushCFunction(luaf_voxUpdate);
 	LUA->SetField(-2, "voxUpdate");
 
-	//LUA->PushCFunction(luaf_ENT_Think);
-	//LUA->SetField(-2, "ENT_Think");
-
 	LUA->PushCFunction(luaf_ENT_TestCollision);
 	LUA->SetField(-2, "ENT_TestCollision");
 
@@ -386,8 +383,6 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->SetField(-2, "VERSION");
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
-
-	//init_lua_net(state);
 
 	LUA->GetField(-1, "RunString");
 	LUA->PushString(LUA_SRC);
