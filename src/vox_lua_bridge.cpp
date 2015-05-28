@@ -104,8 +104,8 @@ int luaf_voxInit(lua_State* state) {
 	if (LUA->IsType(-1, GarrysMod::Lua::Type::VECTOR)) {
 		Vector dims = elua_getVector(state, -1);
 		v->_dimX = dims.x;
-		v->_dimX = dims.y;
-		v->_dimX = dims.z;
+		v->_dimY = dims.y;
+		v->_dimZ = dims.z;
 	}
 	LUA->Pop();
 
