@@ -7,6 +7,31 @@
 
 using namespace GarrysMod::Lua;
 
+//Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
+
+CBaseEntity* elua_getEntity(lua_State* state, int index) {
+	if (STATE_CLIENT)
+		return nullptr;
+
+	GarrysMod::Lua::UserData* ud = (GarrysMod::Lua::UserData*)(LUA->GetUserdata(index));
+
+	int e_index = ((CBaseHandle*)(ud->data))->GetEntryIndex();
+
+	auto edict = iface_sv_ents->PEntityOfEntIndex(e_index);
+
+	if (edict == nullptr)
+		return nullptr;
+	return edict->GetUnknown()->GetBaseEntity();
+}
+
+Vector elua_getVector(lua_State* state, int index) {
+	GarrysMod::Lua::UserData* ud = (GarrysMod::Lua::UserData*)(LUA->GetUserdata(index));
+	Vector v = *((Vector*)(ud->data));
+	return v;
+}
+
+
+
 int luaf_voxNew(lua_State* state) {
 	LUA->PushNumber(newIndexedVoxels(LUA->GetNumber(1)));
 
@@ -56,13 +81,10 @@ int luaf_voxInit(lua_State* state) {
 
 	LUA->GetField(2, "dimensions");
 	if (LUA->IsType(-1, GarrysMod::Lua::Type::VECTOR)) {
-		LUA->GetField(-1, "x");
-		v->_dimX = LUA->GetNumber(-1);
-		LUA->GetField(-2, "y");
-		v->_dimY = LUA->GetNumber(-1);
-		LUA->GetField(-3, "z");
-		v->_dimZ = LUA->GetNumber(-1);
-		LUA->Pop(3);
+		Vector dims = elua_getVector(state, -1);
+		v->_dimX = dims.x;
+		v->_dimX = dims.y;
+		v->_dimX = dims.z;
 	}
 	LUA->Pop();
 
@@ -221,27 +243,6 @@ int luaf_voxSet(lua_State* state) {
 	return 0;
 }
 
-CBaseEntity* elua_getEntity(lua_State* state,int index) {
-	if (STATE_CLIENT)
-		return nullptr;
-
-	GarrysMod::Lua::UserData* ud = (GarrysMod::Lua::UserData*)(LUA->GetUserdata(index));
-
-	int e_index = ((CBaseHandle*)(ud->data))->GetEntryIndex();
-
-	auto edict = iface_sv_ents->PEntityOfEntIndex(e_index);
-
-	if (edict==nullptr)
-		return nullptr;
-	return edict->GetUnknown()->GetBaseEntity();
-}
-
-Vector elua_getVector(lua_State* state, int index) {
-	GarrysMod::Lua::UserData* ud = (GarrysMod::Lua::UserData*)(LUA->GetUserdata(index));
-	Vector v = *((Vector*)(ud->data));
-	return v;
-}
-
 int luaf_voxUpdate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 	int chunk_count = LUA->GetNumber(2);
@@ -256,69 +257,6 @@ int luaf_voxUpdate(lua_State* state) {
 	
 	return 0;
 }
-/*
-int luaf_ENT_Think(lua_State* state) {
-	LUA->GetField(1, "GetInternalIndex");
-	LUA->Push(1);
-	LUA->Call(1, 1);
-	int index = LUA->GetNumber();
-	LUA->Pop();
-	
-	Voxels* v = getIndexedVoxels(index);
-	if (v != nullptr) {
-		CBaseEntity* ent;
-		Vector pos;
-		
-		if (STATE_SERVER) {
-			//v->doTransmit(index);
-
-			LUA->GetField(1, "EntIndex");
-			LUA->Push(1);
-			LUA->Call(1, 1);
-			int e_index = LUA->GetNumber();
-			LUA->Pop();
-
-			ent = iface_sv_ents->PEntityOfEntIndex(e_index)->GetUnknown()->GetBaseEntity();
-
-			LUA->GetField(1, "GetPos");
-			LUA->Push(1);
-			LUA->Call(1, 1);
-
-			LUA->GetField(-1, "x");
-			pos.x = LUA->GetNumber();
-			LUA->GetField(-2, "y");
-			pos.y = LUA->GetNumber();
-			LUA->GetField(-3, "z");
-			pos.z = LUA->GetNumber();
-			LUA->Pop(4);
-
-			vox_print("real-> %i", e_index);
-		}
-
-		v->doUpdates(10, ent, pos);
-		elua_getEntity(state, 1);
-	}
-
-	if (STATE_SERVER) {
-		LUA->PushSpecial(SPECIAL_GLOB);
-		LUA->GetField(-1, "CurTime");
-		LUA->Call(0, 1);
-		double t = LUA->GetNumber();
-		LUA->Pop(2);
-
-		LUA->GetField(1, "NextThink");
-		LUA->Push(1);
-		LUA->PushNumber(t);
-		LUA->Call(2, 0);
-
-		LUA->PushBool(true);
-
-		return 1;
-	}
-	else {
-		return 0;
-	}
-}*/
 
 int luaf_ENT_TestCollision(lua_State* state) {
 	LUA->GetField(1, "GetInternalIndex");
@@ -334,7 +272,6 @@ int luaf_ENT_TestCollision(lua_State* state) {
 		LUA->Call(1, 1);
 
 		Vector offset = elua_getVector(state, -1);
-		LUA->Pop();
 
 		Vector start = elua_getVector(state, 2);
 

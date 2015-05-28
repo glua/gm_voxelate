@@ -1,3 +1,5 @@
+#include "vox_util.h"
+
 #include "tier0/dbg.h"
 #include "Color.h"
 
@@ -16,4 +18,9 @@ void vox_print(const char* msg, ...) {
 	ConMsg("] ");
 	ConMsg(buffer);
 	ConMsg("\n");
+}
+
+Vector eent_getPos(CBaseEntity* ent) {
+	byte* pos_ptr = reinterpret_cast<byte*>(ent)+772;
+	return *reinterpret_cast<Vector*>(pos_ptr);
 }

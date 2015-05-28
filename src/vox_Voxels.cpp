@@ -871,11 +871,6 @@ void VoxelChunk::meshStart() {
 	}
 }
 
-Vector eent_getPos(CBaseEntity* ent) {
-	byte* pos_ptr = reinterpret_cast<byte*>(ent)+772;
-	return *reinterpret_cast<Vector*>(pos_ptr);
-}
-
 void VoxelChunk::meshStop(CBaseEntity* ent) {
 	if (STATE_CLIENT) {
 		meshBuilder.End();
@@ -897,17 +892,10 @@ void VoxelChunk::meshStop(CBaseEntity* ent) {
 		op.pGameData = static_cast<void *>(ent);
 		op.pName = "voxels";
 
-		//Vector sys_bounds = Vector(VOXEL_CHUNK_SIZE*system->_dimX*system->_scale, VOXEL_CHUNK_SIZE*system->_dimY*system->_scale, VOXEL_CHUNK_SIZE*system->_dimZ*system->_scale);
-		//Vector pos = ent->WorldSpaceCenter() + sys_bounds / 2;
-		//vox_print("v %f %f %f :: %f %f %f", sys_bounds.x, sys_bounds.y, sys_bounds.z, pos.x, pos.y, pos.z);
-
-		//vox_print("pre-create");
 		Vector pos = eent_getPos(ent);
 
 		IPhysicsEnvironment* env = iface_sv_physics->GetActiveEnvironmentByIndex(0);
 		phys_obj = env->CreatePolyObjectStatic(phys_collider, 3, pos, QAngle(0, 0, 0), &op);
-		//vox_print("post-create");
-		//CALLBACK_NEVER_DELETED
 	}
 }
 
