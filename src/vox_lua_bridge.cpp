@@ -385,9 +385,6 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");
 
-	elua_pushVector(state, Vector(10, 20, 30));
-	LUA->SetField(-2, "TEST_VECTOR");
-
 	LUA->SetField(-2, "G_VOX_IMPORTS");
 
 	//init_lua_net(state);
