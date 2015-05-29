@@ -231,7 +231,8 @@ int luaf_voxData(lua_State* state) {
 	Voxels* v = getIndexedVoxels(index);
 	
 	if (v == nullptr) {
-		return 0;
+		LUA->PushBool(false);
+		return 1;
 	}
 
 	int chunk_n = LUA->GetNumber(2);
@@ -240,7 +241,8 @@ int luaf_voxData(lua_State* state) {
 
 	int out_len = v->getChunkData(chunk_n, data);
 	if (out_len == 0) {
-		return 0;
+		LUA->PushBool(true);
+		return 1;
 	}
 
 	LUA->PushString(data,out_len);
@@ -256,17 +258,56 @@ int luaf_voxInitChunk(lua_State* state) {
 		unsigned int len;
 		const char* data = LUA->GetString(3, &len);
 		
-		v->addChunk(LUA->GetNumber(2), data, len);
+		v->setChunkData(LUA->GetNumber(2),data,len);
 	}
 	return 0;
 }
 
-int luaf_voxInitFinish(lua_State* state) {
+int luaf_voxEnableMeshGeneration(lua_State* state) {
+	int index = LUA->GetNumber(1);
+	bool enable = LUA->GetBool(2);
+
+	Voxels* v = getIndexedVoxels(index);
+	if (v) {
+		v->enableUpdates(enable);
+	}
+
+	return 0;
+}
+
+int luaf_voxFlagAllChunksForUpdate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	Voxels* v = getIndexedVoxels(index);
-	if (v != nullptr) {
+	if (v) {
 		v->flagAllChunksForUpdate();
+	}
+
+	return 0;
+}
+
+int luaf_voxGenerate(lua_State* state) {
+	int index = LUA->GetNumber(1);
+
+	Voxels* v = getIndexedVoxels(index);
+	if (v) {
+		int mx, my, mz;
+		v->getCellExtents(mx, my, mz);
+		for (int x = 0; x < mx; x++) {
+			for (int y = 0; y < my; y++) {
+				for (int z = 0; z < mz; z++) {
+					LUA->Push(2);
+					LUA->PushNumber(x);
+					LUA->PushNumber(y);
+					LUA->PushNumber(z);
+					LUA->Call(3, 1);
+					int d = LUA->GetNumber();
+					LUA->Pop();
+
+					v->set(x, y, z, d, false);
+				}
+			}
+		}
 	}
 
 	return 0;
@@ -392,14 +433,20 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushCFunction(luaf_voxInitChunk);
 	LUA->SetField(-2, "voxInitChunk");
 
-	LUA->PushCFunction(luaf_voxInitFinish);
-	LUA->SetField(-2, "voxInitFinish");
+	LUA->PushCFunction(luaf_voxEnableMeshGeneration);
+	LUA->SetField(-2, "voxEnableMeshGeneration");
+
+	LUA->PushCFunction(luaf_voxFlagAllChunksForUpdate);
+	LUA->SetField(-2, "voxFlagAllChunksForUpdate");
 
 	LUA->PushCFunction(luaf_voxUpdate);
 	LUA->SetField(-2, "voxUpdate");
 
 	LUA->PushCFunction(luaf_ENT_TestCollision);
 	LUA->SetField(-2, "ENT_TestCollision");
+
+	LUA->PushCFunction(luaf_voxGenerate);
+	LUA->SetField(-2, "voxGenerate");
 
 	LUA->PushCFunction(luaf_voxGet);
 	LUA->SetField(-2, "voxGet");

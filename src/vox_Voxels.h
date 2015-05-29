@@ -82,22 +82,23 @@ class Voxels {
 	friend class VoxelChunk;
 public:
 	~Voxels();
-	
-	uint16 generate(int x, int y, int z);
 
-	VoxelChunk* addChunk(int chunk_num, const char* data_compressed, int data_len);
+	VoxelChunk* addChunk(int chunk_num);
 	VoxelChunk* getChunk(int x, int y, int z);
 
-	void flagAllChunksForUpdate();
-
 	const int getChunkData(int chunk_num, char* out);
+	void setChunkData(int chunk_num, const char* data_compressed, int data_len);
 
 	void initialize(VoxelConfig* config);
 	bool isInitialized();
 
 	Vector getExtents();
+	void getCellExtents(int& x, int &y, int &z);
+
+	void flagAllChunksForUpdate();
 
 	void doUpdates(int count, CBaseEntity* ent);
+	void enableUpdates(bool enable);
 
 	VoxelTraceRes doTrace(Vector startPos, Vector delta);
 	VoxelTraceRes doTraceHull(Vector startPos, Vector delta, Vector extents);
@@ -108,10 +109,12 @@ public:
 	void draw();
 
 	uint16 get(int x, int y, int z);
-	bool set(int x, int y, int z, uint16 d);
+	bool set(int x, int y, int z, uint16 d,bool flagChunks=true);
 private:
 	VoxelChunk** chunks = nullptr;
 	std::set<VoxelChunk*> chunks_flagged_for_update;
+
+	bool updates_enabled = false;
 
 	VoxelConfig* config = nullptr;
 };
@@ -119,13 +122,13 @@ private:
 
 class VoxelChunk {
 public:
-	VoxelChunk(Voxels* sys, int x, int y, int z, bool generate);
+	VoxelChunk(Voxels* sys, int x, int y, int z);
 	~VoxelChunk();
 	void build(CBaseEntity* ent);
 	void draw(CMatRenderContextPtr& pRenderContext);
 
 	uint16 get(int x, int y, int z);
-	void set(int x, int y, int z, uint16 d);
+	void set(int x, int y, int z, uint16 d, bool flagChunks);
 
 	uint16 voxel_data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = {};
 private:

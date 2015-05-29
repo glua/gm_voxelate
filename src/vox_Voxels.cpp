@@ -77,40 +77,12 @@ Voxels::~Voxels() {
 		delete config;
 }
 
-uint16 Voxels::generate(int x, int y, int z) {
-	if (z < 40) {
-		return 5;
-	}
-	else if (z < 49) {
-		return 8;
-	}
-	else if (z < 50) {
-		return 1;
-	}
-	else if (z == 50) {
-		if (x > 315 && x<325 && y>316 && y<324) {
-			if (x>316 && x < 324 && y>317 && y < 323) {
-				return 6;
-			}
-			return 5;
-		}
-	}
-	return 0;
-}
-
-VoxelChunk* Voxels::addChunk(int chunk_num, const char* data_compressed, int data_len) {
+VoxelChunk* Voxels::addChunk(int chunk_num) {
 	int x = chunk_num%config->dimX;
 	int y = (chunk_num/config->dimX)%config->dimY;
 	int z = (chunk_num /config->dimX/config->dimY)%config->dimZ;
 
-	if (chunks[chunk_num] != nullptr)
-		delete chunks[chunk_num];
-
-	chunks[chunk_num] = new VoxelChunk(this,x,y,z,!data_compressed);
-	if (data_compressed)
-		fastlz_decompress(data_compressed, data_len, chunks[chunk_num]->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
-	
-
+	chunks[chunk_num] = new VoxelChunk(this,x,y,z);
 
 	return chunks[chunk_num];
 }
@@ -131,11 +103,10 @@ const int Voxels::getChunkData(int chunk_num,char* out) {
 	return 0;
 }
 
-void Voxels::flagAllChunksForUpdate() {
-	for (int i = 0; i < config->dimX*config->dimY*config->dimZ; i++) {
-		if (chunks[i] != nullptr) {
-			chunks_flagged_for_update.insert(chunks[i]);
-		}
+void Voxels::setChunkData(int chunk_num, const char* data_compressed, int data_len) {
+	if (chunk_num >= 0 && chunk_num < config->dimX*config->dimY*config->dimZ) {
+		fastlz_decompress(data_compressed, data_len, chunks[chunk_num]->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
+		//chunks_flagged_for_update.insert(chunks[chunk_num]);
 	}
 }
 
@@ -144,11 +115,8 @@ void Voxels::initialize(VoxelConfig* config) {
 
 	chunks = new VoxelChunk*[config->dimX*config->dimY*config->dimZ]();
 
-	if (STATE_SERVER) {
-		for (int i = 0; i < config->dimX*config->dimY*config->dimZ; i++) {
-			addChunk(i, 0, 0);
-		}
-		flagAllChunksForUpdate();
+	for (int i = 0; i < config->dimX*config->dimY*config->dimZ; i++) {
+		addChunk(i);
 	}
 }
 
@@ -165,8 +133,20 @@ Vector Voxels::getExtents() {
 	);
 }
 
+void Voxels::getCellExtents(int& x, int &y, int &z) {
+	x = config->dimX*VOXEL_CHUNK_SIZE;
+	y = config->dimY*VOXEL_CHUNK_SIZE;
+	z = config->dimZ*VOXEL_CHUNK_SIZE;
+}
+
+void Voxels::flagAllChunksForUpdate() {
+	for (int i = 0; i < config->dimX* config->dimY*config->dimZ; i++) {
+		chunks_flagged_for_update.insert(chunks[i]);
+	}
+}
+
 void Voxels::doUpdates(int count, CBaseEntity* ent) {
-	if (STATE_CLIENT || (config->sv_useMeshCollisions && ent!=nullptr)) {
+	if (updates_enabled && (STATE_CLIENT || ent!=nullptr)) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
@@ -174,6 +154,11 @@ void Voxels::doUpdates(int count, CBaseEntity* ent) {
 			chunks_flagged_for_update.erase(iter);
 		}
 	}
+}
+
+void Voxels::enableUpdates(bool enable) {
+	if (STATE_CLIENT || (config->sv_useMeshCollisions))
+		updates_enabled = enable;
 }
 
 VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
@@ -529,7 +514,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 
 void Voxels::draw() {
 	IMaterial* atlasMat = config->cl_atlasMaterial;
-	if (atlasMat == nullptr) //shitty check to see if initialized
+	if (!isInitialized())
 		return;
 
 	CMatRenderContextPtr pRenderContext(iface_cl_materials);
@@ -568,28 +553,20 @@ uint16 Voxels::get(int x, int y, int z) {
 	return chunk->get(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE);
 }
 
-bool Voxels::set(int x, int y, int z, uint16 d) {
+bool Voxels::set(int x, int y, int z, uint16 d, bool flagChunks) {
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr)
 		return false;
 
-	chunk->set(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE, d);
+	chunk->set(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE, d, flagChunks);
 	return true;
 }
 
-VoxelChunk::VoxelChunk(Voxels* sys,int cx, int cy, int cz, bool generate) {
+VoxelChunk::VoxelChunk(Voxels* sys,int cx, int cy, int cz) {
 	system = sys;
 	posX = cx;
 	posY = cy;
 	posZ = cz;
-
-	for (int x = 0; x < VOXEL_CHUNK_SIZE; x++) {
-		for (int y = 0; y < VOXEL_CHUNK_SIZE; y++) {
-			for (int z = 0; z < VOXEL_CHUNK_SIZE; z++) {
-				voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = system->generate(x + VOXEL_CHUNK_SIZE*posX, y + VOXEL_CHUNK_SIZE*posY, z + VOXEL_CHUNK_SIZE*posZ);
-			}
-		}
-	}
 }
 
 VoxelChunk::~VoxelChunk() {
@@ -709,8 +686,11 @@ uint16 VoxelChunk::get(int x, int y, int z) {
 	return voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE];
 }
 
-void VoxelChunk::set(int x, int y, int z, uint16 d) {
+void VoxelChunk::set(int x, int y, int z, uint16 d, bool flagChunks) {
 	voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = d;
+
+	if (!flagChunks)
+		return;
 
 	system->chunks_flagged_for_update.insert(this);
 

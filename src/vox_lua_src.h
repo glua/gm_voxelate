@@ -49,6 +49,7 @@ if SERVER then
 	util.AddNetworkString("voxelate_init_start")
 	util.AddNetworkString("voxelate_init_chunks")
 	util.AddNetworkString("voxelate_init_finish")
+	util.AddNetworkString("voxelate_init_restart")
 
 	util.AddNetworkString("voxelate_explicit_delete")
 
@@ -57,11 +58,20 @@ if SERVER then
 	util.AddNetworkString("voxelate_set_sphere")
 
 	local INIT_TASKS = {}
+	local COMPLETED_TASKS = {}
+
+	hook.Add("PlayerAuthed","voxelate_ply_join",function(ply)
+		INIT_TASKS[ply]={}
+		COMPLETED_TASKS[ply] = {}
+	end)
+
+	hook.Add("PlayerDisconnected","voxelate_ply_leave",function(ply)
+		INIT_TASKS[ply]=nil
+		COMPLETED_TASKS[ply]=nil
+	end)
 
 	hook.Add("Tick","voxelate_stream_tick",function()
-		local to_delete = {}
 		for ply,tasks in pairs(INIT_TASKS) do
-			if !IsValid(ply) then table.insert(to_delete,ply) continue end
 			local to_delete = {}
 			for index,step in pairs(tasks) do
 				local size_limit = 2000
@@ -69,8 +79,8 @@ if SERVER then
 				net.Start("voxelate_init_chunks")
 				net.WriteUInt(index,16)
 				while size_written<size_limit do
-					local data = IMPORTS.voxData(index,step)				
-					if !data then table.insert(to_delete,index) break end
+					local data = IMPORTS.voxData(index,step)
+					if isbool(data) then to_delete[index]=data break end
 
 					net.WriteUInt(step,16)
 					net.WriteUInt(#data,16)
@@ -83,16 +93,18 @@ if SERVER then
 				net.Send(ply)
 				tasks[index] = step
 			end
-			for _,v in pairs(to_delete) do
-				tasks[v]=nil
-				net.Start("voxelate_init_finish")
+			for index,success in pairs(to_delete) do
+				tasks[index]=nil
 
-				net.WriteUInt(v,16)
-				net.Send(ply)
+				if success then
+					net.Start("voxelate_init_finish")
+
+					net.WriteUInt(index,16)
+					net.Send(ply)
+
+					COMPLETED_TASKS[ply][index]=true
+				end
 			end
-		end
-		for _,v in pairs(to_delete) do
-			INIT_TASKS[v]=nil
 		end
 	end)
 
@@ -106,13 +118,23 @@ if SERVER then
 			net.WriteTable(CONFIGS[index])
 			net.Send(ply)
 
-			if !INIT_TASKS[ply] then
-				INIT_TASKS[ply]={}
-			end
-
 			INIT_TASKS[ply][index]=0
 		end
 	end)
+
+	function IMPORTS.voxReInit(index)
+		local plys = {}
+		for ply,tasks in pairs(INIT_TASKS) do
+			if tasks[index] then tasks[index]=0 table.insert(plys,ply) end
+		end
+		for ply,tasks in pairs(COMPLETED_TASKS) do
+			if tasks[index] then tasks[index]=nil INIT_TASKS[ply][index]=0 table.insert(plys,ply) end
+		end
+
+		net.Start("voxelate_init_restart")
+		net.WriteUInt(index,16)
+		net.Send(plys)
+	end
 else
 	net.Receive("voxelate_init_start",function(len)
 		local index = net.ReadUInt(16)
@@ -135,7 +157,13 @@ else
 
 	net.Receive("voxelate_init_finish",function(len)
 		local index = net.ReadUInt(16)
-		IMPORTS.voxInitFinish(index)
+		IMPORTS.voxEnableMeshGeneration(index,true)
+		IMPORTS.voxFlagAllChunksForUpdate(index)
+	end)
+
+	net.Receive("voxelate_init_restart",function(len)
+		local index = net.ReadUInt(16)
+		IMPORTS.voxEnableMeshGeneration(index,false)
 	end)
 
 	net.Receive("voxelate_explicit_delete",function(len)
@@ -202,6 +230,18 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 local ENT = {}
 
 ENT.Type = "anim"
@@ -224,6 +264,7 @@ function ENT:Initialize()
 		CONFIGS[index] = config
 
 		IMPORTS.voxInit(index,config)
+		IMPORTS.voxEnableMeshGeneration(index,true)
 	else
 		local index = self:GetInternalIndex()
 
@@ -286,6 +327,13 @@ end
 ENT.TestCollision = IMPORTS.ENT_TestCollision
 
 if SERVER then
+	function ENT:generate(f)
+		local index = self:GetInternalIndex()
+		IMPORTS.voxGenerate(index,f)
+		IMPORTS.voxReInit(index)
+		IMPORTS.voxFlagAllChunksForUpdate(index)
+	end
+
 	function ENT:getBlock(x,y,z)
 		local index = self:GetInternalIndex()
 		return IMPORTS.voxGet(index,x,y,z)
