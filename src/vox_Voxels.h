@@ -20,11 +20,20 @@ enum VoxelForm {
 	VFORM_CUBE
 };
 
+struct AtlasPos {
+	AtlasPos(int x, int y) { this->x = x; this->y = y; }
+	int x;
+	int y;
+};
 
 struct VoxelType {
 	VoxelForm form = VFORM_NULL;
-	int atlasX = 0;
-	int atlasY = 0;
+	AtlasPos side_xPos = AtlasPos(0, 0);
+	AtlasPos side_xNeg = AtlasPos(0, 0);
+	AtlasPos side_yPos = AtlasPos(0, 0);
+	AtlasPos side_yNeg = AtlasPos(0, 0);
+	AtlasPos side_zPos = AtlasPos(0, 0);
+	AtlasPos side_zNeg = AtlasPos(0, 0);
 };
 
 struct VoxelTraceRes {
@@ -41,7 +50,6 @@ struct VoxelConfig {
 	~VoxelConfig() {
 		if (cl_atlasMaterial)
 			cl_atlasMaterial->DecrementReferenceCount();
-		vox_print("destroy config");
 	}
 	
 	int dimX = 1;
@@ -119,8 +127,6 @@ public:
 	uint16 get(int x, int y, int z);
 	void set(int x, int y, int z, uint16 d);
 
-	//void send(int sys_index, int ply_id, bool init, int chunk_num);
-
 	uint16 voxel_data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = {};
 private:
 	void meshClearAll();
@@ -129,8 +135,6 @@ private:
 	void meshStop(CBaseEntity* ent);
 
 	void addFullVoxelFace(int x,int y,int z,int tx, int ty, byte dir);
-
-	//IMaterial* tmp_mat;
 
 	int posX, posY, posZ;
 

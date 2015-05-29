@@ -133,11 +133,58 @@ int luaf_voxInit(lua_State* state) {
 						LUA->GetField(-1, "atlasIndex");
 						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
 							int atlasIndex = LUA->GetNumber(-1);
-
-							vt.atlasX = atlasIndex % config->cl_atlasWidth;
-							vt.atlasY = atlasIndex / config->cl_atlasWidth;
+							AtlasPos atlasPos = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+							vt.side_xPos = atlasPos;
+							vt.side_xNeg = atlasPos;
+							vt.side_yPos = atlasPos;
+							vt.side_yNeg = atlasPos;
+							vt.side_zPos = atlasPos;
+							vt.side_zNeg = atlasPos;
 						}
 						LUA->Pop();
+
+						LUA->GetField(-1, "atlasIndex_xPos");
+						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+							int atlasIndex = LUA->GetNumber(-1);
+							vt.side_xPos = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+						}
+						LUA->Pop();
+
+						LUA->GetField(-1, "atlasIndex_xNeg");
+						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+							int atlasIndex = LUA->GetNumber(-1);
+							vt.side_xNeg = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+						}
+						LUA->Pop();
+
+						LUA->GetField(-1, "atlasIndex_yPos");
+						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+							int atlasIndex = LUA->GetNumber(-1);
+							vt.side_yPos = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+						}
+						LUA->Pop();
+
+						LUA->GetField(-1, "atlasIndex_yNeg");
+						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+							int atlasIndex = LUA->GetNumber(-1);
+							vt.side_yNeg = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+						}
+						LUA->Pop();
+
+						LUA->GetField(-1, "atlasIndex_zPos");
+						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+							int atlasIndex = LUA->GetNumber(-1);
+							vt.side_zPos = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+						}
+						LUA->Pop();
+
+						LUA->GetField(-1, "atlasIndex_zNeg");
+						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+							int atlasIndex = LUA->GetNumber(-1);
+							vt.side_zNeg = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+						}
+						LUA->Pop();
+
 					}
 				}
 				LUA->Pop();

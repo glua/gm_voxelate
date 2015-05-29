@@ -78,22 +78,14 @@ Voxels::~Voxels() {
 }
 
 uint16 Voxels::generate(int x, int y, int z) {
-	if (z < 49) {
+	if (z < 40) {
 		return 5;
 	}
+	else if (z < 49) {
+		return 8;
+	}
 	else if (z < 50) {
-		if (x % 2 == 0) {
-			if (y % 2 == 0)
-				return 3;
-			else
-				return 1;
-		}
-		else {
-			if (y % 2 == 0)
-				return 4;
-			else
-				return 2;
-		}
+		return 1;
 	}
 	else if (z == 50) {
 		if (x > 315 && x<325 && y>316 && y<324) {
@@ -656,9 +648,9 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 					VoxelType& offset_x_type = blockTypes[offset_x];
 					if (base_type.form == VFORM_CUBE && offset_x_type.form == VFORM_NULL)
-						addFullVoxelFace(x, y, z, base_type.atlasX, base_type.atlasY, DIR_X_POS);
+						addFullVoxelFace(x, y, z, base_type.side_xPos.x, base_type.side_xPos.y, DIR_X_POS);
 					else if (base_type.form == VFORM_NULL && offset_x_type.form == VFORM_CUBE)
-						addFullVoxelFace(x, y, z, offset_x_type.atlasX, offset_x_type.atlasY, DIR_X_NEG);
+						addFullVoxelFace(x, y, z, offset_x_type.side_xNeg.x, offset_x_type.side_xNeg.y, DIR_X_NEG);
 				}
 
 				if ((buildExterior || (y != -1 && (y != VOXEL_CHUNK_SIZE - 1 || next_chunk_y != nullptr))) && x != -1 && z != -1) {
@@ -675,9 +667,9 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 					VoxelType& offset_y_type = blockTypes[offset_y];
 					if (base_type.form == VFORM_CUBE && offset_y_type.form == VFORM_NULL)
-						addFullVoxelFace(x, y, z, base_type.atlasX, base_type.atlasY, DIR_Y_POS);
+						addFullVoxelFace(x, y, z, base_type.side_yPos.x, base_type.side_yPos.y, DIR_Y_POS);
 					else if (base_type.form == VFORM_NULL && offset_y_type.form == VFORM_CUBE)
-						addFullVoxelFace(x, y, z, offset_y_type.atlasX, offset_y_type.atlasY, DIR_Y_NEG);
+						addFullVoxelFace(x, y, z, offset_y_type.side_yNeg.x, offset_y_type.side_yNeg.y, DIR_Y_NEG);
 				}
 
 				if ((buildExterior || (z != -1 && (z != VOXEL_CHUNK_SIZE - 1 || next_chunk_z != nullptr))) && x != -1 && y != -1) {
@@ -694,9 +686,9 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 					VoxelType& offset_z_type = blockTypes[offset_z];
 					if (base_type.form == VFORM_CUBE && offset_z_type.form == VFORM_NULL)
-						addFullVoxelFace(x, y, z, base_type.atlasX, base_type.atlasY, DIR_Z_POS);
+						addFullVoxelFace(x, y, z, base_type.side_zPos.x, base_type.side_zPos.y, DIR_Z_POS);
 					else if (base_type.form == VFORM_NULL && offset_z_type.form == VFORM_CUBE)
-						addFullVoxelFace(x, y, z, offset_z_type.atlasX, offset_z_type.atlasY, DIR_Z_NEG);
+						addFullVoxelFace(x, y, z, offset_z_type.side_zNeg.x, offset_z_type.side_zNeg.y, DIR_Z_NEG);
 				}
 			}
 		}
