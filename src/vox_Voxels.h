@@ -7,6 +7,7 @@
 #include "materialsystem/imesh.h"
 #include "GarrysMod/Lua/Interface.h"
 
+#include "vox_util.h"
 
 #define VOXEL_CHUNK_SIZE 16
 
@@ -33,6 +34,34 @@ struct VoxelTraceRes {
 	VoxelTraceRes& operator*(double n) { hitPos *= n; return *this; }
 };
 
+struct VoxelConfigClient;
+struct VoxelConfigServer;
+
+struct VoxelConfig {
+	~VoxelConfig() {
+		if (cl_atlasMaterial)
+			cl_atlasMaterial->DecrementReferenceCount();
+		vox_print("destroy config");
+	}
+	
+	int dimX = 1;
+	int dimY = 1;
+	int dimZ = 1;
+	double scale = 1;
+
+	bool sv_useMeshCollisions = false;
+
+	IMaterial* cl_atlasMaterial = nullptr;
+	bool cl_drawExterior = true;
+	int cl_atlasWidth = 1;
+	int cl_atlasHeight = 1;
+
+	double cl_pixel_bias_x = 0;
+	double cl_pixel_bias_y = 0;
+
+	VoxelType voxelTypes[256];
+};
+
 class Voxels;
 class VoxelChunk;
 
@@ -43,14 +72,10 @@ void deleteAllIndexedVoxels();
 
 class Voxels {
 	friend class VoxelChunk;
-	friend int luaf_voxInit(lua_State* state);
 public:
 	~Voxels();
 	
 	uint16 generate(int x, int y, int z);
-
-	void pushConfig(lua_State* state);
-	void deleteConfig(lua_State* state);
 
 	VoxelChunk* addChunk(int chunk_num, const char* data_compressed, int data_len);
 	VoxelChunk* getChunk(int x, int y, int z);
@@ -59,6 +84,7 @@ public:
 
 	const int getChunkData(int chunk_num, char* out);
 
+	void initialize(VoxelConfig* config);
 	bool isInitialized();
 
 	Vector getExtents();
@@ -79,31 +105,13 @@ private:
 	VoxelChunk** chunks = nullptr;
 	std::set<VoxelChunk*> chunks_flagged_for_update;
 
-	VoxelType voxelTypes[256];
-
-	std::map<int, int> sv_receivers;
-	int sv_reg_config;
-
-	IMaterial* cl_atlasMaterial = nullptr;
-	bool cl_drawExterior = true;
-	int cl_atlasWidth = 1;
-	int cl_atlasHeight = 1;
-
-	double cl_pixel_bias_x = 0;
-	double cl_pixel_bias_y = 0;
-
-	bool sv_useMeshCollisions = false;
-
-	int _dimX = 1;
-	int _dimY = 1;
-	int _dimZ = 1;
-	double _scale = 1;
+	VoxelConfig* config = nullptr;
 };
 
 
 class VoxelChunk {
 public:
-	VoxelChunk(Voxels* sys, int x, int y, int z);
+	VoxelChunk(Voxels* sys, int x, int y, int z, bool generate);
 	~VoxelChunk();
 	void build(CBaseEntity* ent);
 	void draw(CMatRenderContextPtr& pRenderContext);

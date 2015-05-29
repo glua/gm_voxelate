@@ -1,7 +1,6 @@
 #include "vox_Voxels.h"
 
 #include "vox_engine.h"
-#include "vox_util.h"
 
 //#include "vox_lua_net.h"
 
@@ -68,21 +67,14 @@ void deleteAllIndexedVoxels() {
 }
 
 Voxels::~Voxels() {
-	/*if (STATE_CLIENT) {
-		vox_print("delete voxels - CL");
-	}
-	else {
-		vox_print("delete voxels - SV");
-	}*/
-
 	if (chunks != nullptr) {
-		for (int i = 0; i < _dimX* _dimY*_dimZ; i++) {
+		for (int i = 0; i < config->dimX* config->dimY*config->dimZ; i++) {
 			if (chunks[i] != nullptr) delete chunks[i];
 		}
 		delete[] chunks;
 	}
-	if (cl_atlasMaterial != nullptr)
-		cl_atlasMaterial->DecrementReferenceCount();
+	if (config)
+		delete config;
 }
 
 uint16 Voxels::generate(int x, int y, int z) {
@@ -114,37 +106,32 @@ uint16 Voxels::generate(int x, int y, int z) {
 	return 0;
 }
 
-void Voxels::pushConfig(lua_State* state) {
-	LUA->ReferencePush(sv_reg_config);
-}
-
-void Voxels::deleteConfig(lua_State* state) {
-	LUA->ReferenceFree(sv_reg_config);
-}
-
 VoxelChunk* Voxels::addChunk(int chunk_num, const char* data_compressed, int data_len) {
-	int x = chunk_num%_dimX;
-	int y = (chunk_num/_dimX)%_dimY;
-	int z = (chunk_num /_dimX/_dimY)%_dimZ;
+	int x = chunk_num%config->dimX;
+	int y = (chunk_num/config->dimX)%config->dimY;
+	int z = (chunk_num /config->dimX/config->dimY)%config->dimZ;
 
 	if (chunks[chunk_num] != nullptr)
 		delete chunks[chunk_num];
 
-	chunks[chunk_num] = new VoxelChunk(this,x,y,z);
-	fastlz_decompress(data_compressed, data_len, chunks[chunk_num]->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
+	chunks[chunk_num] = new VoxelChunk(this,x,y,z,!data_compressed);
+	if (data_compressed)
+		fastlz_decompress(data_compressed, data_len, chunks[chunk_num]->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
+	
+
 
 	return chunks[chunk_num];
 }
 
 VoxelChunk* Voxels::getChunk(int x, int y, int z) {
-	if (x < 0 || x >= _dimX || y < 0 || y >= _dimY || z < 0 || z >= _dimZ) {
+	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
 		return nullptr;
 	}
-	return chunks[x + y*_dimX + z* _dimX* _dimY];
+	return chunks[x + y*config->dimX + z* config->dimX* config->dimY];
 }
 
 const int Voxels::getChunkData(int chunk_num,char* out) {
-	if (chunk_num >= 0 && chunk_num < _dimX*_dimY*_dimZ) {
+	if (chunk_num >= 0 && chunk_num < config->dimX*config->dimY*config->dimZ) {
 		const char* input = reinterpret_cast<const char*>(chunks[chunk_num]->voxel_data);
 
 		return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
@@ -153,10 +140,23 @@ const int Voxels::getChunkData(int chunk_num,char* out) {
 }
 
 void Voxels::flagAllChunksForUpdate() {
-	for (int i = 0; i < _dimX*_dimY*_dimZ; i++) {
+	for (int i = 0; i < config->dimX*config->dimY*config->dimZ; i++) {
 		if (chunks[i] != nullptr) {
 			chunks_flagged_for_update.insert(chunks[i]);
 		}
+	}
+}
+
+void Voxels::initialize(VoxelConfig* config) {
+	this->config = config;
+
+	chunks = new VoxelChunk*[config->dimX*config->dimY*config->dimZ]();
+
+	if (STATE_SERVER) {
+		for (int i = 0; i < config->dimX*config->dimY*config->dimZ; i++) {
+			addChunk(i, 0, 0);
+		}
+		flagAllChunksForUpdate();
 	}
 }
 
@@ -165,15 +165,16 @@ bool Voxels::isInitialized() {
 }
 
 Vector Voxels::getExtents() {
+	double real_chunk_size = config->scale*VOXEL_CHUNK_SIZE;
 	return Vector(
-		_dimX*_scale*VOXEL_CHUNK_SIZE,
-		_dimY*_scale*VOXEL_CHUNK_SIZE,
-		_dimZ*_scale*VOXEL_CHUNK_SIZE
+		config->dimX*real_chunk_size,
+		config->dimY*real_chunk_size,
+		config->dimZ*real_chunk_size
 	);
 }
 
 void Voxels::doUpdates(int count, CBaseEntity* ent) {
-	if (STATE_CLIENT || (sv_useMeshCollisions && ent!=nullptr)) {
+	if (STATE_CLIENT || (config->sv_useMeshCollisions && ent!=nullptr)) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
@@ -187,7 +188,7 @@ VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
 	Vector voxel_extents = getExtents();
 
 	if (startPos.WithinAABox(Vector(0,0,0), voxel_extents)) {
-		return iTrace(startPos/_scale , delta/_scale, Vector(0,0,0)) * _scale;
+		return iTrace(startPos/config->scale , delta/config->scale, Vector(0,0,0)) * config->scale;
 	}
 	else {
 		Ray_t ray;
@@ -198,7 +199,7 @@ VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
 		startPos = tr.endpos;
 		delta *= 1-tr.fraction;
 
-		return iTrace(startPos / _scale, delta / _scale, tr.plane.normal) * _scale;
+		return iTrace(startPos / config->scale, delta / config->scale, tr.plane.normal) * config->scale;
 	}
 }
 
@@ -211,7 +212,7 @@ VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents)
 	Vector box_upper = startPos + Vector(extents.x, extents.y, extents.z*2);
 
 	if (IsBoxIntersectingBox(box_lower,box_upper,Vector(0,0,0),voxel_extents)) {
-		return iTraceHull(startPos/_scale,delta/_scale,extents/_scale, Vector(0,0,0)) * _scale;
+		return iTraceHull(startPos/config->scale,delta/config->scale,extents/config->scale, Vector(0,0,0)) * config->scale;
 	}
 	else {
 		Ray_t ray;
@@ -222,7 +223,7 @@ VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents)
 		startPos = tr.endpos;
 		delta *= 1 - tr.fraction;
 
-		return iTraceHull(startPos / _scale, delta / _scale, extents / _scale, tr.plane.normal) * _scale;
+		return iTraceHull(startPos / config->scale, delta / config->scale, extents / config->scale, tr.plane.normal) * config->scale;
 	}
 }
 
@@ -232,7 +233,7 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 	int vz = startPos.z;
 
 	uint16 vdata = get(vx, vy, vz);
-	VoxelType& vt = voxelTypes[vdata];
+	VoxelType& vt = config->voxelTypes[vdata];
 	if (vt.form == VFORM_CUBE) {
 		VoxelTraceRes res;
 		res.fraction = 0;
@@ -284,7 +285,7 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 					return VoxelTraceRes();
 				vx += stepX;
 				tMaxX += tDeltaX;
-				if (vx < 0 || vx >= VOXEL_CHUNK_SIZE*_dimX)
+				if (vx < 0 || vx >= VOXEL_CHUNK_SIZE*config->dimX)
 					return VoxelTraceRes();
 				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
 			}
@@ -293,7 +294,7 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*_dimZ)
+				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*config->dimZ)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -304,7 +305,7 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 					return VoxelTraceRes();
 				vy += stepY;
 				tMaxY += tDeltaY;
-				if (vy < 0 || vy >= VOXEL_CHUNK_SIZE*_dimY)
+				if (vy < 0 || vy >= VOXEL_CHUNK_SIZE*config->dimY)
 					return VoxelTraceRes();
 				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
 			}
@@ -313,13 +314,13 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*_dimZ)
+				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*config->dimZ)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
 		}
 		uint16 vdata = get(vx, vy, vz);
-		VoxelType& vt = voxelTypes[vdata];
+		VoxelType& vt = config->voxelTypes[vdata];
 		if (vt.form == VFORM_CUBE) {
 			VoxelTraceRes res;
 			if (dir == DIR_X_POS) {
@@ -360,7 +361,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 		for (int iy = startPos.y - extents.y; iy <= startPos.y + extents.y; iy++) {
 			for (int iz = startPos.z; iz <= startPos.z + extents.z * 2; iz++) {
 				uint16 vdata = get(ix, iy, iz);
-				VoxelType& vt = voxelTypes[vdata];
+				VoxelType& vt = config->voxelTypes[vdata];
 				if (vt.form == VFORM_CUBE) {
 					VoxelTraceRes res;
 					res.fraction = 0;
@@ -423,7 +424,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					return VoxelTraceRes();
 				vx += stepX;
 				tMaxX += tDeltaX;
-				if (vx < 0 || vx >= VOXEL_CHUNK_SIZE*_dimX)
+				if (vx < 0 || vx >= VOXEL_CHUNK_SIZE*config->dimX)
 					return VoxelTraceRes();
 				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
 			}
@@ -432,7 +433,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*_dimZ)
+				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*config->dimZ)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -443,7 +444,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					return VoxelTraceRes();
 				vy += stepY;
 				tMaxY += tDeltaY;
-				if (vy < 0 || vy >= VOXEL_CHUNK_SIZE*_dimY)
+				if (vy < 0 || vy >= VOXEL_CHUNK_SIZE*config->dimY)
 					return VoxelTraceRes();
 				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
 			}
@@ -452,7 +453,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*_dimZ)
+				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*config->dimZ)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -465,10 +466,10 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 			for (int iy = baseY - extents.y; iy <= baseY + extents.y; iy++) {
 				for (int iz = baseZ; iz <= baseZ + extents.z * 2; iz++) {
 					uint16 vdata = get(vx, iy, iz);
-					VoxelType& vt = voxelTypes[vdata];
+					VoxelType& vt = config->voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = t - tDeltaX*.0001;
+						res.fraction = t - tDeltaX*.001;
 
 						res.hitPos = startPos + res.fraction*delta;
 
@@ -488,10 +489,10 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 			for (int ix = baseX - extents.x; ix <= baseX + extents.x; ix++) {
 				for (int iz = baseZ; iz <= baseZ + extents.z * 2; iz++) {
 					uint16 vdata = get(ix, vy, iz);
-					VoxelType& vt = voxelTypes[vdata];
+					VoxelType& vt = config->voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = t - tDeltaY*.0001;
+						res.fraction = t - tDeltaY*.001;
 
 						res.hitPos = startPos + res.fraction*delta;
 
@@ -511,10 +512,10 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 			for (int ix = baseX-extents.x; ix <= baseX+extents.x; ix++) {
 				for (int iy = baseY-extents.y; iy <= baseY+extents.y; iy++) {
 					uint16 vdata = get(ix, iy, vz);
-					VoxelType& vt = voxelTypes[vdata];
+					VoxelType& vt = config->voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = t - tDeltaZ*.0001;
+						res.fraction = t - tDeltaZ*.001;
 
 						res.hitPos = startPos + res.fraction*delta;
 						
@@ -535,13 +536,14 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 }
 
 void Voxels::draw() {
-	if (cl_atlasMaterial == nullptr)
+	IMaterial* atlasMat = config->cl_atlasMaterial;
+	if (atlasMat == nullptr) //shitty check to see if initialized
 		return;
 
 	CMatRenderContextPtr pRenderContext(iface_cl_materials);
 
 	//Bind material
-	pRenderContext->Bind(cl_atlasMaterial);
+	pRenderContext->Bind(atlasMat);
 
 	//Set lighting
 	Vector4D lighting_cube[] = { Vector4D(.7, .7, .7, 1), Vector4D(.3, .3, .3, 1), Vector4D(.5, .5, .5, 1), Vector4D(.5, .5, .5, 1), Vector4D(1, 1, 1, 1), Vector4D(.1, .1, .1, 1) };
@@ -549,7 +551,7 @@ void Voxels::draw() {
 	pRenderContext->SetAmbientLight(0, 0, 0);
 	pRenderContext->DisableAllLocalLights();
 
-	for (int i = 0; i < _dimX* _dimY*_dimZ; i++) {
+	for (int i = 0; i < config->dimX* config->dimY*config->dimZ; i++) {
 		if (chunks[i] != nullptr)
 			chunks[i]->draw(pRenderContext);
 	}
@@ -583,7 +585,7 @@ bool Voxels::set(int x, int y, int z, uint16 d) {
 	return true;
 }
 
-VoxelChunk::VoxelChunk(Voxels* sys,int cx, int cy, int cz) {
+VoxelChunk::VoxelChunk(Voxels* sys,int cx, int cy, int cz, bool generate) {
 	system = sys;
 	posX = cx;
 	posY = cy;
@@ -612,16 +614,20 @@ void VoxelChunk::build(CBaseEntity* ent) {
 	VoxelChunk* next_chunk_y = system->getChunk(posX, posY + 1, posZ);
 	VoxelChunk* next_chunk_z = system->getChunk(posX, posY, posZ + 1);
 
-	bool drawExterior = system->cl_drawExterior;
+	bool buildExterior;
+	if (STATE_CLIENT)
+		buildExterior = system->config->cl_drawExterior;
 
-	int lower_bound_x = (drawExterior && posX == 0) ? -1 : 0;
-	int lower_bound_y = (drawExterior && posY == 0) ? -1 : 0;
-	int lower_bound_z = (drawExterior && posZ == 0) ? -1 : 0;
+	int lower_bound_x = (buildExterior && posX == 0) ? -1 : 0;
+	int lower_bound_y = (buildExterior && posY == 0) ? -1 : 0;
+	int lower_bound_z = (buildExterior && posZ == 0) ? -1 : 0;
 	//int upper_bound_def = tmp_drawExterior ? VOXEL_CHUNK_SIZE : VOXEL_CHUNK_SIZE-1;
 
 	//int upper_bound_x = next_chunk_x != nullptr ? VOXEL_CHUNK_SIZE : upper_bound_def;
 	//int upper_bound_y = next_chunk_y != nullptr ? VOXEL_CHUNK_SIZE : upper_bound_def;
 	//int upper_bound_z = next_chunk_z != nullptr ? VOXEL_CHUNK_SIZE : upper_bound_def;
+
+	VoxelType* blockTypes = system->config->voxelTypes;
 
 	for (int x = lower_bound_x; x < VOXEL_CHUNK_SIZE; x++) {
 		for (int y = lower_bound_y; y < VOXEL_CHUNK_SIZE; y++) {
@@ -634,9 +640,9 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				else
 					base = get(x, y, z);
 
-				VoxelType& base_type = system->voxelTypes[base];
+				VoxelType& base_type = blockTypes[base];
 
-				if ((drawExterior || (x != -1 && (x != VOXEL_CHUNK_SIZE - 1 || next_chunk_x != nullptr))) && y != -1 && z != -1) {
+				if ((buildExterior || (x != -1 && (x != VOXEL_CHUNK_SIZE - 1 || next_chunk_x != nullptr))) && y != -1 && z != -1) {
 					uint16 offset_x;
 					if (x == VOXEL_CHUNK_SIZE - 1)
 						if (next_chunk_x == nullptr)
@@ -648,14 +654,14 @@ void VoxelChunk::build(CBaseEntity* ent) {
 					else
 						offset_x = get(x + 1, y, z);
 
-					VoxelType& offset_x_type = system->voxelTypes[offset_x];
+					VoxelType& offset_x_type = blockTypes[offset_x];
 					if (base_type.form == VFORM_CUBE && offset_x_type.form == VFORM_NULL)
 						addFullVoxelFace(x, y, z, base_type.atlasX, base_type.atlasY, DIR_X_POS);
 					else if (base_type.form == VFORM_NULL && offset_x_type.form == VFORM_CUBE)
 						addFullVoxelFace(x, y, z, offset_x_type.atlasX, offset_x_type.atlasY, DIR_X_NEG);
 				}
 
-				if ((drawExterior || (y != -1 && (y != VOXEL_CHUNK_SIZE - 1 || next_chunk_y != nullptr))) && x != -1 && z != -1) {
+				if ((buildExterior || (y != -1 && (y != VOXEL_CHUNK_SIZE - 1 || next_chunk_y != nullptr))) && x != -1 && z != -1) {
 					uint16 offset_y;
 					if (y == VOXEL_CHUNK_SIZE - 1)
 						if (next_chunk_y == nullptr)
@@ -667,14 +673,14 @@ void VoxelChunk::build(CBaseEntity* ent) {
 					else
 						offset_y = get(x, y + 1, z);
 
-					VoxelType& offset_y_type = system->voxelTypes[offset_y];
+					VoxelType& offset_y_type = blockTypes[offset_y];
 					if (base_type.form == VFORM_CUBE && offset_y_type.form == VFORM_NULL)
 						addFullVoxelFace(x, y, z, base_type.atlasX, base_type.atlasY, DIR_Y_POS);
 					else if (base_type.form == VFORM_NULL && offset_y_type.form == VFORM_CUBE)
 						addFullVoxelFace(x, y, z, offset_y_type.atlasX, offset_y_type.atlasY, DIR_Y_NEG);
 				}
 
-				if ((drawExterior || (z != -1 && (z != VOXEL_CHUNK_SIZE - 1 || next_chunk_z != nullptr))) && x != -1 && y != -1) {
+				if ((buildExterior || (z != -1 && (z != VOXEL_CHUNK_SIZE - 1 || next_chunk_z != nullptr))) && x != -1 && y != -1) {
 					uint16 offset_z;
 					if (z == VOXEL_CHUNK_SIZE - 1)
 						if (next_chunk_z == nullptr)
@@ -686,7 +692,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 					else
 						offset_z = get(x, y, z + 1);
 
-					VoxelType& offset_z_type = system->voxelTypes[offset_z];
+					VoxelType& offset_z_type = blockTypes[offset_z];
 					if (base_type.form == VFORM_CUBE && offset_z_type.form == VFORM_NULL)
 						addFullVoxelFace(x, y, z, base_type.atlasX, base_type.atlasY, DIR_Z_POS);
 					else if (base_type.form == VFORM_NULL && offset_z_type.form == VFORM_CUBE)
@@ -808,11 +814,11 @@ void VoxelChunk::meshStop(CBaseEntity* ent) {
 }
 
 void VoxelChunk::addFullVoxelFace(int x, int y, int z, int tx, int ty, byte dir) {
-	double realX = (x + posX*VOXEL_CHUNK_SIZE) * system->_scale;
-	double realY = (y + posY*VOXEL_CHUNK_SIZE) * system->_scale;
-	double realZ = (z + posZ*VOXEL_CHUNK_SIZE) * system->_scale;
+	double realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config->scale;
+	double realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config->scale;
+	double realZ = (z + posZ*VOXEL_CHUNK_SIZE) * system->config->scale;
 
-	double realStep = system->_scale;
+	double realStep = system->config->scale;
 	
 	if (STATE_CLIENT) {
 		if (verts_remaining < 4) {
@@ -821,11 +827,13 @@ void VoxelChunk::addFullVoxelFace(int x, int y, int z, int tx, int ty, byte dir)
 		}
 		verts_remaining -= 4;
 
-		double uMin = ((double)tx / system->cl_atlasWidth) + system->cl_pixel_bias_x;
-		double uMax = ((tx + 1.0) / system->cl_atlasWidth) - system->cl_pixel_bias_x;
+		VoxelConfig* cl_config = system->config;
 
-		double vMin = ((double)ty / system->cl_atlasHeight) + system->cl_pixel_bias_y;
-		double vMax = ((ty + 1.0) / system->cl_atlasHeight) - system->cl_pixel_bias_y;
+		double uMin = ((double)tx / cl_config->cl_atlasWidth) + cl_config->cl_pixel_bias_x;
+		double uMax = ((tx + 1.0) / cl_config->cl_atlasWidth) - cl_config->cl_pixel_bias_x;
+
+		double vMin = ((double)ty / cl_config->cl_atlasHeight) + cl_config->cl_pixel_bias_y;
+		double vMax = ((ty + 1.0) / cl_config->cl_atlasHeight) - cl_config->cl_pixel_bias_y;
 
 		if (dir == DIR_X_POS) {
 			meshBuilder.Position3f(realX + realStep, realY, realZ);
