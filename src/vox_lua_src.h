@@ -375,7 +375,7 @@ if SERVER then
 		local file_handle = file.Open(file_name,"rb","DATA")
 		if !file_handle then return false end
 
-		if file_handle:Read(8)!="VolFile0" file_handle:Close() return false end
+		if file_handle:Read(8)!="VolFile0" then file_handle:Close() return false end
 		local fdx = file_handle:ReadShort()
 		local fdy = file_handle:ReadShort()
 		local fdz = file_handle:ReadShort()
@@ -528,7 +528,10 @@ function ENT:UpdateTransmitState()
 	return TRANSMIT_ALWAYS
 end
 
-scripted_ents.Register(ENT,"voxels")
+hook.Add("Initialize","voxelate_init",function()
+	scripted_ents.Register(ENT,"voxels")
+	if SERVER then hook.Call("VoxelateReady") end
+end)
 
 hook.Add("PhysgunPickup", "voxelate_nograb", function(ply,ent)
 	if ent:GetClass() == "voxels" then return false end
