@@ -332,7 +332,69 @@ if SERVER then
 		IMPORTS.voxGenerate(index,f)
 		IMPORTS.voxReInit(index)
 		IMPORTS.voxFlagAllChunksForUpdate(index)
+	end	
+
+	function ENT:save(file_name)
+		local index = self:GetInternalIndex()		
+		
+		local dims = CONFIGS[index].dimensions or Vector(1,1,1)
+
+		local file_handle = file.Open(file_name,"wb","DATA")
+		if !file_handle then return false end
+		
+		file_handle:Write("VolFile0")
+		file_handle:WriteShort(dims.x)
+		file_handle:WriteShort(dims.y)
+		file_handle:WriteShort(dims.z)
+		
+		local i=0
+		while true do
+			local data = IMPORTS.voxData(index,i)
+			if isbool(data) then
+				if data then break end
+				file_handle:Close()
+				file.Delete(file_name)
+				return false
+			end
+			file_handle:WriteShort(#data)
+			file_handle:Write(data)
+			i=i+1
+		end
+
+		file_handle:Close()
+		
+
+		return true
 	end
+
+	function ENT:load(file_name)
+		local index = self:GetInternalIndex()		
+		
+		local dims = CONFIGS[index].dimensions or Vector(1,1,1)
+		
+		local file_handle = file.Open(file_name,"rb","DATA")
+		if !file_handle then return false end
+
+		if file_handle:Read(8)!="VolFile0" file_handle:Close() return false end
+		local fdx = file_handle:ReadShort()
+		local fdy = file_handle:ReadShort()
+		local fdz = file_handle:ReadShort()
+		
+		if fdx!=dims.x or fdy!=dims.y or fdz!=dims.z then file_handle:Close() return false end
+
+		for i=0,fdx*fdy*fdz-1 do
+			local len = file_handle:ReadShort() //TODO lots of stuff here could still break
+			local data = file_handle:Read(len)
+			IMPORTS.voxInitChunk(index,i,data)
+		end
+		
+		file_handle:Close()		
+
+		IMPORTS.voxReInit(index)
+		IMPORTS.voxFlagAllChunksForUpdate(index)
+
+		return true
+	end	
 
 	function ENT:getBlock(x,y,z)
 		local index = self:GetInternalIndex()
