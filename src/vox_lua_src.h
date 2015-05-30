@@ -20,6 +20,7 @@ else
 	local MASTER_MAJOR, MASTER_MINOR, MASTER_PATCH = parseVersion(VERSION)
 
 	hook.Add("PlayerInitialSpawn","voxelate_version_check",function(ply)
+
 		local CLIENT_STR = ply:GetInfo("voxelate_version")
 		
 		if (CLIENT_STR=="") then
@@ -60,7 +61,7 @@ if SERVER then
 	local INIT_TASKS = {}
 	local COMPLETED_TASKS = {}
 
-	hook.Add("PlayerAuthed","voxelate_ply_join",function(ply)
+	hook.Add("PlayerInitialSpawn","voxelate_ply_join",function(ply)
 		INIT_TASKS[ply]={}
 		COMPLETED_TASKS[ply] = {}
 	end)
