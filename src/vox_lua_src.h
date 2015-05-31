@@ -325,7 +325,19 @@ function ENT:Draw()
 	cam.PopModelMatrix()
 end
 
-ENT.TestCollision = IMPORTS.ENT_TestCollision
+function ENT:TestCollision(start,delta,isbox,extents)
+	start=self:WorldToLocal(start)
+	local index = self:GetInternalIndex()
+	local fraction,hitpos,normal = IMPORTS.voxTrace(index,start,delta,isbox,extents)
+	if fraction then
+		hitpos = self:LocalToWorld(hitpos)
+		return {
+			Fraction = fraction,
+			HitPos=hitpos,
+			Normal=normal
+		}
+	end
+end
 
 if SERVER then
 	function ENT:generate(f)

@@ -446,7 +446,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					VoxelType& vt = config->voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = t - tDeltaX*.001;
+						res.fraction = max(t - tDeltaX*.01, 0);
 
 						res.hitPos = startPos + res.fraction*delta;
 
@@ -469,7 +469,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					VoxelType& vt = config->voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = t - tDeltaY*.001;
+						res.fraction = max(t - tDeltaY*.01, 0);
 
 						res.hitPos = startPos + res.fraction*delta;
 
@@ -492,7 +492,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					VoxelType& vt = config->voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = t - tDeltaZ*.001;
+						res.fraction = max(t-tDeltaZ*.01,0);
 
 						res.hitPos = startPos + res.fraction*delta;
 						

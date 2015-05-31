@@ -361,24 +361,12 @@ int luaf_voxUpdate(lua_State* state) {
 	return 0;
 }
 
-int luaf_ENT_TestCollision(lua_State* state) {
-	LUA->GetField(1, "GetInternalIndex");
-	LUA->Push(1);
-	LUA->Call(1, 1);
-	int index = LUA->GetNumber();
-	LUA->Pop();
+int luaf_voxTrace(lua_State* state) {
+	int index = LUA->GetNumber(1);
 
 	Voxels* v = getIndexedVoxels(index);
 	if (v != nullptr && v->isInitialized()) {
-		LUA->GetField(1, "GetPos");
-		LUA->Push(1);
-		LUA->Call(1, 1);
-
-		Vector offset = elua_getVector(state, -1);
-
 		Vector start = elua_getVector(state, 2);
-
-		start -= offset;
 
 		Vector delta = elua_getVector(state, 3);
 
@@ -393,18 +381,11 @@ int luaf_ENT_TestCollision(lua_State* state) {
 		}
 
 		if (r.fraction != -1) {
-			LUA->CreateTable();
-
 			LUA->PushNumber(r.fraction);
-			LUA->SetField(-2, "Fraction");
-
-
-			elua_pushVector(state, r.hitPos + offset);
-			LUA->SetField(-2, "HitPos");
+			elua_pushVector(state, r.hitPos);
 			elua_pushVector(state, r.hitNormal);
-			LUA->SetField(-2, "Normal");
+			return 3;
 		}
-		return 1;
 	}
 
 	return 0;
@@ -442,8 +423,8 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushCFunction(luaf_voxUpdate);
 	LUA->SetField(-2, "voxUpdate");
 
-	LUA->PushCFunction(luaf_ENT_TestCollision);
-	LUA->SetField(-2, "ENT_TestCollision");
+	LUA->PushCFunction(luaf_voxTrace);
+	LUA->SetField(-2, "voxTrace");
 
 	LUA->PushCFunction(luaf_voxGenerate);
 	LUA->SetField(-2, "voxGenerate");
