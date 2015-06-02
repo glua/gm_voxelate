@@ -300,6 +300,8 @@ function ENT:_initMisc(size_x,size_y,size_z)
 	local mins = Vector(0,0,0)
 	local maxs = Vector(size_x,size_y,size_z)
 
+	self.correct_maxs = maxs
+
 	self:SetCollisionBounds(mins,maxs)
 	if CLIENT then
 		self:SetRenderBounds(mins,maxs)
@@ -309,6 +311,14 @@ end
 function ENT:Think()
 	local index = self:GetInternalIndex()	
 	IMPORTS.voxUpdate(index,10,self)
+	
+	if CLIENT and self.correct_maxs then		
+		local _,maxs = self:GetRenderBounds()		
+		if maxs!=self.correct_maxs then		
+			self:SetRenderBounds(Vector(),self.correct_maxs)		
+			print("Corrected render bounds on Voxel System #"..index..".")		
+		end
+	end
 
 	self:NextThink(CurTime())
 	return true
