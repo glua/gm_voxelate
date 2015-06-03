@@ -341,7 +341,7 @@ int floorCrazy(float f) {
 }
 
 VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal) {
-	double epsilon = .001;
+	double epsilon = .005;
 
 	for (int ix = startPos.x - extents.x + epsilon; ix <= startPos.x + extents.x-epsilon; ix++) {
 		for (int iy = startPos.y - extents.y + epsilon; iy <= startPos.y + extents.y-epsilon; iy++) {
@@ -364,7 +364,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 	double tMaxX, tMaxY, tMaxZ;
 
 	if (delta.x >= 0) {
-		vx = floorCrazy(startPos.x + extents.x);
+		vx = startPos.x + extents.x - epsilon;
 		stepX = 1;
 		double mod = fmod(startPos.x + extents.x, 1);
 		if (mod == 0)
@@ -373,13 +373,13 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 			tMaxX = (1 - mod) / delta.x;
 	}
 	else {
-		vx = startPos.x - extents.x;
+		vx = startPos.x - extents.x + epsilon;
 		stepX = -1;
 		tMaxX = fmod(startPos.x - extents.x, 1) / -delta.x;
 	}
 
 	if (delta.y >= 0) {
-		vy = floorCrazy(startPos.y + extents.y);
+		vy = startPos.y + extents.y - epsilon;
 		stepY = 1;
 		double mod = fmod(startPos.y + extents.y, 1);
 		if (mod == 0)
@@ -388,13 +388,13 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 			tMaxY = (1 - mod) / delta.y;
 	}
 	else {
-		vy = startPos.y - extents.y;
+		vy = startPos.y - extents.y + epsilon;
 		stepY = -1;
 		tMaxY = fmod(startPos.y - extents.y, 1) / -delta.y;
 	}
 
 	if (delta.z >= 0) {
-		vz = floorCrazy(startPos.z + extents.z * 2);
+		vz = startPos.z + extents.z * 2 - epsilon;
 		stepZ = 1;
 		double mod = fmod(startPos.z + extents.z * 2, 1);
 		if (mod == 0)
@@ -403,7 +403,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 			tMaxZ = (1 - mod) / delta.z;
 	}
 	else {
-		vz = startPos.z;
+		vz = startPos.z + epsilon;
 		stepZ = -1;
 		tMaxZ = fmod(startPos.z, 1) / -delta.z;
 	}
