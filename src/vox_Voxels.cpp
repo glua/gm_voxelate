@@ -333,10 +333,26 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 	return VoxelTraceRes();
 }
 
+int floorCrazy(float f) {
+	int floored = floor(f);
+	if (floored == f)
+		return f - 1;
+	return f;
+}
+
 VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal) {
-	for (int ix = startPos.x - extents.x; ix <= startPos.x + extents.x; ix++) {
-		for (int iy = startPos.y - extents.y; iy <= startPos.y + extents.y; iy++) {
-			for (int iz = startPos.z; iz <= startPos.z + extents.z * 2; iz++) {
+	/*if (floorf(startPos.x + extents.x) == startPos.x + extents.x)
+		vox_print("x error");
+	if (floorf(startPos.y + extents.y) == startPos.y + extents.y)
+		vox_print("y error");
+	if (floorf(startPos.z + extents.z) == startPos.z + extents.z)
+		vox_print("z error");*/
+	
+	double epsilon = .001;
+
+	for (int ix = startPos.x - extents.x; ix <= floorCrazy(startPos.x + extents.x); ix++) {
+		for (int iy = startPos.y - extents.y; iy <= floorCrazy(startPos.y + extents.y); iy++) {
+			for (int iz = startPos.z; iz <= floorCrazy(startPos.z + extents.z * 2); iz++) {
 				uint16 vdata = get(ix, iy, iz);
 				VoxelType& vt = config->voxelTypes[vdata];
 				if (vt.form == VFORM_CUBE) {
@@ -355,9 +371,13 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 	double tMaxX, tMaxY, tMaxZ;
 
 	if (delta.x >= 0) {
-		vx = startPos.x + extents.x;
+		vx = floorCrazy(startPos.x + extents.x);
 		stepX = 1;
-		tMaxX = (1 - fmod(startPos.x + extents.x, 1)) / delta.x;
+		double mod = fmod(startPos.x + extents.x, 1);
+		if (mod == 0)
+			tMaxX = 0;
+		else
+			tMaxX = (1 - mod) / delta.x;
 	}
 	else {
 		vx = startPos.x - extents.x;
@@ -366,9 +386,13 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 	}
 
 	if (delta.y >= 0) {
-		vy = startPos.y + extents.y;
+		vy = floorCrazy(startPos.y + extents.y);
 		stepY = 1;
-		tMaxY = (1 - fmod(startPos.y + extents.y, 1)) / delta.y;
+		double mod = fmod(startPos.y + extents.y, 1);
+		if (mod == 0)
+			tMaxY = 0;
+		else
+			tMaxY = (1 - mod) / delta.y;
 	}
 	else {
 		vy = startPos.y - extents.y;
@@ -377,15 +401,21 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 	}
 
 	if (delta.z >= 0) {
-		vz = startPos.z + extents.z*2;
+		vz = floorCrazy(startPos.z + extents.z * 2);
 		stepZ = 1;
-		tMaxZ = (1 - fmod(startPos.z + extents.z*2, 1)) / delta.z;
+		double mod = fmod(startPos.z + extents.z * 2, 1);
+		if (mod == 0)
+			tMaxZ = 0;
+		else
+			tMaxZ = (1 - mod) / delta.z;
 	}
 	else {
 		vz = startPos.z;
 		stepZ = -1;
 		tMaxZ = fmod(startPos.z, 1) / -delta.z;
 	}
+
+	//vox_print("--> GO %i %i %i", vx, vy, vz);
 
 	double tDeltaX = fabs(1 / delta.x);
 	double tDeltaY = fabs(1 / delta.y);
@@ -395,7 +425,15 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 	bool bail = false;
 	while (failsafe++<10000 && !bail) {
 		byte dir = 0;
+		/*if (tMaxX == tMaxY && delta.x != 0) {
+			vox_print("xy fuckery");
+			tMaxX -= tDeltaX*.001;
+		}*/
 		if (tMaxX < tMaxY) {
+			/*if (tMaxX == tMaxZ && delta.x != 0) {
+				vox_print("xz fuckery");
+				tMaxX -= tDeltaX*.001;
+			}*/
 			if (tMaxX < tMaxZ) {
 				if (tMaxX > 1)
 					return VoxelTraceRes();
@@ -416,6 +454,10 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 			}
 		}
 		else {
+			/*if (tMaxY == tMaxZ && delta.y != 0) {
+				vox_print("yz fuckery");
+				tMaxY -= tDeltaY*.001;
+			}*/
 			if (tMaxY < tMaxZ) {
 				if (tMaxY>1)
 					return VoxelTraceRes();
@@ -435,18 +477,19 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
 		}
+		//vox_print("--> %i %i %i", vx, vy, vz);
 		
 		if (dir == DIR_X_POS || dir == DIR_X_NEG) {
 			double t = tMaxX - tDeltaX;
 			double baseY = startPos.y + t*delta.y;
 			double baseZ = startPos.z + t*delta.z;
-			for (int iy = baseY - extents.y; iy <= baseY + extents.y; iy++) {
-				for (int iz = baseZ; iz <= baseZ + extents.z * 2; iz++) {
+			for (int iy = baseY - extents.y + epsilon; iy <= baseY + extents.y - epsilon; iy++) {
+				for (int iz = baseZ + epsilon; iz <= baseZ + extents.z * 2 - epsilon; iz++) {
 					uint16 vdata = get(vx, iy, iz);
 					VoxelType& vt = config->voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = max(t - tDeltaX*.01, 0);
+						res.fraction = t;// -tDeltaX;
 
 						res.hitPos = startPos + res.fraction*delta;
 
@@ -463,13 +506,14 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 			double t = tMaxY - tDeltaY;
 			double baseX = startPos.x + t*delta.x;
 			double baseZ = startPos.z + t*delta.z;
-			for (int ix = baseX - extents.x; ix <= baseX + extents.x; ix++) {
-				for (int iz = baseZ; iz <= baseZ + extents.z * 2; iz++) {
+			//vox_print("---> t= %f (%f - %i)",t, (baseX - extents.x), floorCrazy(baseX + extents.x));
+			for (int ix = baseX - extents.x + epsilon; ix <= baseX + extents.x - epsilon; ix++) {
+				for (int iz = baseZ + epsilon; iz <= baseZ + extents.z * 2 - epsilon; iz++) {
 					uint16 vdata = get(ix, vy, iz);
 					VoxelType& vt = config->voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = max(t - tDeltaY*.01, 0);
+						res.fraction = t;// -tDeltaY;
 
 						res.hitPos = startPos + res.fraction*delta;
 
@@ -486,13 +530,13 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 			double t = tMaxZ - tDeltaZ;
 			double baseX = startPos.x + t*delta.x;
 			double baseY = startPos.y + t*delta.y;
-			for (int ix = baseX-extents.x; ix <= baseX+extents.x; ix++) {
-				for (int iy = baseY-extents.y; iy <= baseY+extents.y; iy++) {
+			for (int ix = baseX - extents.x + epsilon; ix <= baseX + extents.x - epsilon; ix++) {
+				for (int iy = baseY - extents.y + epsilon; iy <= baseY + extents.y - epsilon; iy++) {
 					uint16 vdata = get(ix, iy, vz);
 					VoxelType& vt = config->voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
-						res.fraction = max(t-tDeltaZ*.01,0);
+						res.fraction = t;// -tDeltaZ;
 
 						res.hitPos = startPos + res.fraction*delta;
 						
