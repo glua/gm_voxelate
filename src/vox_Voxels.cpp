@@ -341,18 +341,11 @@ int floorCrazy(float f) {
 }
 
 VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal) {
-	/*if (floorf(startPos.x + extents.x) == startPos.x + extents.x)
-		vox_print("x error");
-	if (floorf(startPos.y + extents.y) == startPos.y + extents.y)
-		vox_print("y error");
-	if (floorf(startPos.z + extents.z) == startPos.z + extents.z)
-		vox_print("z error");*/
-	
 	double epsilon = .001;
 
-	for (int ix = startPos.x - extents.x; ix <= floorCrazy(startPos.x + extents.x); ix++) {
-		for (int iy = startPos.y - extents.y; iy <= floorCrazy(startPos.y + extents.y); iy++) {
-			for (int iz = startPos.z; iz <= floorCrazy(startPos.z + extents.z * 2); iz++) {
+	for (int ix = startPos.x - extents.x + epsilon; ix <= startPos.x + extents.x-epsilon; ix++) {
+		for (int iy = startPos.y - extents.y + epsilon; iy <= startPos.y + extents.y-epsilon; iy++) {
+			for (int iz = startPos.z + epsilon; iz <= startPos.z + extents.z * 2-epsilon; iz++) {
 				uint16 vdata = get(ix, iy, iz);
 				VoxelType& vt = config->voxelTypes[vdata];
 				if (vt.form == VFORM_CUBE) {
