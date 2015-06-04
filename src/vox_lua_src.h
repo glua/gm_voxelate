@@ -336,11 +336,18 @@ function ENT:Draw()
 end
 
 function ENT:TestCollision(start,delta,isbox,extents)
+	if isbox then
+		//debugoverlay.Box(start,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,255,0,0))
+	end	
 	start=self:WorldToLocal(start)
 	local index = self:GetInternalIndex()
 	local fraction,hitpos,normal = IMPORTS.voxTrace(index,start,delta,isbox,extents)
 	if fraction then
 		hitpos = self:LocalToWorld(hitpos)
+		if isbox and (normal.x!=0 or normal.y!=0) then
+			//debugoverlay.Box(hitpos,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,0,0,0))
+			//debugoverlay.Line(hitpos,hitpos+normal*100,.05,Color(0,0,255))
+		end
 		return {
 			Fraction = fraction,
 			HitPos=hitpos,
