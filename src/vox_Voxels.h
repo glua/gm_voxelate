@@ -60,7 +60,7 @@ struct VoxelConfig {
 	bool sv_useMeshCollisions = false;
 
 	IMaterial* cl_atlasMaterial = nullptr;
-	bool cl_drawExterior = true;
+	bool cl_drawExterior = false;
 	int cl_atlasWidth = 1;
 	int cl_atlasHeight = 1;
 

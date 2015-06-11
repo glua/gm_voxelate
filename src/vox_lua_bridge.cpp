@@ -70,23 +70,13 @@ int luaf_voxInit(lua_State* state) {
 		if (STATE_SERVER) {
 			LUA->GetField(2, "useMeshCollisions");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
-				config->sv_useMeshCollisions = LUA->GetBool(-1);
+				config->sv_useMeshCollisions = LUA->GetBool();
 			LUA->Pop();
 		}
 		else {
 			LUA->GetField(2, "drawExterior");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
-				config->cl_drawExterior = LUA->GetBool(-1);
-			LUA->Pop();
-
-			LUA->GetField(2, "atlasMaterial");
-			if (LUA->IsType(-1, GarrysMod::Lua::Type::STRING))
-				config->cl_atlasMaterial = iface_cl_materials->FindMaterial(LUA->GetString(-1), nullptr);
-			else
-				config->cl_atlasMaterial = iface_cl_materials->FindMaterial("models/debug/debugwhite", nullptr);
-			config->cl_atlasMaterial->IncrementReferenceCount();
-			config->cl_pixel_bias_x = 1.0 / config->cl_atlasMaterial->GetMappingWidth();
-			config->cl_pixel_bias_y = 1.0 / config->cl_atlasMaterial->GetMappingHeight();
+				config->cl_drawExterior = LUA->GetBool();
 			LUA->Pop();
 
 			LUA->GetField(2, "atlasWidth");
@@ -98,8 +88,25 @@ int luaf_voxInit(lua_State* state) {
 			LUA->GetField(2, "atlasHeight");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER))
 				config->cl_atlasHeight = LUA->GetNumber();
-
 			LUA->Pop();
+
+			LUA->GetField(2, "atlasMaterial");
+			if (LUA->IsType(-1, GarrysMod::Lua::Type::STRING))
+				config->cl_atlasMaterial = iface_cl_materials->FindMaterial(LUA->GetString(-1), nullptr);
+			else
+				config->cl_atlasMaterial = iface_cl_materials->FindMaterial("models/debug/debugwhite", nullptr);
+			LUA->Pop();
+
+			config->cl_atlasMaterial->IncrementReferenceCount();
+
+			LUA->GetField(2, "atlasIsPadded");
+			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL) && LUA->GetBool()) {
+				config->cl_pixel_bias_x = (config->cl_atlasMaterial->GetMappingWidth() / config->cl_atlasWidth / 4.0) / config->cl_atlasMaterial->GetMappingWidth();
+				config->cl_pixel_bias_y = (config->cl_atlasMaterial->GetMappingHeight() / config->cl_atlasHeight / 4.0) / config->cl_atlasMaterial->GetMappingHeight();
+			}
+			LUA->Pop();
+
+			//vox_print("%f <-> %f", config->cl_pixel_bias_x, config->cl_pixel_bias_y);
 		}
 
 		LUA->GetField(2, "dimensions");
