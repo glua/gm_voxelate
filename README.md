@@ -1,5 +1,6 @@
 gm_voxelate
 ====================
+[![forthebadge](http://forthebadge.com/images/badges/compatibility-club-penguin.svg)](http://forthebadge.com)
 
 Welcome to the home of gm_voxelate, the configurable voxel module for Garrysmod.
 
