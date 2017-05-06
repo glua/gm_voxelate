@@ -13,6 +13,7 @@ include(gmcommon)
 
 CreateWorkspace({name = "voxelate"})
 	defines({
+		"IS_DOUBLE_PRECISION_ENABLED",
 		"RAD_TELEMETRY_DISABLED"
 	})
 
@@ -62,13 +63,10 @@ CreateWorkspace({name = "voxelate"})
 		})
 
     project("reactphysics3d")
-        language "C++"
+        language "C++11"
         kind "StaticLib"
+		symbols "On"
 		warnings "Off"
-
-		defines({
-			"IS_DOUBLE_PRECISION_ENABLED",
-		})
 
         includedirs {
             "../reactphysics3d/src/",
