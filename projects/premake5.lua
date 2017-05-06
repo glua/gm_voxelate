@@ -21,7 +21,7 @@ CreateWorkspace({name = "voxelate"})
 	CreateProject({serverside = true})
 		language("C++11")
 
-		includedirs({"../fastlz","../reactphysics3d"})
+		includedirs({"../fastlz","../reactphysics3d/src"})
 		links({"fastlz","reactphysics3d"})
 
 		IncludeSDKCommon()
@@ -38,7 +38,7 @@ CreateWorkspace({name = "voxelate"})
 	CreateProject({serverside = false})
 		language("C++11")
 
-		includedirs({"../fastlz","../reactphysics3d"})
+		includedirs({"../fastlz","../reactphysics3d/src"})
 		links({"fastlz","reactphysics3d"})
 
 		IncludeSDKCommon()
