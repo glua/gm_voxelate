@@ -8,10 +8,6 @@
 
 #include <vector>
 
-#define GAME_DLL
-#include "cbase.h"
-#undef GAME_DLL
-
 #include "collisionutils.h"
 
 #include "fastlz.h"
