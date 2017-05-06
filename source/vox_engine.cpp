@@ -1,6 +1,8 @@
 #include "vox_engine.h"
 
-#ifdef IS_SERVERSIDE
+#include <GarrysMod/Interfaces.hpp>
+
+#ifdef IS_SERVERSIDE_AND_LINUX // TODO
 #define MODULENAME(_module_) _module_  "_srv"
 #else
 #define MODULENAME(_module_) _module_
@@ -40,12 +42,14 @@ bool determine_state(lua_State* state) {
 }
 
 bool init_interfaces() {
+	
 
 	if (STATE_CLIENT) {
 		if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, iface_cl_materials))
 			return false;
 	}
 	else {
+		
 		if (!LOADINTERFACE("engine", INTERFACEVERSION_VENGINESERVER, iface_sv_ents))
 			return false;
 		if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, iface_sv_physics))

@@ -10,7 +10,7 @@
 
 using namespace std;
 
-const char* VERSION = "0.2.0";
+const char* VERSION = "0.2.0+";
 
 GMOD_MODULE_OPEN() {
 	if (!determine_state(state)) {

@@ -612,9 +612,9 @@ void VoxelChunk::build(CBaseEntity* ent) {
 	VoxelChunk* next_chunk_y = system->getChunk(posX, posY + 1, posZ);
 	VoxelChunk* next_chunk_z = system->getChunk(posX, posY, posZ + 1);
 
-	bool buildExterior;
-	if (STATE_CLIENT)
-		buildExterior = system->config->cl_drawExterior;
+	//bool buildExterior; TODO see if this broke anything
+	//if (STATE_CLIENT)
+	bool buildExterior = system->config->cl_drawExterior;
 
 	int lower_bound_x = (buildExterior && posX == 0) ? -1 : 0;
 	int lower_bound_y = (buildExterior && posY == 0) ? -1 : 0;
