@@ -67,7 +67,7 @@ CreateWorkspace({name = "voxelate"})
 		warnings "Off"
 
 		defines({
-			"DOUBLE_PRECISION_ENABLED",
+			"IS_DOUBLE_PRECISION_ENABLED",
 		})
 
         includedirs {
