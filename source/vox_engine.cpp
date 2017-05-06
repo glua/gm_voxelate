@@ -46,7 +46,7 @@ bool init_interfaces() {
 			return false;
 	}
 	else {
-		if (!LOADINTERFACE("engine", INTERFACEVERSION_VENGINESERVER_VERSION_21, iface_sv_ents))
+		if (!LOADINTERFACE("engine", INTERFACEVERSION_VENGINESERVER, iface_sv_ents))
 			return false;
 		if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, iface_sv_physics))
 			return false;

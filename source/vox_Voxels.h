@@ -5,7 +5,8 @@
 #include <list>
 
 #include "materialsystem/imesh.h"
-#include "GarrysMod/Lua/Interface.h"
+
+#include "glua.h"
 
 #include "vox_util.h"
 
@@ -51,7 +52,7 @@ struct VoxelConfig {
 		if (cl_atlasMaterial)
 			cl_atlasMaterial->DecrementReferenceCount();
 	}
-	
+
 	int dimX = 1;
 	int dimY = 1;
 	int dimZ = 1;
