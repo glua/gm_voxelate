@@ -66,6 +66,10 @@ CreateWorkspace({name = "voxelate"})
         kind "StaticLib"
 		warnings "Off"
 
+		defines({
+			"DOUBLE_PRECISION_ENABLED",
+		})
+
         includedirs {
             "../reactphysics3d/src/",
         }
