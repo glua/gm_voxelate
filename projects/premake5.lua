@@ -16,6 +16,8 @@ CreateWorkspace({name = "voxelate"})
 		"RAD_TELEMETRY_DISABLED"
 	})
 
+	targetdir("bin")
+
 	CreateProject({serverside = true})
 		language("C++11")
 
