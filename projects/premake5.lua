@@ -55,6 +55,7 @@ CreateWorkspace({name = "voxelate"})
 	project("fastlz")
 		language("C")
 		kind("StaticLib")
+		warnings "Off"
 		files({
 			"../fastlz/fastlz.c",
 			"../fastlz/fastlz.h",
@@ -63,6 +64,7 @@ CreateWorkspace({name = "voxelate"})
     project("reactphysics3d")
         language "C++"
         kind "StaticLib"
+		warnings "Off"
 
         includedirs {
             "../reactphysics3d/src",
