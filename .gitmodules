@@ -1,0 +1,3 @@
+[submodule "reactphysics3d"]
+	path = reactphysics3d
+	url = https://github.com/DanielChappuis/reactphysics3d
