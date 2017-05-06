@@ -2,7 +2,7 @@
 
 #include <GarrysMod/Interfaces.hpp>
 
-#ifdef IS_SERVERSIDE_AND_LINUX // TODO
+#if defined(IS_SERVERSIDE) && defined(__linux__)
 #define MODULENAME(_module_) _module_  "_srv"
 #else
 #define MODULENAME(_module_) _module_
