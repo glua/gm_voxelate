@@ -1,6 +1,6 @@
 #include "vox_engine.h"
 
-#ifdef USE_SERVER_MODULES
+#ifdef IS_SERVERSIDE
 #define MODULENAME(_module_) _module_  "_srv"
 #else
 #define MODULENAME(_module_) _module_
