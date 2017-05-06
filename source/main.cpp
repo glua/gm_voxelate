@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "GarrysMod/Lua/Interface.h"
+#include "glua.h"
 
 #include "vox_util.h"
 #include "vox_engine.h"
@@ -17,7 +17,7 @@ GMOD_MODULE_OPEN() {
 		vox_print("Fatal! Could not determine the engine state!");
 		return 1;
 	}
-	
+
 	if (!init_interfaces()) {
 		vox_print("Fatal! Failed to load engine interfaces!");
 		return 1;

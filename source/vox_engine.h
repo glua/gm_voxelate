@@ -1,11 +1,12 @@
 #pragma once
 
-#include "GarrysMod/Lua/Interface.h"
+#include "glua.h"
 
 #include "materialsystem/imaterialsystem.h"
 #include "vphysics_interface.h"
 #include "icliententitylist.h"
 #include "eiface.h"
+// #include "eifacev21.h"
 
 extern IVEngineServer* iface_sv_ents;
 extern IPhysicsCollision* iface_sv_collision;

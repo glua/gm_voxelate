@@ -16,17 +16,17 @@ See the wiki in the sidebar.
 Please report bugs on this repository's issues page!
 
 ## Building
-This is designed to be built with glua's build-loadout repository.
+This is designed to be built with [MetaMan](https://github.com/danielga)'s [Garry's Mod](https://github.com/danielga/garrysmod_common) and [Source SDK](https://github.com/danielga/sourcesdk-minimal) headers.
 
 It requires a compiler/runtime that supports C++11, which can cause problems on older linux systems.
 
 **Windows**: Should just work.
 
-**Linux**: Hah! Have fun. It will compile, but you will be begging for death before you have a working binary. You will need to make a lot of changes to the makefile, and even edit part of the Source Sdk code. I will explain more and try to address this eventually.
+**Linux**: Should just work?
 
 **Mac**: Unknown, probably similar to Linux.
 
-The test_install scripts are for quickly copying the binaries into directories on my systems.
+The test_install scripts are for quickly copying the binaries into directories on my systems, and are probably broken right now.
 
 ## Used In
 [gm_f1atgrass](https://github.com/glua/gm_f1atgrass) - Testbed for the module

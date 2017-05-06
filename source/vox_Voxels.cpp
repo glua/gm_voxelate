@@ -8,10 +8,6 @@
 
 #include <vector>
 
-#define GAME_DLL
-#include "cbase.h"
-#undef GAME_DLL
-
 #include "collisionutils.h"
 
 #include "fastlz.h"
@@ -182,7 +178,7 @@ VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
 
 VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents) {
 	Vector voxel_extents = getExtents();
-	
+
 	//Calculate our bounds based on the offsets used by the player hull. This will not work for everything, but will preserve player movement.
 	Vector box_lower = startPos - Vector(extents.x, extents.y, 0);
 
@@ -324,7 +320,7 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 				res.fraction = tMaxZ - tDeltaZ;
 				res.hitNormal = Vector(0, 0, 1);
 			}
-			res.hitPos = startPos + res.fraction*delta; // todo plz improve 
+			res.hitPos = startPos + res.fraction*delta; // todo plz improve
 			return res;
 		}
 	}
@@ -456,7 +452,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
 		}
-		
+
 		if (dir == DIR_X_POS || dir == DIR_X_NEG) {
 			double t = tMaxX - tDeltaX;
 			double baseY = startPos.y + t*delta.y;
@@ -524,7 +520,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 						res.fraction = t;
 
 						res.hitPos = startPos + res.fraction*delta;
-						
+
 						if (dir == DIR_Z_POS) {
 							res.hitNormal.z = -1;
 							res.hitPos.z -= epsilon;
@@ -577,8 +573,8 @@ int div_floor(int x, int y) {
 
 uint16 Voxels::get(int x, int y, int z) {
 	int qx = x / VOXEL_CHUNK_SIZE;
-	
-	
+
+
 	VoxelChunk* chunk = getChunk(div_floor(x,VOXEL_CHUNK_SIZE), div_floor(y,VOXEL_CHUNK_SIZE), div_floor(z,VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr) {
 		return 0;
@@ -824,7 +820,7 @@ void VoxelChunk::addFullVoxelFace(int x, int y, int z, int tx, int ty, byte dir)
 	double realZ = (z + posZ*VOXEL_CHUNK_SIZE) * system->config->scale;
 
 	double realStep = system->config->scale;
-	
+
 	if (STATE_CLIENT) {
 		if (verts_remaining < 4) {
 			meshStop(nullptr);
