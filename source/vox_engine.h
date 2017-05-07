@@ -8,14 +8,13 @@
 #include "eiface.h"
 // #include "eifacev21.h"
 
-extern IVEngineServer* iface_sv_ents;
-extern IPhysicsCollision* iface_sv_collision;
-extern IPhysics* iface_sv_physics;
+// Server interfaces
+extern IVEngineServer* IFACE_SV_ENGINE;
+extern IPhysicsCollision* IFACE_SV_COLLISION;
+extern IPhysics* IFACE_SV_PHYSICS;
 
-extern IMaterialSystem* iface_cl_materials;
+// Client interfaces
+extern IMaterialSystem* IFACE_CL_MATERIALS;
 
-extern bool STATE_CLIENT;
-extern bool STATE_SERVER;
 
-bool determine_state(lua_State* state);
 bool init_interfaces();
