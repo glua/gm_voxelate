@@ -20,11 +20,14 @@ typedef std::array<Coord, 3> XYZCoordinate;
 // thanks zerf
 namespace std {
 	template<> struct hash<XYZCoordinate> {
-		size_t operator()(XYZCoordinate const& a) const {
-			std::size_t h = 0;
+		std::size_t operator()(XYZCoordinate const& a) const {
+			std::size_t h = 2166136261;
 
-			for (auto e : a) {
-				h ^= std::hash<std::int32_t>{}(e)+0x9e3779b9 + (h << 6) + (h >> 2);
+			for (const std::int32_t& e : a) {
+				h = (h ^ (e >> 24)) * 16777619;
+				h = (h ^ ((e >> 16) & 0xff)) * 16777619;
+				h = (h ^ ((e >> 8) & 0xff)) * 16777619;
+				h = (h ^ (e & 0xff)) * 16777619;
 			}
 
 			return h;
