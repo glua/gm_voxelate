@@ -13,7 +13,8 @@
 
 #include "vox_util.h"
 
-typedef std::array<std::int32_t, 3> XYZCoordinate;
+typedef std::int32_t Coord;
+typedef std::array<Coord, 3> XYZCoordinate;
 
 // custom specialization of std::hash can be injected in namespace std
 // thanks zerf
@@ -105,17 +106,17 @@ class Voxels {
 public:
 	~Voxels();
 
-	VoxelChunk* addChunk(int x, int y, int z);
-	VoxelChunk* getChunk(int x, int y, int z);
+	VoxelChunk* addChunk(Coord x, Coord y, Coord z);
+	VoxelChunk* getChunk(Coord x, Coord y, Coord z);
 
-	const int getChunkData(int x, int y, int z, char * out);
-	void setChunkData(int x, int y, int z, const char* data_compressed, int data_len);
+	const int getChunkData(Coord x, Coord y, Coord z, char * out);
+	void setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len);
 
 	void initialize(VoxelConfig* config);
 	bool isInitialized();
 
 	Vector getExtents();
-	void getCellExtents(int& x, int &y, int &z);
+	void getCellExtents(Coord& x, Coord &y, Coord &z);
 
 	void flagAllChunksForUpdate();
 
@@ -130,8 +131,8 @@ public:
 
 	void draw();
 
-	uint16 get(int x, int y, int z);
-	bool set(int x, int y, int z, uint16 d,bool flagChunks=true);
+	uint16 get(Coord x, Coord y, Coord z);
+	bool set(Coord x, Coord y, Coord z, uint16 d,bool flagChunks=true);
 private:
 	bool initialised = false;
 

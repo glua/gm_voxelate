@@ -75,7 +75,7 @@ Voxels::~Voxels() {
 		delete config;
 }
 
-VoxelChunk* Voxels::addChunk(int x, int y, int z) {
+VoxelChunk* Voxels::addChunk(Coord x, Coord y, Coord z) {
 	XYZCoordinate coord = { x, y, z };
 
 	chunks_new[coord] = new VoxelChunk(this,x,y,z);
@@ -83,7 +83,7 @@ VoxelChunk* Voxels::addChunk(int x, int y, int z) {
 	return chunks_new[coord];
 }
 
-VoxelChunk* Voxels::getChunk(int x, int y, int z) {
+VoxelChunk* Voxels::getChunk(Coord x, Coord y, Coord z) {
 	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
 		return nullptr;
 	}
@@ -91,7 +91,7 @@ VoxelChunk* Voxels::getChunk(int x, int y, int z) {
 	return chunks_new[{ x, y, z }];
 }
 
-const int Voxels::getChunkData(int x, int y, int z,char* out) {
+const int Voxels::getChunkData(Coord x, Coord y, Coord z,char* out) {
 	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
 		return 0;
 	}
@@ -101,7 +101,7 @@ const int Voxels::getChunkData(int x, int y, int z,char* out) {
 	return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
 }
 
-void Voxels::setChunkData(int x, int y, int z, const char* data_compressed, int data_len) {
+void Voxels::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len) {
 	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
 		return;
 	}
@@ -116,9 +116,9 @@ void Voxels::initialize(VoxelConfig* config) {
 	// YO 3D LOOP TIME NIGGA
 	// TODO: remove this and only add chunks when entities are nearby
 	// TODO: remove this entirely actually, this only generates positive int chunks, but we're going arbitrary...
-	for (int x = 0; x < config->dimX; x++) {
-		for (int y = 0; y < config->dimY; y++) {
-			for (int z = 0; z < config->dimZ; z++) {
+	for (Coord x = 0; x < config->dimX; x++) {
+		for (Coord y = 0; y < config->dimY; y++) {
+			for (Coord z = 0; z < config->dimZ; z++) {
 				addChunk(x, y, z);
 			}
 		}
@@ -583,7 +583,7 @@ int div_floor(int x, int y) {
 	return q;
 }
 
-uint16 Voxels::get(int x, int y, int z) {
+uint16 Voxels::get(Coord x, Coord y, Coord z) {
 	int qx = x / VOXEL_CHUNK_SIZE;
 
 
@@ -594,7 +594,7 @@ uint16 Voxels::get(int x, int y, int z) {
 	return chunk->get(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE);
 }
 
-bool Voxels::set(int x, int y, int z, uint16 d, bool flagChunks) {
+bool Voxels::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr)
 		return false;
@@ -723,11 +723,11 @@ void VoxelChunk::draw(CMatRenderContextPtr& pRenderContext) {
 	}
 }
 
-uint16 VoxelChunk::get(int x, int y, int z) {
+uint16 VoxelChunk::get(Coord x, Coord y, Coord z) {
 	return voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE];
 }
 
-void VoxelChunk::set(int x, int y, int z, uint16 d, bool flagChunks) {
+void VoxelChunk::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
 	voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = d;
 
 	if (!flagChunks)
@@ -826,7 +826,7 @@ void VoxelChunk::meshStop(CBaseEntity* ent) {
 	}
 }
 
-void VoxelChunk::addFullVoxelFace(int x, int y, int z, int tx, int ty, byte dir) {
+void VoxelChunk::addFullVoxelFace(Coord x, Coord y, Coord z, int tx, int ty, byte dir) {
 	double realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config->scale;
 	double realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config->scale;
 	double realZ = (z + posZ*VOXEL_CHUNK_SIZE) * system->config->scale;
