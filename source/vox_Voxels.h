@@ -2,13 +2,38 @@
 
 #include <map>
 #include <set>
+#include <unordered_map>
 #include <list>
+#include <array>
+#include <functional>
 
 #include "materialsystem/imesh.h"
 
 #include "glua.h"
 
 #include "vox_util.h"
+
+typedef std::int32_t Coord;
+typedef std::array<Coord, 3> XYZCoordinate;
+
+// custom specialization of std::hash can be injected in namespace std
+// thanks zerf
+namespace std {
+	template<> struct hash<XYZCoordinate> {
+		std::size_t operator()(XYZCoordinate const& a) const {
+			std::size_t h = 2166136261;
+
+			for (const std::int32_t& e : a) {
+				h = (h ^ (e >> 24)) * 16777619;
+				h = (h ^ ((e >> 16) & 0xff)) * 16777619;
+				h = (h ^ ((e >> 8) & 0xff)) * 16777619;
+				h = (h ^ (e & 0xff)) * 16777619;
+			}
+
+			return h;
+		}
+	};
+};
 
 #define VOXEL_CHUNK_SIZE 16
 
@@ -84,17 +109,17 @@ class Voxels {
 public:
 	~Voxels();
 
-	VoxelChunk* addChunk(int chunk_num);
-	VoxelChunk* getChunk(int x, int y, int z);
+	VoxelChunk* addChunk(Coord x, Coord y, Coord z);
+	VoxelChunk* getChunk(Coord x, Coord y, Coord z);
 
-	const int getChunkData(int chunk_num, char* out);
-	void setChunkData(int chunk_num, const char* data_compressed, int data_len);
+	const int getChunkData(Coord x, Coord y, Coord z, char * out);
+	void setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len);
 
 	void initialize(VoxelConfig* config);
 	bool isInitialized();
 
 	Vector getExtents();
-	void getCellExtents(int& x, int &y, int &z);
+	void getCellExtents(Coord& x, Coord &y, Coord &z);
 
 	void flagAllChunksForUpdate();
 
@@ -109,10 +134,12 @@ public:
 
 	void draw();
 
-	uint16 get(int x, int y, int z);
-	bool set(int x, int y, int z, uint16 d,bool flagChunks=true);
+	uint16 get(Coord x, Coord y, Coord z);
+	bool set(Coord x, Coord y, Coord z, uint16 d,bool flagChunks=true);
 private:
-	VoxelChunk** chunks = nullptr;
+	bool initialised = false;
+
+	std::unordered_map<XYZCoordinate, VoxelChunk*> chunks_new; // ok zerf lmao
 	std::set<VoxelChunk*> chunks_flagged_for_update;
 
 	bool updates_enabled = false;
