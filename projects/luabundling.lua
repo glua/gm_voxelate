@@ -173,7 +173,7 @@ function luaProjectEx(name,rootDir,headerPath)
     p.luaProjectIDFull = string.format("lexe_%s_%02d",name,p.luaProjectID)
     p.isLuaExecutable = true
     p.luaFiles = {}
-    p.headerPath = os.realpath(headerPath)
+    p.headerPath = path.getabsolute(headerPath)
     p.rootLuaDirectory = os.realpath(rootDir)
 
     newaction {
@@ -187,7 +187,7 @@ function luaProjectEx(name,rootDir,headerPath)
     filter 'files:**.lua'
         -- buildmessage 'Compiling %{file.relpath}'
         buildoutputs {
-            os.realpath(p.headerPath),
+            p.headerPath,
         }
     filter({})
 
