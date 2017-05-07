@@ -1,7 +1,7 @@
 -- from one of my old projects
 
 _LUA_EXEC_DIRECTORY = _SCRIPT_DIR
-if _LUA_EXEC_DIRECTORY:sub(1,1):match("[/\\]$") then _LUA_EXEC_DIRECTORY = _LUA_EXEC_DIRECTORY:sub(1,-2) end
+if _LUA_EXEC_DIRECTORY:match("[/\\]$") then _LUA_EXEC_DIRECTORY = _LUA_EXEC_DIRECTORY:sub(1,-2) end
 
 local function normalizePath(path)
     path = string.gsub(path,"\\","/")
