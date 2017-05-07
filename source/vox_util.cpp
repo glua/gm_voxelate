@@ -3,8 +3,6 @@
 #include "tier0/dbg.h"
 #include "Color.h"
 
-Color COLOR_LIME(0, 255, 0, 255);
-
 void vox_print(const char* msg, ...) {
 	char buffer[256];
 	
@@ -14,12 +12,21 @@ void vox_print(const char* msg, ...) {
 	va_end(args);
 	
 	ConMsg("[");
-	ConColorMsg(COLOR_LIME, "VOX");
+	ConColorMsg(Color(0,255,0,255), "VOXELATE");
+	ConMsg("-");
+
+#if IS_SERVERSIDE
+	ConColorMsg(Color(0,0,255,0), "SV");
+#else
+	ConColorMsg(Color(255, 255, 0, 0), "CL");
+#endif
+
 	ConMsg("] ");
 	ConMsg(buffer);
 	ConMsg("\n");
 }
 
+// I will shit if this still works.
 Vector eent_getPos(CBaseEntity* ent) {
 	/*float* a_ptr = reinterpret_cast<float*>(ent);
 
