@@ -94,7 +94,7 @@ local function compileLuaProject(p)
 
     local BOOTSTRAP_CODE
     do
-        local f = io.open(os.realpath(_LUA_EXEC_DIRECTORY.."/bootstrap.lua"),"rb")
+        local f = io.open(_LUA_EXEC_DIRECTORY.."/bootstrap.lua","rb")
         if f then
             BOOTSTRAP_CODE = f:read("*a")
             f:close()
@@ -147,7 +147,7 @@ local function compileLuaProject(p)
 
     print("Header generated!")
     os.writefile_ifnotequal(header,p.headerPath)
-    print(p.headerPath)
+    -- print(p.headerPath)
     -- print(header)
 end
 
@@ -183,6 +183,8 @@ function luaProjectEx(name,rootDir,headerPath)
         end,
         description = "internal lua packager",
     }
+
+    files {p.headerPath}
 
     filter 'files:**.lua'
         -- buildmessage 'Compiling %{file.relpath}'
