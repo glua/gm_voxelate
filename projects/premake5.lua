@@ -11,6 +11,8 @@ end
 
 include(gmcommon)
 
+include("luabundling.lua")
+
 CreateWorkspace({name = "voxelate"})
 	defines({
 		"IS_DOUBLE_PRECISION_ENABLED",
@@ -21,6 +23,10 @@ CreateWorkspace({name = "voxelate"})
 
 	CreateProject({serverside = true})
 		language("C++11")
+
+        luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
+            luaEntryPoint("init.lua")
+            includeLua("../lua/**")
 
 		includedirs({"../fastlz","../reactphysics3d/src"})
 		links({"fastlz","reactphysics3d"})
@@ -38,6 +44,10 @@ CreateWorkspace({name = "voxelate"})
 
 	CreateProject({serverside = false})
 		language("C++11")
+
+        luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
+            luaEntryPoint("init.lua")
+            includeLua("../lua/**")
 
 		includedirs({"../fastlz","../reactphysics3d/src"})
 		links({"fastlz","reactphysics3d"})
