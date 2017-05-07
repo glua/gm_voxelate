@@ -147,6 +147,10 @@ void Voxels::getCellExtents(int& x, int &y, int &z) {
 	z = config->dimZ*VOXEL_CHUNK_SIZE;
 }
 
+// Get real upset and flag every single chunk we know about for an update
+// This happens right after we receive all the chunks.
+// TODO prioritize based on distance from player
+// TODO need different logic for huge worlds
 void Voxels::flagAllChunksForUpdate() {
 	// calling this is probably a VERY VERY VERY VERY bad idea once we have an infinite map working
 	for (auto it : chunks_new) {
@@ -154,8 +158,12 @@ void Voxels::flagAllChunksForUpdate() {
 	}
 }
 
+// Updates up to n chunks
+// Logic probably okay for huge worlds, although we may have to double check that the chunk still exists,
+// or clean out chunks_flagged_for_update when we unload chunks
 void Voxels::doUpdates(int count, CBaseEntity* ent) {
-	if (updates_enabled && (STATE_CLIENT || ent != nullptr)) {
+	// On the server, we -NEED- the entity. Not so important on the client
+	if (updates_enabled && (!IS_SERVERSIDE || ent != nullptr)) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
@@ -165,11 +173,17 @@ void Voxels::doUpdates(int count, CBaseEntity* ent) {
 	}
 }
 
+// Enables updates -- Client doesn't want to update until it has all the chunks
+// Going to need totally different logic for huge maps.
+// Might not hurt to totally ditch this logic and use some other method to determine
+// when chunks should start updating.
 void Voxels::enableUpdates(bool enable) {
-	if (STATE_CLIENT || (config->sv_useMeshCollisions))
+	if (!IS_SERVERSIDE || (config->sv_useMeshCollisions))
 		updates_enabled = enable;
 }
 
+// Function for line traces. Re-scales vectors and moves the start to the beggining of the voxel entity,
+// Then calls fast trace function
 VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
 	Vector voxel_extents = getExtents();
 
@@ -189,6 +203,8 @@ VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
 	}
 }
 
+// Same as above for hull traces.
+// TODO deal with assumption mentioned below...?
 VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents) {
 	Vector voxel_extents = getExtents();
 
@@ -213,6 +229,7 @@ VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents)
 	}
 }
 
+// Fast trace function, based on http://www.cse.chalmers.se/edu/year/2011/course/TDA361/Advanced%20Computer%20Graphics/grid.pdf
 VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 	int vx = startPos.x;
 	int vy = startPos.y;
@@ -349,6 +366,8 @@ int floorCrazy(float f) {
 	return f;
 }
 
+// Same as above, for hull traces.
+// Has a lot of sketchy shit to prevent players getting stuck :(
 VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal) {
 	double epsilon = .001;
 
@@ -554,12 +573,14 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 	return VoxelTraceRes();
 }
 
+// Render every single chunk.
+// TODO for huge worlds, only render close chunks
 void Voxels::draw() {
 	IMaterial* atlasMat = config->cl_atlasMaterial;
 	if (!isInitialized())
 		return;
 
-	CMatRenderContextPtr pRenderContext(iface_cl_materials);
+	CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 
 	//Bind material
 	pRenderContext->Bind(atlasMat);
@@ -584,6 +605,7 @@ int div_floor(int x, int y) {
 	return q;
 }
 
+// Gets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
 uint16 Voxels::get(Coord x, Coord y, Coord z) {
 	int qx = x / VOXEL_CHUNK_SIZE;
 
@@ -595,6 +617,7 @@ uint16 Voxels::get(Coord x, Coord y, Coord z) {
 	return chunk->get(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE);
 }
 
+// Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
 bool Voxels::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr)
@@ -604,6 +627,10 @@ bool Voxels::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
 	return true;
 }
 
+// Most shit inside chunks should just work with huge maps
+// The one thing that comes to mind is mesh generation, which always builds the chunk offset into the mesh
+// I beleive I did this so I wouldn't need to push a matrix for every single chunk (lots of chunks, could be expensive?)
+// Could run into FP issues if we keep the offset built in though, as I'm pretty sure meshes use 32bit floats
 VoxelChunk::VoxelChunk(Voxels* sys,int cx, int cy, int cz) {
 	system = sys;
 	posX = cx;
@@ -760,8 +787,8 @@ void VoxelChunk::send(int sys_index, int ply_id, bool init, int chunk_num) {
 }
 */
 void VoxelChunk::meshClearAll() {
-	if (STATE_CLIENT) {
-		CMatRenderContextPtr pRenderContext(iface_cl_materials);
+	if (!IS_SERVERSIDE) {
+		CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 
 		while (meshes.begin() != meshes.end()) {
 			pRenderContext->DestroyStaticMesh(*meshes.begin());
@@ -770,7 +797,7 @@ void VoxelChunk::meshClearAll() {
 	}
 	else {
 		if (phys_obj!=nullptr) {
-			IPhysicsEnvironment* env = iface_sv_physics->GetActiveEnvironmentByIndex(0);
+			IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
 			phys_obj->SetGameData(nullptr);
 			phys_obj->EnableCollisions(false);
 			phys_obj->RecheckCollisionFilter();
@@ -779,14 +806,14 @@ void VoxelChunk::meshClearAll() {
 			phys_obj = nullptr;
 
 			//Not sure if we should be calling this, but it may be required to prevent a leak.
-			iface_sv_collision->DestroyCollide(phys_collider);
+			IFACE_SV_COLLISION->DestroyCollide(phys_collider);
 		}
 	}
 }
 
 void VoxelChunk::meshStart() {
-	if (STATE_CLIENT) {
-		CMatRenderContextPtr pRenderContext(iface_cl_materials);
+	if (!IS_SERVERSIDE) {
+		CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 		current_mesh = pRenderContext->CreateStaticMesh(STD_VERT_FMT, "");
 
 		//try MATERIAL_INSTANCED_QUADS
@@ -795,16 +822,16 @@ void VoxelChunk::meshStart() {
 		verts_remaining = BUILD_MAX_VERTS;
 	}
 	else {
-		phys_soup = iface_sv_collision->PolysoupCreate();
+		phys_soup = IFACE_SV_COLLISION->PolysoupCreate();
 	}
 }
 
 void VoxelChunk::meshStop(CBaseEntity* ent) {
-	if (STATE_CLIENT) {
+	if (!IS_SERVERSIDE) {
 		meshBuilder.End();
 
 		if (verts_remaining == BUILD_MAX_VERTS) {
-			CMatRenderContextPtr pRenderContext(iface_cl_materials);
+			CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 			pRenderContext->DestroyStaticMesh(current_mesh);
 		}
 		else {
@@ -812,8 +839,8 @@ void VoxelChunk::meshStop(CBaseEntity* ent) {
 		}
 	}
 	else {
-		phys_collider = iface_sv_collision->ConvertPolysoupToCollide(phys_soup, false); //todo what the fuck is MOPP?
-		iface_sv_collision->PolysoupDestroy(phys_soup);
+		phys_collider = IFACE_SV_COLLISION->ConvertPolysoupToCollide(phys_soup, false); //todo what the fuck is MOPP?
+		IFACE_SV_COLLISION->PolysoupDestroy(phys_soup);
 
 		objectparams_t op = { 0 };
 		op.enableCollisions = true;
@@ -822,7 +849,7 @@ void VoxelChunk::meshStop(CBaseEntity* ent) {
 
 		Vector pos = eent_getPos(ent);
 
-		IPhysicsEnvironment* env = iface_sv_physics->GetActiveEnvironmentByIndex(0);
+		IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
 		phys_obj = env->CreatePolyObjectStatic(phys_collider, 3, pos, QAngle(0, 0, 0), &op);
 	}
 }
@@ -834,7 +861,7 @@ void VoxelChunk::addFullVoxelFace(Coord x, Coord y, Coord z, int tx, int ty, byt
 
 	double realStep = system->config->scale;
 
-	if (STATE_CLIENT) {
+	if (!IS_SERVERSIDE) {
 		if (verts_remaining < 4) {
 			meshStop(nullptr);
 			meshStart();
@@ -1015,7 +1042,7 @@ void VoxelChunk::addFullVoxelFace(Coord x, Coord y, Coord z, int tx, int ty, byt
 			v4 = Vector(realX, realY + realStep, realZ + realStep);
 		}
 
-		iface_sv_collision->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
-		iface_sv_collision->PolysoupAddTriangle(phys_soup, v1, v3, v4, 3);
+		IFACE_SV_COLLISION->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
+		IFACE_SV_COLLISION->PolysoupAddTriangle(phys_soup, v1, v3, v4, 3);
 	}
 }

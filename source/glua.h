@@ -8,4 +8,6 @@
 
 #include "GarrysMod/Lua/Interface.h"
 
+#include "lua.hpp"
+
 #endif

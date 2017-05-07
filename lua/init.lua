@@ -1,7 +1,3 @@
-#pragma once
-
-const char* LUA_SRC = R">>(
-
 local IMPORTS = G_VOX_IMPORTS
 G_VOX_IMPORTS = nil
 
@@ -22,13 +18,13 @@ else
 	hook.Add("PlayerInitialSpawn","voxelate_version_check",function(ply)
 
 		local CLIENT_STR = ply:GetInfo("voxelate_version")
-		
+
 		if (CLIENT_STR=="") then
 			ply:Kick("Voxelate not installed.\n\nSERVER VERSION: "..VERSION.."\n\nSorry")
 		end
 
 		local CLIENT_MAJOR, CLIENT_MINOR, CLIENT_PATCH = parseVersion(CLIENT_STR)
-		
+
 		if (CLIENT_MAJOR != MASTER_MAJOR || CLIENT_MINOR<MASTER_MINOR) then
 			ply:Kick("Voxelate version mismatch.\n\nSERVER VERSION: "..VERSION.."\nYOUR VERSION: "..CLIENT_STR.."\n\nSorry")
 		end
@@ -113,7 +109,7 @@ if SERVER then
 		local index = net.ReadUInt(16)
 
 		if CONFIGS[index] then
-			
+
 			net.Start("voxelate_init_start")
 			net.WriteUInt(index,16)
 			net.WriteTable(CONFIGS[index])
@@ -146,7 +142,7 @@ else
 
 	net.Receive("voxelate_init_chunks",function(len)
 		local index = net.ReadUInt(16)
-		while true do		
+		while true do
 			local chunk_n = net.ReadUInt(16)
 			if chunk_n==65535 then break end
 
@@ -208,8 +204,8 @@ else
 		local y = net.ReadUInt(16)
 		local z = net.ReadUInt(16)
 		local r = net.ReadUInt(16)
-		local d = net.ReadUInt(16)		
-	
+		local d = net.ReadUInt(16)
+
 		local set = IMPORTS.voxSet
 		local rsqr = r*r
 		for ix=x-r,x+r do
@@ -251,17 +247,17 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"InternalIndex")
 end
 
-function ENT:Initialize()	
+function ENT:Initialize()
 	if SERVER then
 		local index = IMPORTS.voxNew(-1)
 
 		self:SetInternalIndex(index)
-		
+
 		local config = self.config
 		self.config = nil
 
 		config._ent = self
-		
+
 		CONFIGS[index] = config
 
 		IMPORTS.voxInit(index,config)
@@ -309,14 +305,14 @@ function ENT:_initMisc(size_x,size_y,size_z)
 end
 
 function ENT:Think()
-	local index = self:GetInternalIndex()	
+	local index = self:GetInternalIndex()
 	IMPORTS.voxUpdate(index,10,self)
-	
-	if CLIENT and self.correct_maxs then		
-		local _,maxs = self:GetRenderBounds()		
-		if maxs!=self.correct_maxs then		
-			self:SetRenderBounds(Vector(),self.correct_maxs)		
-			print("Corrected render bounds on Voxel System #"..index..".")		
+
+	if CLIENT and self.correct_maxs then
+		local _,maxs = self:GetRenderBounds()
+		if maxs!=self.correct_maxs then
+			self:SetRenderBounds(Vector(),self.correct_maxs)
+			print("Corrected render bounds on Voxel System #"..index..".")
 		end
 	end
 
@@ -338,7 +334,7 @@ end
 function ENT:TestCollision(start,delta,isbox,extents)
 	if isbox then
 		//debugoverlay.Box(start,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,255,0,0))
-	end	
+	end
 	start=self:WorldToLocal(start)
 	local index = self:GetInternalIndex()
 	local fraction,hitpos,normal = IMPORTS.voxTrace(index,start,delta,isbox,extents)
@@ -362,21 +358,21 @@ if SERVER then
 		IMPORTS.voxGenerate(index,f)
 		IMPORTS.voxReInit(index)
 		IMPORTS.voxFlagAllChunksForUpdate(index)
-	end	
+	end
 
 	function ENT:save(file_name)
-		local index = self:GetInternalIndex()		
-		
+		local index = self:GetInternalIndex()
+
 		local dims = CONFIGS[index].dimensions or Vector(1,1,1)
 
 		local file_handle = file.Open(file_name,"wb","DATA")
 		if !file_handle then return false end
-		
+
 		file_handle:Write("VolFile0")
 		file_handle:WriteShort(dims.x)
 		file_handle:WriteShort(dims.y)
 		file_handle:WriteShort(dims.z)
-		
+
 		local i=0
 		while true do
 			local data = IMPORTS.voxData(index,i)
@@ -392,16 +388,16 @@ if SERVER then
 		end
 
 		file_handle:Close()
-		
+
 
 		return true
 	end
 
 	function ENT:load(file_name)
-		local index = self:GetInternalIndex()		
-		
+		local index = self:GetInternalIndex()
+
 		local dims = CONFIGS[index].dimensions or Vector(1,1,1)
-		
+
 		local file_handle = file.Open(file_name,"rb","DATA")
 		if !file_handle then return false end
 
@@ -409,7 +405,7 @@ if SERVER then
 		local fdx = file_handle:ReadShort()
 		local fdy = file_handle:ReadShort()
 		local fdz = file_handle:ReadShort()
-		
+
 		if fdx!=dims.x or fdy!=dims.y or fdz!=dims.z then file_handle:Close() return false end
 
 		for i=0,fdx*fdy*fdz-1 do
@@ -417,14 +413,14 @@ if SERVER then
 			local data = file_handle:Read(len)
 			IMPORTS.voxInitChunk(index,i,data)
 		end
-		
-		file_handle:Close()		
+
+		file_handle:Close()
 
 		IMPORTS.voxReInit(index)
 		IMPORTS.voxFlagAllChunksForUpdate(index)
 
 		return true
-	end	
+	end
 
 	function ENT:getBlock(x,y,z)
 		local index = self:GetInternalIndex()
@@ -463,10 +459,10 @@ if SERVER then
 
 	function ENT:setRegion(x,y,z,sx,sy,sz,d) --allow d to be string data
 		local index = self:GetInternalIndex()
-		local set = IMPORTS.voxSet	
-		
+		local set = IMPORTS.voxSet
+
 		local fix = math.floor
-		
+
 		x = fix(x)
 		y = fix(y)
 		z = fix(z)
@@ -496,13 +492,13 @@ if SERVER then
 
 	function ENT:setRegionAt(v1,v2,d)
 		local index = self:GetInternalIndex()
-		local scale = CONFIGS[index].scale or 1		
-		
+		local scale = CONFIGS[index].scale or 1
+
 		local lower=self:WorldToLocal(v1)/scale
 		local upper=self:WorldToLocal(v2)/scale
 
 		OrderVectors(lower,upper)
-		
+
 		local fix = math.floor
 
 		self:setRegion(lower.x,lower.y,lower.z,fix(upper.x)-fix(lower.x),fix(upper.y)-fix(lower.y),fix(upper.z)-fix(lower.z),d)
@@ -510,10 +506,10 @@ if SERVER then
 
 	function ENT:setSphere(x,y,z,r,d)
 		local index = self:GetInternalIndex()
-		local set = IMPORTS.voxSet		
-		
+		local set = IMPORTS.voxSet
+
 		local fix = math.floor
-		
+
 		x = fix(x)
 		y = fix(y)
 		z = fix(z)
@@ -545,10 +541,10 @@ if SERVER then
 
 	function ENT:setSphereAt(pos,r,d)
 		local index = self:GetInternalIndex()
-		local scale = CONFIGS[index].scale or 1		
-		
+		local scale = CONFIGS[index].scale or 1
+
 		pos=self:WorldToLocal(pos)/scale
-		r=r/scale	
+		r=r/scale
 
 		self:setSphere(pos.x,pos.y,pos.z,r,d)
 	end
@@ -570,5 +566,3 @@ end)
 hook.Add("CanTool", "voxelate_notool", function(ply,tr,tool)
 	if IsValid( tr.Entity ) and tr.Entity:GetClass() == "voxels" then return false end
 end)
-
-)>>";

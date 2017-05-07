@@ -10,14 +10,14 @@ using namespace GarrysMod::Lua;
 //Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
 
 CBaseEntity* elua_getEntity(lua_State* state, int index) {
-	if (STATE_CLIENT)
+	if (!IS_SERVERSIDE)
 		return nullptr;
 
 	GarrysMod::Lua::UserData* ud = reinterpret_cast<GarrysMod::Lua::UserData*>(LUA->GetUserdata(index));
 
 	int e_index = reinterpret_cast<CBaseHandle*>(ud->data)->GetEntryIndex();
 
-	auto edict = iface_sv_ents->PEntityOfEntIndex(e_index);
+	auto edict = IFACE_SV_ENGINE->PEntityOfEntIndex(e_index);
 
 	if (edict == nullptr)
 		return nullptr;
@@ -67,7 +67,7 @@ int luaf_voxInit(lua_State* state) {
 	Voxels* v = getIndexedVoxels(index);
 	if (v != nullptr) {
 		VoxelConfig* config = new VoxelConfig();
-		if (STATE_SERVER) {
+		if (IS_SERVERSIDE) {
 			LUA->GetField(2, "useMeshCollisions");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
 				config->sv_useMeshCollisions = LUA->GetBool();
@@ -92,9 +92,9 @@ int luaf_voxInit(lua_State* state) {
 
 			LUA->GetField(2, "atlasMaterial");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::STRING))
-				config->cl_atlasMaterial = iface_cl_materials->FindMaterial(LUA->GetString(-1), nullptr);
+				config->cl_atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(LUA->GetString(-1), nullptr);
 			else
-				config->cl_atlasMaterial = iface_cl_materials->FindMaterial("models/debug/debugwhite", nullptr);
+				config->cl_atlasMaterial = IFACE_CL_MATERIALS->FindMaterial("models/debug/debugwhite", nullptr);
 			LUA->Pop();
 
 			config->cl_atlasMaterial->IncrementReferenceCount();
@@ -400,6 +400,56 @@ int luaf_voxTrace(lua_State* state) {
 	return 0;
 }
 
+void setupFiles();
+const char* grabBootstrap();
+
+lua_State* currentState;
+
+void addFile(const unsigned char path[], int pathlen, const unsigned char contents[], int contlen) {
+	if (currentState != 0) {
+		// printf("SET %s\n", (char*)path);
+		lua_pushlstring(currentState, (char*)path, pathlen);
+		lua_pushlstring(currentState, (char*)contents, contlen);
+		lua_settable(currentState, -3);
+	}
+}
+
+void runBootstrap(lua_State* state) {
+	currentState = state;
+
+	bool success = false;
+	const char* errmsg;
+
+	lua_newtable(state);
+
+	setupFiles();
+
+	lua_setglobal(state, "FILETABLE");
+
+	if (luaL_loadstring(state, grabBootstrap()) != 0) {
+		errmsg = lua_tolstring(state, -1, NULL);
+		lua_pop(state, 1);
+	}
+	else if (lua_pcall(state, 0, 0, NULL) != 0) {
+		int errLoc = lua_gettop(state);
+		lua_getglobal(state, "tostring");
+		lua_pushvalue(state, errLoc);
+		if (lua_pcall(state, 1, 1, NULL) != 0) {
+			errmsg = lua_tolstring(state, lua_gettop(state), NULL);
+		}
+		else {
+			errmsg = "something happened";
+		}
+	}
+	else {
+		success = true;
+	}
+
+	if (!success) {
+		Msg("Bootstrap failed! (%s)\n", errmsg);
+	}
+}
+
 void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushSpecial(SPECIAL_GLOB);
 
@@ -449,9 +499,7 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
 
-	LUA->GetField(-1, "RunString");
-	LUA->PushString(LUA_SRC);
-	LUA->Call(1, 0);
+	runBootstrap(state);
 
 	LUA->Pop();
 }

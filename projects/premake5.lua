@@ -11,6 +11,17 @@ end
 
 include(gmcommon)
 
+include("luabundling.lua")
+
+newoption({
+	trigger = "autoinstall",
+	description = "Copies resulting binaries to garrysmod folder. Windows only."
+})
+
+if _OPTIONS.autoinstall and os.target() ~= "windows" then
+    error("Autoinstall is windows only right now thanks.")
+end
+
 CreateWorkspace({name = "voxelate"})
 	defines({
 		"IS_DOUBLE_PRECISION_ENABLED",
@@ -22,6 +33,10 @@ CreateWorkspace({name = "voxelate"})
 	CreateProject({serverside = true})
 		language("C++11")
 
+        luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
+            luaEntryPoint("init.lua")
+            includeLua("../lua/**")
+
 		includedirs({"../fastlz","../reactphysics3d/src"})
 		links({"fastlz","reactphysics3d"})
 
@@ -35,10 +50,18 @@ CreateWorkspace({name = "voxelate"})
 		IncludeDetouring()
 		IncludeScanning()
 		IncludeLuaShared()
+        
+		if _OPTIONS.autoinstall then
+			postbuildcommands { [[copy "..\..\bin\gmsv_voxelate_win32.dll" "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\lua\bin\gmsv_voxelate_win32.dll"]] }
+		end
 
 	CreateProject({serverside = false})
 		language("C++11")
 
+        luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
+            luaEntryPoint("init.lua")
+            includeLua("../lua/**")
+
 		includedirs({"../fastlz","../reactphysics3d/src"})
 		links({"fastlz","reactphysics3d"})
 
@@ -52,6 +75,10 @@ CreateWorkspace({name = "voxelate"})
 		IncludeDetouring()
 		IncludeScanning()
 		IncludeLuaShared()
+
+		if _OPTIONS.autoinstall then
+			postbuildcommands { [[copy "..\..\bin\gmcl_voxelate_win32.dll" "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\lua\bin\gmcl_voxelate_win32.dll"]] }
+		end
 
 	project("fastlz")
 		language("C")
