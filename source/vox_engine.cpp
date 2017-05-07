@@ -2,7 +2,9 @@
 
 #include <GarrysMod/Interfaces.hpp>
 
-#if defined(IS_SERVERSIDE) && defined(__linux__)
+// Deals with different module names on loonix
+// Could use Meta's stuff but W/E
+#if IS_SERVERSIDE && defined(__linux__)
 #define MODULENAME(_module_) _module_  "_srv"
 #else
 #define MODULENAME(_module_) _module_
@@ -10,51 +12,27 @@
 
 #define LOADINTERFACE(_module_, _version_, _out_) Sys_LoadInterface(MODULENAME(_module_), _version_, NULL, reinterpret_cast<void**>(& _out_ ))
 
-IVEngineServer* iface_sv_ents;
-IPhysicsCollision* iface_sv_collision;
-IPhysics* iface_sv_physics;
+// Serverside interfaces
+IVEngineServer* IFACE_SV_ENGINE;
+IPhysics* IFACE_SV_PHYSICS;
+IPhysicsCollision* IFACE_SV_COLLISION;
 
-IMaterialSystem* iface_cl_materials;
+// Clientside interfaces
+IMaterialSystem* IFACE_CL_MATERIALS;
 
-bool STATE_CLIENT = false;
-bool STATE_SERVER = false;
-
-bool determine_state(lua_State* state) {
-	LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-	
-	LUA->GetField(-1,"CLIENT");
-	if (LUA->GetBool()) {
-		STATE_CLIENT = true;
-		LUA->Pop(2);
-		return true;
-	}
-	LUA->Pop();
-
-	LUA->GetField(-1, "SERVER");
-	if (LUA->GetBool()) {
-		STATE_SERVER = true;
-		LUA->Pop(2);
-		return true;
-	}
-	LUA->Pop(2);
-
-	return false;
-}
-
+// Sets up interfaces
 bool init_interfaces() {
-	
 
-	if (STATE_CLIENT) {
-		if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, iface_cl_materials))
+	if (IS_SERVERSIDE) {
+		if (!LOADINTERFACE("engine", INTERFACEVERSION_VENGINESERVER, IFACE_SV_ENGINE))
+			return false;
+		if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, IFACE_SV_PHYSICS))
+			return false;
+		if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, IFACE_SV_COLLISION))
 			return false;
 	}
 	else {
-		
-		if (!LOADINTERFACE("engine", INTERFACEVERSION_VENGINESERVER, iface_sv_ents))
-			return false;
-		if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, iface_sv_physics))
-			return false;
-		if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, iface_sv_collision))
+		if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, IFACE_CL_MATERIALS))
 			return false;
 	}
 

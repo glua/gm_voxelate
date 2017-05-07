@@ -13,10 +13,6 @@ using namespace std;
 const char* VERSION = "0.2.0+";
 
 GMOD_MODULE_OPEN() {
-	if (!determine_state(state)) {
-		vox_print("Fatal! Could not determine the engine state!");
-		return 1;
-	}
 
 	if (!init_interfaces()) {
 		vox_print("Fatal! Failed to load engine interfaces!");
@@ -25,18 +21,16 @@ GMOD_MODULE_OPEN() {
 
 	init_lua(state, VERSION);
 
-	if (STATE_CLIENT)
-		vox_print("Module [%s] loaded on Client.",VERSION);
-	else
-		vox_print("Module [%s] loaded on Server.",VERSION);
+	vox_print("Loaded module version: %s",VERSION);
 
 	return 0;
 }
 
 GMOD_MODULE_CLOSE() {
-	if (STATE_CLIENT) {
+
+	if (!IS_SERVERSIDE)
 		deleteAllIndexedVoxels();
-	}
+
 	vox_print("Module unloaded.");
 	return 0;
 }
