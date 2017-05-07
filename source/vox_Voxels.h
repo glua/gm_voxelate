@@ -2,13 +2,34 @@
 
 #include <map>
 #include <set>
+#include <unordered_map>
 #include <list>
+#include <array>
+#include <functional>
 
 #include "materialsystem/imesh.h"
 
 #include "glua.h"
 
 #include "vox_util.h"
+
+typedef std::array<std::int32_t, 3> XYZCoordinate;
+
+// custom specialization of std::hash can be injected in namespace std
+// thanks zerf
+namespace std {
+	template<> struct hash<XYZCoordinate> {
+		size_t operator()(XYZCoordinate const& a) const {
+			std::size_t h = 0;
+
+			for (auto e : a) {
+				h ^= std::hash<std::int32_t>{}(e)+0x9e3779b9 + (h << 6) + (h >> 2);
+			}
+
+			return h;
+		}
+	};
+};
 
 #define VOXEL_CHUNK_SIZE 16
 
@@ -84,11 +105,11 @@ class Voxels {
 public:
 	~Voxels();
 
-	VoxelChunk* addChunk(int chunk_num);
+	VoxelChunk* addChunk(int x, int y, int z);
 	VoxelChunk* getChunk(int x, int y, int z);
 
-	const int getChunkData(int chunk_num, char* out);
-	void setChunkData(int chunk_num, const char* data_compressed, int data_len);
+	const int getChunkData(int x, int y, int z, char * out);
+	void setChunkData(int x, int y, int z, const char* data_compressed, int data_len);
 
 	void initialize(VoxelConfig* config);
 	bool isInitialized();
@@ -112,7 +133,9 @@ public:
 	uint16 get(int x, int y, int z);
 	bool set(int x, int y, int z, uint16 d,bool flagChunks=true);
 private:
-	VoxelChunk** chunks = nullptr;
+	bool initialised = false;
+
+	std::unordered_map<XYZCoordinate, VoxelChunk*> chunks_new; // ok zerf lmao
 	std::set<VoxelChunk*> chunks_flagged_for_update;
 
 	bool updates_enabled = false;

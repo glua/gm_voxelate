@@ -242,11 +242,13 @@ int luaf_voxData(lua_State* state) {
 		return 1;
 	}
 
-	int chunk_n = LUA->GetNumber(2);
+	int x = LUA->GetNumber(2);
+	int y = LUA->GetNumber(3);
+	int z = LUA->GetNumber(4);
 
 	char data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2];
 
-	int out_len = v->getChunkData(chunk_n, data);
+	int out_len = v->getChunkData(x, y, z, data);
 	if (out_len == 0) {
 		LUA->PushBool(true);
 		return 1;
@@ -263,9 +265,9 @@ int luaf_voxInitChunk(lua_State* state) {
 
 	if (v != nullptr) {
 		unsigned int len;
-		const char* data = LUA->GetString(3, &len);
+		const char* data = LUA->GetString(5, &len);
 		
-		v->setChunkData(LUA->GetNumber(2),data,len);
+		v->setChunkData(LUA->GetNumber(2), LUA->GetNumber(3), LUA->GetNumber(4), data, len);
 	}
 	return 0;
 }

@@ -63,61 +63,72 @@ void deleteAllIndexedVoxels() {
 }
 
 Voxels::~Voxels() {
-	if (chunks != nullptr) {
-		for (int i = 0; i < config->dimX* config->dimY*config->dimZ; i++) {
-			if (chunks[i] != nullptr) delete chunks[i];
+	for (auto it : chunks_new) {
+		if (it.second != nullptr) {
+			delete it.second;
 		}
-		delete[] chunks;
 	}
+
+	chunks_new.clear();
+
 	if (config)
 		delete config;
 }
 
-VoxelChunk* Voxels::addChunk(int chunk_num) {
-	int x = chunk_num%config->dimX;
-	int y = (chunk_num/config->dimX)%config->dimY;
-	int z = (chunk_num /config->dimX/config->dimY)%config->dimZ;
+VoxelChunk* Voxels::addChunk(int x, int y, int z) {
+	XYZCoordinate coord = { x, y, z };
 
-	chunks[chunk_num] = new VoxelChunk(this,x,y,z);
+	chunks_new[coord] = new VoxelChunk(this,x,y,z);
 
-	return chunks[chunk_num];
+	return chunks_new[coord];
 }
 
 VoxelChunk* Voxels::getChunk(int x, int y, int z) {
 	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
 		return nullptr;
 	}
-	return chunks[x + y*config->dimX + z* config->dimX* config->dimY];
+
+	return chunks_new[{ x, y, z }];
 }
 
-const int Voxels::getChunkData(int chunk_num,char* out) {
-	if (chunk_num >= 0 && chunk_num < config->dimX*config->dimY*config->dimZ) {
-		const char* input = reinterpret_cast<const char*>(chunks[chunk_num]->voxel_data);
-
-		return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
+const int Voxels::getChunkData(int x, int y, int z,char* out) {
+	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
+		return 0;
 	}
-	return 0;
+
+	const char* input = reinterpret_cast<const char*>(chunks_new[{x, y, z}]->voxel_data);
+
+	return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
 }
 
-void Voxels::setChunkData(int chunk_num, const char* data_compressed, int data_len) {
-	if (chunk_num >= 0 && chunk_num < config->dimX*config->dimY*config->dimZ) {
-		fastlz_decompress(data_compressed, data_len, chunks[chunk_num]->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
-		//chunks_flagged_for_update.insert(chunks[chunk_num]);
+void Voxels::setChunkData(int x, int y, int z, const char* data_compressed, int data_len) {
+	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
+		return;
 	}
+
+	fastlz_decompress(data_compressed, data_len, chunks_new[{x, y, z}]->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
+	//chunks_flagged_for_update.insert(chunks_new[{x, y, z}]);
 }
 
 void Voxels::initialize(VoxelConfig* config) {
 	this->config = config;
 
-	chunks = new VoxelChunk*[config->dimX*config->dimY*config->dimZ]();
-
-	for (int i = 0; i < config->dimX*config->dimY*config->dimZ; i++) {
-		addChunk(i);
+	// YO 3D LOOP TIME NIGGA
+	// TODO: remove this and only add chunks when entities are nearby
+	// TODO: remove this entirely actually, this only generates positive int chunks, but we're going arbitrary...
+	for (int x = 0; x < config->dimX; x++) {
+		for (int y = 0; y < config->dimY; y++) {
+			for (int z = 0; z < config->dimZ; z++) {
+				addChunk(x, y, z);
+			}
+		}
 	}
+
+	initialised = true;
 }
 
 bool Voxels::isInitialized() {
-	return chunks != nullptr;
+	return initialised;
 }
 
 Vector Voxels::getExtents() {
@@ -136,13 +147,14 @@ void Voxels::getCellExtents(int& x, int &y, int &z) {
 }
 
 void Voxels::flagAllChunksForUpdate() {
-	for (int i = 0; i < config->dimX* config->dimY*config->dimZ; i++) {
-		chunks_flagged_for_update.insert(chunks[i]);
+	// calling this is probably a VERY VERY VERY VERY bad idea once we have an infinite map working
+	for (auto it : chunks_new) {
+		chunks_flagged_for_update.insert(it.second);
 	}
 }
 
 void Voxels::doUpdates(int count, CBaseEntity* ent) {
-	if (updates_enabled && (STATE_CLIENT || ent!=nullptr)) {
+	if (updates_enabled && (STATE_CLIENT || ent != nullptr)) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
@@ -557,9 +569,9 @@ void Voxels::draw() {
 	pRenderContext->SetAmbientLight(0, 0, 0);
 	pRenderContext->DisableAllLocalLights();
 
-	for (int i = 0; i < config->dimX* config->dimY*config->dimZ; i++) {
-		if (chunks[i] != nullptr)
-			chunks[i]->draw(pRenderContext);
+	// TODO: only draw nearby chunks
+	for (auto it : chunks_new) {
+		it.second->draw(pRenderContext);
 	}
 }
 
