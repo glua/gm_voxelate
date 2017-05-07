@@ -398,6 +398,56 @@ int luaf_voxTrace(lua_State* state) {
 	return 0;
 }
 
+void setupFiles();
+const char* grabBootstrap();
+
+lua_State* currentState;
+
+void addFile(const unsigned char path[], int pathlen, const unsigned char contents[], int contlen) {
+	if (currentState != 0) {
+		// printf("SET %s\n", (char*)path);
+		lua_pushlstring(currentState, (char*)path, pathlen);
+		lua_pushlstring(currentState, (char*)contents, contlen);
+		lua_settable(currentState, -3);
+	}
+}
+
+void runBootstrap(lua_State* state) {
+	currentState = state;
+
+	bool success = false;
+	const char* errmsg;
+
+	lua_newtable(state);
+
+	setupFiles();
+
+	lua_setglobal(state, "FILETABLE");
+
+	if (luaL_loadstring(state, grabBootstrap()) != 0) {
+		errmsg = lua_tolstring(state, -1, NULL);
+		lua_pop(state, 1);
+	}
+	else if (lua_pcall(state, 0, 0, NULL) != 0) {
+		int errLoc = lua_gettop(state);
+		lua_getglobal(state, "tostring");
+		lua_pushvalue(state, errLoc);
+		if (lua_pcall(state, 1, 1, NULL) != 0) {
+			errmsg = lua_tolstring(state, lua_gettop(state), NULL);
+		}
+		else {
+			errmsg = "something happened";
+		}
+	}
+	else {
+		success = true;
+	}
+
+	if (!success) {
+		Msg("Bootstrap failed! (%s)\n", errmsg);
+	}
+}
+
 void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushSpecial(SPECIAL_GLOB);
 
@@ -447,9 +497,7 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
 
-	LUA->GetField(-1, "RunString");
-	LUA->PushString(LUA_SRC);
-	LUA->Call(1, 0);
+	runBootstrap(state);
 
 	LUA->Pop();
 }
