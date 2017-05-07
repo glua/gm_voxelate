@@ -78,9 +78,10 @@ Voxels::~Voxels() {
 VoxelChunk* Voxels::addChunk(Coord x, Coord y, Coord z) {
 	XYZCoordinate coord = { x, y, z };
 
-	chunks_new[coord] = new VoxelChunk(this,x,y,z);
+	auto chunk = new VoxelChunk(this, x, y, z);
+	chunks_new.insert({coord,chunk});
 
-	return chunks_new[coord];
+	return chunk;
 }
 
 VoxelChunk* Voxels::getChunk(Coord x, Coord y, Coord z) {
@@ -88,7 +89,7 @@ VoxelChunk* Voxels::getChunk(Coord x, Coord y, Coord z) {
 		return nullptr;
 	}
 
-	return chunks_new[{ x, y, z }];
+	return chunks_new.at({ x, y, z });
 }
 
 const int Voxels::getChunkData(Coord x, Coord y, Coord z,char* out) {
