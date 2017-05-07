@@ -16,9 +16,9 @@ void vox_print(const char* msg, ...) {
 	ConMsg("-");
 
 #if IS_SERVERSIDE
-	ConColorMsg(Color(0,0,255,0), "SV");
+	ConColorMsg(Color(0,0,255,255), "SV");
 #else
-	ConColorMsg(Color(255, 255, 0, 0), "CL");
+	ConColorMsg(Color(255, 255, 0, 255), "CL");
 #endif
 
 	ConMsg("] ");

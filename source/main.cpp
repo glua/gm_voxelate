@@ -7,9 +7,6 @@
 #include "vox_lua_bridge.h"
 #include "vox_Voxels.h"
 
-
-using namespace std;
-
 const char* VERSION = "0.2.0+";
 
 GMOD_MODULE_OPEN() {
@@ -21,7 +18,7 @@ GMOD_MODULE_OPEN() {
 
 	init_lua(state, VERSION);
 
-	vox_print("Loaded module version: %s",VERSION);
+	vox_print("Loaded module. [V%s]",VERSION);
 
 	return 0;
 }
@@ -31,6 +28,6 @@ GMOD_MODULE_CLOSE() {
 	if (!IS_SERVERSIDE)
 		deleteAllIndexedVoxels();
 
-	vox_print("Module unloaded.");
+	vox_print("Unloaded module.");
 	return 0;
 }
