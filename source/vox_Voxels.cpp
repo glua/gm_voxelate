@@ -63,73 +63,61 @@ void deleteAllIndexedVoxels() {
 }
 
 Voxels::~Voxels() {
-	for (auto it : chunks_new) {
-		if (it.second != nullptr) {
-			delete it.second;
+	if (chunks != nullptr) {
+		for (int i = 0; i < config->dimX* config->dimY*config->dimZ; i++) {
+			if (chunks[i] != nullptr) delete chunks[i];
 		}
+		delete[] chunks;
 	}
-
-	chunks_new.clear();
-
 	if (config)
 		delete config;
 }
 
-VoxelChunk* Voxels::addChunk(Coord x, Coord y, Coord z) {
-	XYZCoordinate coord = { x, y, z };
+VoxelChunk* Voxels::addChunk(int chunk_num) {
+	int x = chunk_num%config->dimX;
+	int y = (chunk_num/config->dimX)%config->dimY;
+	int z = (chunk_num /config->dimX/config->dimY)%config->dimZ;
 
-	auto chunk = new VoxelChunk(this, x, y, z);
-	chunks_new.insert({coord,chunk});
+	chunks[chunk_num] = new VoxelChunk(this,x,y,z);
 
-	return chunk;
+	return chunks[chunk_num];
 }
 
-VoxelChunk* Voxels::getChunk(Coord x, Coord y, Coord z) {
+VoxelChunk* Voxels::getChunk(int x, int y, int z) {
 	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
 		return nullptr;
 	}
-
-	return chunks_new.at({ x, y, z });
+	return chunks[x + y*config->dimX + z* config->dimX* config->dimY];
 }
 
-const int Voxels::getChunkData(Coord x, Coord y, Coord z,char* out) {
-	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
-		return 0;
+const int Voxels::getChunkData(int chunk_num,char* out) {
+	if (chunk_num >= 0 && chunk_num < config->dimX*config->dimY*config->dimZ) {
+		const char* input = reinterpret_cast<const char*>(chunks[chunk_num]->voxel_data);
+
+		return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
 	}
-
-	const char* input = reinterpret_cast<const char*>(chunks_new[{x, y, z}]->voxel_data);
-
-	return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
+	return 0;
 }
 
-void Voxels::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len) {
-	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
-		return;
+void Voxels::setChunkData(int chunk_num, const char* data_compressed, int data_len) {
+	if (chunk_num >= 0 && chunk_num < config->dimX*config->dimY*config->dimZ) {
+		fastlz_decompress(data_compressed, data_len, chunks[chunk_num]->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
+		//chunks_flagged_for_update.insert(chunks[chunk_num]);
 	}
-
-	fastlz_decompress(data_compressed, data_len, chunks_new[{x, y, z}]->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
-	//chunks_flagged_for_update.insert(chunks_new[{x, y, z}]);
 }
 
 void Voxels::initialize(VoxelConfig* config) {
 	this->config = config;
 
-	// YO 3D LOOP TIME NIGGA
-	// TODO: remove this and only add chunks when entities are nearby
-	// TODO: remove this entirely actually, this only generates positive int chunks, but we're going arbitrary...
-	for (Coord x = 0; x < config->dimX; x++) {
-		for (Coord y = 0; y < config->dimY; y++) {
-			for (Coord z = 0; z < config->dimZ; z++) {
-				addChunk(x, y, z);
-			}
-		}
-	}
+	chunks = new VoxelChunk*[config->dimX*config->dimY*config->dimZ]();
 
-	initialised = true;
+	for (int i = 0; i < config->dimX*config->dimY*config->dimZ; i++) {
+		addChunk(i);
+	}
 }
 
 bool Voxels::isInitialized() {
-	return initialised;
+	return chunks != nullptr;
 }
 
 Vector Voxels::getExtents() {
@@ -152,9 +140,8 @@ void Voxels::getCellExtents(int& x, int &y, int &z) {
 // TODO prioritize based on distance from player
 // TODO need different logic for huge worlds
 void Voxels::flagAllChunksForUpdate() {
-	// calling this is probably a VERY VERY VERY VERY bad idea once we have an infinite map working
-	for (auto it : chunks_new) {
-		chunks_flagged_for_update.insert(it.second);
+	for (int i = 0; i < config->dimX* config->dimY*config->dimZ; i++) {
+		chunks_flagged_for_update.insert(chunks[i]);
 	}
 }
 
@@ -163,7 +150,7 @@ void Voxels::flagAllChunksForUpdate() {
 // or clean out chunks_flagged_for_update when we unload chunks
 void Voxels::doUpdates(int count, CBaseEntity* ent) {
 	// On the server, we -NEED- the entity. Not so important on the client
-	if (updates_enabled && (!IS_SERVERSIDE || ent != nullptr)) {
+	if (updates_enabled && (!IS_SERVERSIDE || ent!=nullptr)) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
@@ -591,9 +578,9 @@ void Voxels::draw() {
 	pRenderContext->SetAmbientLight(0, 0, 0);
 	pRenderContext->DisableAllLocalLights();
 
-	// TODO: only draw nearby chunks
-	for (auto it : chunks_new) {
-		it.second->draw(pRenderContext);
+	for (int i = 0; i < config->dimX* config->dimY*config->dimZ; i++) {
+		if (chunks[i] != nullptr)
+			chunks[i]->draw(pRenderContext);
 	}
 }
 
@@ -606,7 +593,7 @@ int div_floor(int x, int y) {
 }
 
 // Gets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
-uint16 Voxels::get(Coord x, Coord y, Coord z) {
+uint16 Voxels::get(int x, int y, int z) {
 	int qx = x / VOXEL_CHUNK_SIZE;
 
 
@@ -618,7 +605,7 @@ uint16 Voxels::get(Coord x, Coord y, Coord z) {
 }
 
 // Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
-bool Voxels::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
+bool Voxels::set(int x, int y, int z, uint16 d, bool flagChunks) {
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr)
 		return false;
@@ -751,11 +738,11 @@ void VoxelChunk::draw(CMatRenderContextPtr& pRenderContext) {
 	}
 }
 
-uint16 VoxelChunk::get(Coord x, Coord y, Coord z) {
+uint16 VoxelChunk::get(int x, int y, int z) {
 	return voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE];
 }
 
-void VoxelChunk::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
+void VoxelChunk::set(int x, int y, int z, uint16 d, bool flagChunks) {
 	voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = d;
 
 	if (!flagChunks)
@@ -854,7 +841,7 @@ void VoxelChunk::meshStop(CBaseEntity* ent) {
 	}
 }
 
-void VoxelChunk::addFullVoxelFace(Coord x, Coord y, Coord z, int tx, int ty, byte dir) {
+void VoxelChunk::addFullVoxelFace(int x, int y, int z, int tx, int ty, byte dir) {
 	double realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config->scale;
 	double realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config->scale;
 	double realZ = (z + posZ*VOXEL_CHUNK_SIZE) * system->config->scale;

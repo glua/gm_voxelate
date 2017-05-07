@@ -32,9 +32,11 @@ function sandbox.dofile(_path)
         if type(fn) == "function" then
             return fn()
         else
+            print(fn)
             error(fn)
         end
     else
+        print("File not found in compiled filetable!")
         error("File not found in compiled filetable!")
     end
 end
@@ -51,6 +53,7 @@ function sandbox.loadfile(_path)
             return false,fn
         end
     else
+        print("File not found in compiled filetable!")
         error("File not found in compiled filetable!")
     end
 end
