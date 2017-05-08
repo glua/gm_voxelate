@@ -1,12 +1,12 @@
 newoption({
-	trigger = "gmcommon",
-	description = "Sets the path to the garrysmod_common (https://github.com/danielga/garrysmod_common) directory",
-	value = "path to garrysmod_common directory"
+    trigger = "gmcommon",
+    description = "Sets the path to the garrysmod_common (https://github.com/danielga/garrysmod_common) directory",
+    value = "path to garrysmod_common directory"
 })
 
 local gmcommon = _OPTIONS.gmcommon or os.getenv("GARRYSMOD_COMMON")
 if gmcommon == nil then
-	error("you didn't provide a path to your garrysmod_common (https://github.com/danielga/garrysmod_common) directory")
+    error("you didn't provide a path to your garrysmod_common (https://github.com/danielga/garrysmod_common) directory")
 end
 
 include(gmcommon)
@@ -14,86 +14,88 @@ include(gmcommon)
 include("luabundling.lua")
 
 newoption({
-	trigger = "autoinstall",
-	description = "Copies resulting binaries to garrysmod folder. Windows only."
+    trigger = "autoinstall",
+    description = "Copies resulting binaries to garrysmod folder. Windows only."
 })
 
 if _OPTIONS.autoinstall and os.target() ~= "windows" then
     error("Autoinstall is windows only right now thanks.")
 end
 
+local ENET_DIRECTORY = "../enet"
+
 CreateWorkspace({name = "voxelate"})
-	defines({
-		"IS_DOUBLE_PRECISION_ENABLED",
-		"RAD_TELEMETRY_DISABLED"
-	})
+    defines({
+        "IS_DOUBLE_PRECISION_ENABLED",
+        "RAD_TELEMETRY_DISABLED"
+    })
 
-	targetdir("bin")
+    targetdir("bin")
 
-	CreateProject({serverside = true})
-		language("C++11")
-
-        luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
-            luaEntryPoint("init.lua")
-            includeLua("../lua/**")
-
-		includedirs({"../fastlz","../reactphysics3d/src"})
-		links({"fastlz","reactphysics3d"})
-
-		IncludeSDKCommon()
-		IncludeSDKTier0()
-		IncludeSDKTier1()
-		IncludeSDKTier2()
-		IncludeSDKMathlib()
-		-- IncludeSDKRaytrace()
-		IncludeSteamAPI()
-		IncludeDetouring()
-		IncludeScanning()
-		IncludeLuaShared()
-        
-		if _OPTIONS.autoinstall then
-			postbuildcommands { [[copy "..\..\bin\gmsv_voxelate_win32.dll" "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\lua\bin\gmsv_voxelate_win32.dll"]] }
-		end
-
-	CreateProject({serverside = false})
-		language("C++11")
+    CreateProject({serverside = true})
+        language("C++11")
 
         luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
             luaEntryPoint("init.lua")
             includeLua("../lua/**")
 
-		includedirs({"../fastlz","../reactphysics3d/src"})
-		links({"fastlz","reactphysics3d"})
+        includedirs({"../fastlz","../reactphysics3d/src"})
+        links({"fastlz","reactphysics3d","enet"})
 
-		IncludeSDKCommon()
-		IncludeSDKTier0()
-		IncludeSDKTier1()
-		IncludeSDKTier2()
-		IncludeSDKMathlib()
-		-- IncludeSDKRaytrace()
-		IncludeSteamAPI()
-		IncludeDetouring()
-		IncludeScanning()
-		IncludeLuaShared()
+        IncludeSDKCommon()
+        IncludeSDKTier0()
+        IncludeSDKTier1()
+        IncludeSDKTier2()
+        IncludeSDKMathlib()
+        -- IncludeSDKRaytrace()
+        IncludeSteamAPI()
+        IncludeDetouring()
+        IncludeScanning()
+        IncludeLuaShared()
 
-		if _OPTIONS.autoinstall then
-			postbuildcommands { [[copy "..\..\bin\gmcl_voxelate_win32.dll" "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\lua\bin\gmcl_voxelate_win32.dll"]] }
-		end
+        if _OPTIONS.autoinstall then
+            postbuildcommands { [[copy "..\..\bin\gmsv_voxelate_win32.dll" "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\lua\bin\gmsv_voxelate_win32.dll"]] }
+        end
 
-	project("fastlz")
-		language("C")
-		kind("StaticLib")
-		warnings "Off"
-		files({
-			"../fastlz/fastlz.c",
-			"../fastlz/fastlz.h",
-		})
+    CreateProject({serverside = false})
+        language("C++11")
+
+        luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
+            luaEntryPoint("init.lua")
+            includeLua("../lua/**")
+
+        includedirs({"../fastlz","../reactphysics3d/src"})
+        links({"fastlz","reactphysics3d","enet"})
+
+        IncludeSDKCommon()
+        IncludeSDKTier0()
+        IncludeSDKTier1()
+        IncludeSDKTier2()
+        IncludeSDKMathlib()
+        -- IncludeSDKRaytrace()
+        IncludeSteamAPI()
+        IncludeDetouring()
+        IncludeScanning()
+        IncludeLuaShared()
+
+        if _OPTIONS.autoinstall then
+            postbuildcommands { [[copy "..\..\bin\gmcl_voxelate_win32.dll" "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\lua\bin\gmcl_voxelate_win32.dll"]] }
+        end
+
+    project("fastlz")
+        language("C")
+        kind("StaticLib")
+        warnings "Off"
+        files({
+            "../fastlz/fastlz.c",
+            "../fastlz/fastlz.h",
+        })
 
     project("reactphysics3d")
         language "C++11"
         kind "StaticLib"
-		symbols "On"
-		warnings "Off"
+        symbols "On"
+        warnings "Off"
 
         includedirs {
             "../reactphysics3d/src/",
@@ -227,3 +229,39 @@ CreateWorkspace({name = "voxelate"})
             "../reactphysics3d/src/memory/MemoryAllocator.cpp",
             "../reactphysics3d/src/memory/Stack.h"
         }
+
+    project("enet")
+        kind("StaticLib")
+        includedirs(ENET_DIRECTORY .. "/include")
+        vpaths({
+            ["Header files"] = ENET_DIRECTORY .. "/**.h",
+            ["Source files"] = ENET_DIRECTORY .. "/**.c"
+        })
+        files({
+            ENET_DIRECTORY .. "/callbacks.c",
+            ENET_DIRECTORY .. "/compress.c",
+            ENET_DIRECTORY .. "/host.c",
+            ENET_DIRECTORY .. "/list.c",
+            ENET_DIRECTORY .. "/packet.c",
+            ENET_DIRECTORY .. "/peer.c",
+            ENET_DIRECTORY .. "/protocol.c"
+        })
+
+        filter("system:windows")
+            files(ENET_DIRECTORY .. "/win32.c")
+            links({"ws2_32", "winmm"})
+
+        filter("system:linux or macosx")
+            defines({
+                "HAS_GETADDRINFO",
+                "HAS_GETNAMEINFO",
+                "HAS_GETHOSTBYADDR_R",
+                "HAS_GETHOSTBYNAME_R",
+                "HAS_POLL",
+                "HAS_FCNTL",
+                "HAS_INET_PTON",
+                "HAS_INET_NTOP",
+                "HAS_MSGHDR_FLAGS",
+                "HAS_SOCKLEN_T"
+            })
+            files(ENET_DIRECTORY .. "/unix.c")
