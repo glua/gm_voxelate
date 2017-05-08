@@ -30,13 +30,14 @@ function sandbox.dofile(_path)
         local fn = CompileString(FILETABLE[path],path,false)
 
         if type(fn) == "function" then
+            debug.setfenv(fn,sandbox)
             return fn()
         else
             print(fn)
             error(fn)
         end
     else
-        print("File not found in compiled filetable!")
+        -- print("File not found in compiled filetable!")
         error("File not found in compiled filetable!")
     end
 end
@@ -48,12 +49,13 @@ function sandbox.loadfile(_path)
         local fn = CompileString(FILETABLE[path],path,false)
 
         if type(fn) == "function" then
+            debug.setfenv(fn,sandbox)
             return fn
         else
             return false,fn
         end
     else
-        print("File not found in compiled filetable!")
+        -- print("File not found in compiled filetable!")
         error("File not found in compiled filetable!")
     end
 end

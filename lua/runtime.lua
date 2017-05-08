@@ -1,9 +1,9 @@
 -- LuaExtended-compatible Lua Runtime Helper Library
 
-assert(jit and jit.version == "LuaJIT 2.0.3","This runtime library is built for LuaJIT 2.0.3!")
+assert(jit and jit.version == "LuaJIT 2.0.4","This runtime library is built for LuaJIT 2.0.4!")
 
 local runtime = {}
-runtime.version = 20170508
+runtime.version = 20170508.1
 
 local debug = debug
 
@@ -21,7 +21,6 @@ if CompileString then
     end
 end
 
-runtime = {}
 runtime.sources = {}
 runtime.__rtlFn = debug.getinfo(1,"f").func
 runtime.sources[runtime.__rtlFn] = "runtime"
@@ -68,8 +67,6 @@ end
 
 -- [[ package ]]
 
-runtime = {}
-
 runtime.__packages = {}
 
 runtime.internal = {}
@@ -96,11 +93,14 @@ end
 
 function runtime.internal.require(name)
     local suc1,fn = pcall(runtime.loadfile,name)
-    if not suc1 then return suc1,fn end
+    if not suc1 then return false,false,fn end
     local mod = {}
-    local suc2,_ = pcall(fn,mod)
-    if not suc2 then return suc2,fn end
-    return suc2,mod
+    local suc2,err = xpcall(fn,function(err)
+        print("Error loading module "..name)
+        print(debug.traceback(err))
+    end,mod)
+    if not suc2 then return false,true,err end
+    return true,true,mod
 end
 
 function runtime.normalizePath(name)
@@ -120,36 +120,44 @@ function runtime.normalizePath(name)
         end
     end
 
-    return table.concat(stack,"/"),isRelative
+    return table.concat(stack,"/"),stack[#stack],isRelative
 end
 
 function runtime.require(name)
-    local name,isRelative = runtime.normalizePath(name)
+    local name,filename,isRelative = runtime.normalizePath(name)
 
     if runtime.__packages[name] then return runtime.__packages[name] end
 
     if isRelative then
         -- file module
         for i,pathfmt in ipairs(runtime.internal.filePaths) do
-            local fmt = string.format(pathfmt,name,name)
+            local fmt = string.format(pathfmt,name,filename)
 
-            local suc,ret = runtime.internal.require(fmt)
+            local found,suc,ret = runtime.internal.require(fmt)
 
-            if suc then
-                runtime.__packages[name] = ret
-                return ret
+            if found or (not tostring(ret):match("File not found in compiled filetable!")) then
+                if suc then
+                    runtime.__packages[name] = ret
+                    return ret
+                else
+                    error(ret)
+                end
             end
         end
     else
         -- installed module
         for i,pathfmt in ipairs(runtime.internal.installedPaths) do
-            local fmt = string.format(pathfmt,name,name)
+            local fmt = string.format(pathfmt,name,filename)
 
-            local suc,ret = runtime.internal.require(fmt)
+            local found,suc,ret = runtime.internal.require(fmt)
 
-            if suc then
-                runtime.__packages[name] = ret
-                return ret
+            if found or (not tostring(ret):match("File not found in compiled filetable!")) then
+                if suc then
+                    runtime.__packages[name] = ret
+                    return ret
+                else
+                    error(ret)
+                end
             end
         end
     end

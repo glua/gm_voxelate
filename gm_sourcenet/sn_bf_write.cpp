@@ -413,14 +413,23 @@ LUA_FUNCTION_STATIC( WriteVarInt64 )
 	return 0;
 }
 
-LUA_FUNCTION_STATIC( Constructor )
+LUA_FUNCTION_STATIC(GetString)
+{
+	bf_write *buf = Get(LUA, 1);
+
+	LUA->PushString((const char*)buf->GetData(), ceil(buf->GetMaxNumBits() / 8));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Constructor)
 {
 	int32_t bits = 0;
-	uint8_t *ptr = UCHARPTR::Get( LUA, 1, &bits );
+	uint8_t *ptr = UCHARPTR::Get(LUA, 1, &bits);
 
-	LUA->Push( 1 );
-	bf_write *writer = *Push( LUA, nullptr, LUA->ReferenceCreate( ) );
-	writer->StartWriting( ptr, BitByte( bits ), 0, bits );
+	LUA->Push(1);
+	bf_write *writer = *Push(LUA, nullptr, LUA->ReferenceCreate());
+	writer->StartWriting(ptr, BitByte(bits), 0, bits);
 
 	return 1;
 }
@@ -537,8 +546,11 @@ void Initialize( GarrysMod::Lua::ILuaBase *LUA )
 		LUA->PushCFunction( WriteSignedVarInt64 );
 		LUA->SetField( -2, "WriteSignedVarInt64" );
 
-		LUA->PushCFunction( WriteVarInt64 );
-		LUA->SetField( -2, "WriteVarInt64" );
+		LUA->PushCFunction(WriteVarInt64);
+		LUA->SetField(-2, "WriteVarInt64");
+
+		LUA->PushCFunction(GetString);
+		LUA->SetField(-2, "GetString");
 
 	LUA->Pop( 1 );
 

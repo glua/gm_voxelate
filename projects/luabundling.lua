@@ -114,22 +114,18 @@ local function compileLuaProject(p)
     header = header..serializedFileTable
     header = header.."\n"
 
-    header = header.."static const unsigned char BOOTSTRAP_CODE[] = {\n"
-
-    local body = {}
-
-    for i = 1, #code do
-        body[#body + 1] = string.format("%3d, ", code:byte(i))
-        if (i % 32 == 0) then
-            body[#body + 1] = "\n"
-        end
-    end
-
-    header = header..table.concat(body,"")
-    header = header.."};\n"
+    header = header..string.format(
+        "const unsigned char BOOTSTRAP_CODE[] = %s; int BOOTSTRAP_CODE_len = %d;\n",
+        cppString(code),
+        #code
+    )
 
     header = header.."const char* grabBootstrap() {\n"
     header = header.."    return (const char*)BOOTSTRAP_CODE;\n"
+    header = header.."}\n"
+
+    header = header.."int grabBootstrapLength() {\n"
+    header = header.."    return BOOTSTRAP_CODE_len;\n"
     header = header.."}\n"
 
     if LUA_DEBUG then

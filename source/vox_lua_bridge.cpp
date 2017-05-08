@@ -7,6 +7,8 @@
 
 #include "vox_network.h"
 
+#include "GarrysMod\LuaHelpers.hpp"
+
 using namespace GarrysMod::Lua;
 
 //Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
@@ -404,6 +406,7 @@ int luaf_voxTrace(lua_State* state) {
 
 void setupFiles();
 const char* grabBootstrap();
+int grabBootstrapLength();
 
 lua_State* currentState;
 
@@ -428,24 +431,30 @@ void runBootstrap(lua_State* state) {
 
 	lua_setglobal(state, "FILETABLE");
 
-	if (luaL_loadstring(state, grabBootstrap()) != 0) {
+	lua_pushcfunction(state, LuaHelpers::LuaErrorTraceback);
+	int errFnLoc = lua_gettop(state);
+
+	lua_pushlstring(currentState, grabBootstrap(), grabBootstrapLength());
+
+	if (luaL_loadbuffer(state, grabBootstrap(), grabBootstrapLength(), "=vox_bootstrap") != 0) {
 		errmsg = lua_tolstring(state, -1, NULL);
 		lua_pop(state, 1);
 	}
-	else if (lua_pcall(state, 0, 0, NULL) != 0) {
+	else if (lua_pcall(state, 0, 0, errFnLoc) != 0) {
 		int errLoc = lua_gettop(state);
 		lua_getglobal(state, "tostring");
 		lua_pushvalue(state, errLoc);
 		if (lua_pcall(state, 1, 1, NULL) != 0) {
-			errmsg = lua_tolstring(state, lua_gettop(state), NULL);
+			errmsg = "something happened";
 		}
 		else {
-			errmsg = "something happened";
+			errmsg = lua_tolstring(state, lua_gettop(state), NULL);
 		}
 	}
 	else {
 		success = true;
 	}
+	lua_pop(state, 1);
 
 	if (!success) {
 		Msg("Bootstrap failed! (%s)\n", errmsg);

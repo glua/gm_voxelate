@@ -1,5 +1,9 @@
-local runtime = dofile("runtime")
+local runtime = dofile("runtime.lua")
 
-gm_voxelate = runtime.require("voxelate").Voxelate
+print("HELLO WORLD!")
 
-runtime.require("entities/voxelworld")
+print("sn_bf_write",sn_bf_write)
+
+gm_voxelate = runtime.require("./voxelate").Voxelate
+
+runtime.require("./voxelate/entities/voxelworld")

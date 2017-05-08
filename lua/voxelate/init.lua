@@ -1,8 +1,8 @@
 local runtime,exports = ...
 
 exports.networking = {}
-exports.networking.ServerRouter = runtime.require("networking/server").Router
-exports.networking.ServerRouter = runtime.require("networking/client").Router
+exports.networking.ServerRouter = runtime.require("./networking/server").Router
+exports.networking.ClientRouter = runtime.require("./networking/client").Router
 
 local Voxelate = runtime.oop.create("Voxelate")
 
