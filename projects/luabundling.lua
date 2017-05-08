@@ -193,9 +193,20 @@ function luaProjectEx(name,rootDir,headerPath)
         }
     filter({})
 
+    -- pass our args back into the premake process at compile time
+    local args = ""
+    for k,v in pairs(_OPTIONS) do
+        args=args.."--"..k
+        if v ~= "" then
+            args=args.."="..v.." "
+        else
+            args=args.." "
+        end
+    end
+
     prebuildcommands {
         "cd "..os.realpath("."),
-        _PREMAKE_COMMAND.." __premake_lua_exec_pre_"..p.luaProjectID
+        _PREMAKE_COMMAND.." "..args.."__premake_lua_exec_pre_"..p.luaProjectID
     }
 end
 
