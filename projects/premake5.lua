@@ -39,7 +39,7 @@ CreateWorkspace({name = "voxelate"})
             luaEntryPoint("init.lua")
             includeLua("../lua/**")
 
-        includedirs({"../fastlz","../reactphysics3d/src","../enet"})
+        includedirs({"../fastlz","../reactphysics3d/src","../enet/include"})
         links({"fastlz","reactphysics3d","enet"})
 
         IncludeSDKCommon()
@@ -64,7 +64,7 @@ CreateWorkspace({name = "voxelate"})
             luaEntryPoint("init.lua")
             includeLua("../lua/**")
 
-        includedirs({"../fastlz","../reactphysics3d/src","../enet"})
+        includedirs({"../fastlz","../reactphysics3d/src","../enet/include"})
         links({"fastlz","reactphysics3d","enet"})
 
         IncludeSDKCommon()
