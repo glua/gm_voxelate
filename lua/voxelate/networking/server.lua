@@ -3,7 +3,7 @@ local runtime,exports = ...
 local Router = runtime.oop.create("Router")
 exports.Router = Router
 
-local SharedRouter = runtime.require("./shared")
+local SharedRouter = runtime.require("./shared").Router
 runtime.oop.extend(Router,SharedRouter)
 
 function Router:__ctor(voxelate)

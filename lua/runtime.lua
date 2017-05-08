@@ -221,8 +221,8 @@ function runtime.oop.create(name,secure)
 
     meta.__index = meta
 
-    function meta:__new()
-        return runtime.oop.construct(meta,secure)
+    function meta:__new(...)
+        return runtime.oop.construct(meta,...)
     end
 
     return meta
