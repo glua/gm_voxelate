@@ -10,7 +10,7 @@
 
 #include "sn_bf_read.hpp"
 #include "sn_bf_write.hpp"
-#include "ucharptr.hpp"
+#include "sn_ucharptr.hpp"
 
 const char* VERSION = "0.2.0+";
 
