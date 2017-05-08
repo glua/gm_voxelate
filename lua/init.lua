@@ -28,7 +28,7 @@ else
 
 		local CLIENT_MAJOR, CLIENT_MINOR, CLIENT_PATCH = parseVersion(CLIENT_STR)
 
-		if (CLIENT_MAJOR != MASTER_MAJOR || CLIENT_MINOR<MASTER_MINOR) then
+		if (CLIENT_MAJOR ~= MASTER_MAJOR or CLIENT_MINOR<MASTER_MINOR) then
 			ply:Kick("Voxelate version mismatch.\n\nSERVER VERSION: "..gm_voxelate.VERSION.."\nYOUR VERSION: "..CLIENT_STR.."\n\nSorry")
 		end
 	end)
