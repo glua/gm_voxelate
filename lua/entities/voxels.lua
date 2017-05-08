@@ -72,7 +72,7 @@ function ENT:Think()
 
 	if CLIENT and self.correct_maxs then
 		local _,maxs = self:GetRenderBounds()
-		if maxs!=self.correct_maxs then
+		if maxs~=self.correct_maxs then
 			self:SetRenderBounds(Vector(),self.correct_maxs)
 			print("Corrected render bounds on Voxel System #"..index..".")
 		end
@@ -95,16 +95,16 @@ end
 
 function ENT:TestCollision(start,delta,isbox,extents)
 	if isbox then
-		//debugoverlay.Box(start,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,255,0,0))
+		--debugoverlay.Box(start,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,255,0,0))
 	end
 	start=self:WorldToLocal(start)
 	local index = self:GetInternalIndex()
 	local fraction,hitpos,normal = IMPORTS.voxTrace(index,start,delta,isbox,extents)
 	if fraction then
 		hitpos = self:LocalToWorld(hitpos)
-		if isbox and (normal.x!=0 or normal.y!=0) then
-			//debugoverlay.Box(hitpos,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,0,0,0))
-			//debugoverlay.Line(hitpos,hitpos+normal*100,.05,Color(0,0,255))
+		if isbox and (normal.x~=0 or normal.y~=0) then
+			--debugoverlay.Box(hitpos,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,0,0,0))
+			--debugoverlay.Line(hitpos,hitpos+normal*100,.05,Color(0,0,255))
 		end
 		return {
 			Fraction = fraction,
@@ -163,15 +163,15 @@ if SERVER then
 		local file_handle = file.Open(file_name,"rb","DATA")
 		if !file_handle then return false end
 
-		if file_handle:Read(8)!="VolFile0" then file_handle:Close() return false end
+		if file_handle:Read(8)~="VolFile0" then file_handle:Close() return false end
 		local fdx = file_handle:ReadShort()
 		local fdy = file_handle:ReadShort()
 		local fdz = file_handle:ReadShort()
 
-		if fdx!=dims.x or fdy!=dims.y or fdz!=dims.z then file_handle:Close() return false end
+		if fdx~=dims.x or fdy~=dims.y or fdz~=dims.z then file_handle:Close() return false end
 
 		for i=0,fdx*fdy*fdz-1 do
-			local len = file_handle:ReadShort() //TODO lots of stuff here could still break
+			local len = file_handle:ReadShort() --TODO lots of stuff here could still break
 			local data = file_handle:Read(len)
 			IMPORTS.voxInitChunk(index,i,data)
 		end
