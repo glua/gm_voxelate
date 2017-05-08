@@ -49,24 +49,28 @@ struct VoxelConfigServer;
 
 struct VoxelConfig {
 	~VoxelConfig() {
-		if (cl_atlasMaterial)
-			cl_atlasMaterial->DecrementReferenceCount();
+		if (atlasMaterial)
+			atlasMaterial->DecrementReferenceCount();
 	}
 
-	int dimX = 1;
-	int dimY = 1;
-	int dimZ = 1;
+	int dims_x = 1;
+	int dims_y = 1;
+	int dims_z = 1;
+
+	bool huge = false;
+
 	double scale = 1;
 
-	bool sv_useMeshCollisions = false;
+	bool buildPhysicsMesh = false;
+	bool buildExterior = false;
 
-	IMaterial* cl_atlasMaterial = nullptr;
-	bool cl_drawExterior = false;
-	int cl_atlasWidth = 1;
-	int cl_atlasHeight = 1;
+	IMaterial* atlasMaterial = nullptr;
 
-	double cl_pixel_bias_x = 0;
-	double cl_pixel_bias_y = 0;
+	int atlasWidth = 1;
+	int atlasHeight = 1;
+
+	double _padding_x = 0;
+	double _padding_y = 0;
 
 	VoxelType voxelTypes[256];
 };
