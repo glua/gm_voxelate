@@ -6,8 +6,11 @@
 #include "vox_engine.h"
 #include "vox_lua_bridge.h"
 #include "vox_Voxels.h"
-
 #include "vox_network.h"
+
+#include "sn_bf_read.hpp"
+#include "sn_bf_write.hpp"
+#include "ucharptr.hpp"
 
 const char* VERSION = "0.2.0+";
 
@@ -22,6 +25,10 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
+	UCHARPTR::Initialize(LUA);
+	sn_bf_read::Initialize(LUA);
+	sn_bf_write::Initialize(LUA);
+
 	init_lua(state, VERSION);
 
 	vox_print("Loaded module. [V%s]",VERSION);
@@ -35,6 +42,10 @@ GMOD_MODULE_CLOSE() {
 		deleteAllIndexedVoxels();
 
 	network_shutdown();
+
+	sn_bf_write::Deinitialize(LUA);
+	sn_bf_read::Deinitialize(LUA);
+	UCHARPTR::Deinitialize(LUA);
 
 	vox_print("Unloaded module.");
 	return 0;
