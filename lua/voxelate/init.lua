@@ -9,11 +9,11 @@ local Voxelate = runtime.oop.create("Voxelate")
 
 function Voxelate:__ctor()
     if CLIENT then
-        self.io = IO:__new("Voxelate.CL",{r=255,g=255,b=0},{r=55,g=55,b=255})
+        self.io = IO:__new("Voxelate.CL",{r=255,g=255,b=0},{r=155,g=155,b=255})
 
         self.router = ClientRouter:__new(self)
     else
-        self.io = IO:__new("Voxelate.SV",{r=0,g=155,b=255},{r=55,g=55,b=255})
+        self.io = IO:__new("Voxelate.SV",{r=0,g=155,b=255},{r=155,g=155,b=255})
 
         self.router = ServerRouter:__new(self)
     end
