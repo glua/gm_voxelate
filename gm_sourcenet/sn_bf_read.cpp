@@ -1,6 +1,5 @@
-#include "glua.h"
 #include <sn_bf_read.hpp>
-#include <ucharptr.hpp>
+#include <sn_ucharptr.hpp>
 #include <bitbuf.h>
 
 namespace sn_bf_read
@@ -30,7 +29,7 @@ bf_read **Push( GarrysMod::Lua::ILuaBase *LAU, bf_read *reader, int32_t bufref )
 	LAU->SetMetaTable( -2 );
 
 	LAU->CreateTable( );
-	lua_setfenv( LAU->GetState(), -2 );
+	lua_setfenv( LAU->GetLuaState(), -2 );
 
 	return &container->preader;
 }
@@ -79,7 +78,7 @@ LUA_FUNCTION_STATIC( tostring )
 {
 	bf_read *buf = Get( LUA, 1 );
 
-	lua_pushfstring( LUA->GetState(), sn_bf_common::tostring_format, metaname, buf );
+	lua_pushfstring( LUA->GetLuaState(), sn_bf_common::tostring_format, metaname, buf );
 
 	return 1;
 }

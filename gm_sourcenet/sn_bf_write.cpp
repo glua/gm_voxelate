@@ -1,5 +1,5 @@
 #include <sn_bf_write.hpp>
-#include <ucharptr.hpp>
+#include <sn_ucharptr.hpp>
 #include <bitbuf.h>
 
 namespace sn_bf_write
@@ -29,7 +29,7 @@ bf_write **Push( GarrysMod::Lua::ILuaBase *LUA, bf_write *writer, int32_t bufref
 	LUA->SetMetaTable( -2 );
 
 	LUA->CreateTable( );
-	lua_setfenv( LUA->GetState(), -2 );
+	lua_setfenv( LUA->GetLuaState(), -2 );
 
 	return &container->pwriter;
 }
@@ -78,7 +78,7 @@ LUA_FUNCTION_STATIC( tostring )
 {
 	bf_write *buf = Get( LUA, 1 );
 
-	lua_pushfstring( LUA->GetState(), sn_bf_common::tostring_format, metaname, buf );
+	lua_pushfstring( LUA->GetLuaState(), sn_bf_common::tostring_format, metaname, buf );
 
 	return 1;
 }
