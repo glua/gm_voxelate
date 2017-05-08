@@ -2,13 +2,15 @@
 
 #include "vox_network.h"
 
-#include <vector>
+#include <unordered_map>
+#include <algorithm>
 
 ENetAddress address;
 
 #ifdef VOXELATE_SERVER
 ENetHost* server;
-std::vector<ENetPeer*> peers;
+int nextPeerID = 0;
+std::unordered_map<int,ENetPeer*> peers;
 
 #define VOX_ENET_HOST server
 #else
@@ -60,12 +62,16 @@ bool network_startup() {
 	return true;
 }
 
+bool terminated = false;
+
 void network_shutdown() {
 #ifdef VOXELATE_SERVER
 	enet_host_destroy(server);
 #else
 	enet_host_destroy(client);
 #endif
+
+	terminated = true;
 
 	enet_deinitialize();
 }
@@ -185,10 +191,12 @@ void networkEventLoop() {
 	ENetEvent event;
 	/* Wait up to 1000 milliseconds for an event. */
 
-	while (enet_host_service(VOX_ENET_HOST, &event, 1000) > 0) {
-		eventMutex.lock();
-		events.push_back(event);
-		eventMutex.unlock();
+	while (!terminated) {
+		while (enet_host_service(VOX_ENET_HOST, &event, 1000) > 0) {
+			eventMutex.lock();
+			events.push_back(event);
+			eventMutex.unlock();
+		}
 	}
 }
 
@@ -257,7 +265,8 @@ int lua_network_pollForEvents(lua_State* state) {
 			peerData = new PeerData();
 
 #ifdef VOXELATE_SERVER
-			peers.push_back(event.peer);
+			peers[nextPeerID] = event.peer;
+			nextPeerID++;
 
 			peerData->steamID = "STEAM:0:0";
 			peerData->peerID = peers.size();
@@ -301,8 +310,22 @@ int lua_network_pollForEvents(lua_State* state) {
 			LuaHelpers::CallHookRun(state->luabase, 1, 0);
 
 			event.peer->data = NULL;
+
+#ifdef VOXELATE_SERVER
+			for (auto it = peers.cbegin(); it != peers.cend(); ) {
+				if (event.peer == it->second) {
+					peers.erase(it++);
+				}
+				else {
+					++it;
+				}
+			}
+#endif
 		}
 	}
+
+	events.clear();
+
 	eventMutex.unlock();
 
 	return 0;
