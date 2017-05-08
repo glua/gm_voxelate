@@ -230,7 +230,7 @@ CreateWorkspace({name = "voxelate"})
             "../reactphysics3d/src/memory/Stack.h"
         }
 
-    project("enet")
+    project("enet") -- from https://github.com/danielga/gm_enet
         kind("StaticLib")
         warnings "Off"
         includedirs(ENET_DIRECTORY .. "/include")
