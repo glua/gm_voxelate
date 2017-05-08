@@ -27,7 +27,7 @@ function Router:StartENet()
     self.voxelate.io:PrintDebug("Starting ENet with PUID [%s]...",self.clientPUID)
 
     local serverIP = game.GetIPAddress():gsub(":%d+$","")
-    if serverIP == "loopback" then serverIP = "127.0.0.1" end
+    if serverIP == "loopback" then serverIP = "localhost" end
 
     self.voxelate.io:PrintDebug("Connecting to %s...",serverIP)
 

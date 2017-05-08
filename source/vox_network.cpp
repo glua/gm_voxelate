@@ -22,6 +22,9 @@ ENetPeer* peer;
 #include <thread>
 #include <mutex>
 
+std::thread* eventLoopThread;
+void networkEventLoop();
+
 #include "GarrysMod\LuaHelpers.hpp"
 
 bool network_startup() {
@@ -41,7 +44,9 @@ bool network_startup() {
 		Msg("ENet initialization failed at server creation...\n");
 
 		return false;
-}
+	}
+
+	eventLoopThread = new std::thread(networkEventLoop);
 #else
 	client = enet_host_create(NULL, 1, 2, 0, 0);
 
@@ -56,6 +61,12 @@ bool network_startup() {
 }
 
 void network_shutdown() {
+#ifdef VOXELATE_SERVER
+	enet_host_destroy(server);
+#else
+	enet_host_destroy(client);
+#endif
+
 	enet_deinitialize();
 }
 
@@ -137,6 +148,8 @@ int lua_network_connect(lua_State* state) {
 		return 2;
 	}
 
+	address.port = VOX_NETWORK_PORT;
+
 	peer = enet_host_connect(client, &address, 2, 0);
 	if (peer == NULL) {
 		lua_pushnil(state);
@@ -144,8 +157,12 @@ int lua_network_connect(lua_State* state) {
 		return 2;
 	}
 
-	if (enet_host_service(client, &event, 5000) > 0 &&
+	if (enet_host_service(client, &event, 15000) > 0 &&
 		event.type == ENET_EVENT_TYPE_CONNECT) {
+
+		eventLoopThread = new std::thread(networkEventLoop);
+
+		eventLoopThread->detach();
 
 		lua_pushboolean(state, true);
 		return 1;
