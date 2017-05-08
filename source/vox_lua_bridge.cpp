@@ -5,6 +5,8 @@
 #include "vox_util.h"
 #include "vox_Voxels.h"
 
+#include "vox_network.h"
+
 using namespace GarrysMod::Lua;
 
 //Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
@@ -496,6 +498,8 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");
+
+	setupLuaNetworking(state);
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
 
