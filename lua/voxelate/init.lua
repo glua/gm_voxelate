@@ -7,7 +7,12 @@ local IO = runtime.require("./io").IO
 
 local Voxelate = runtime.oop.create("Voxelate")
 
+local module = G_VOX_IMPORTS
+G_VOX_IMPORTS = nil
+
 function Voxelate:__ctor()
+    self.module = module
+
     if CLIENT then
         self.io = IO:__new("Voxelate.CL",{r=255,g=255,b=0},{r=155,g=155,b=255})
 

@@ -5,6 +5,10 @@ exports.Router = Router
 
 function Router:__ctor(voxelate)
     self.voxelate = voxelate
+
+    hook.Add("Tick","Voxelate.Networking.Polling",function()
+        self.voxelate.module.networkPoll()
+    end)
 end
 
 function Router:GeneratePUID()
