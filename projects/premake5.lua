@@ -232,6 +232,7 @@ CreateWorkspace({name = "voxelate"})
 
     project("enet")
         kind("StaticLib")
+        warnings "Off"
         includedirs(ENET_DIRECTORY .. "/include")
         vpaths({
             ["Header files"] = ENET_DIRECTORY .. "/**.h",
