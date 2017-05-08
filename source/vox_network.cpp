@@ -300,11 +300,13 @@ void setupLuaNetworking(lua_State* state) {
 	lua_pushcfunction(state, lua_network_pollForEvents);
 	lua_setfield(state, -2, "networkPoll");
 
+#ifdef VOXELATE_SERVER
 	lua_pushcfunction(state, lua_network_setPeerSteamID);
 	lua_setfield(state, -2, "networkSetPeerSteamID");
 
 	lua_pushcfunction(state, lua_network_getPeerSteamID);
 	lua_setfield(state, -2, "networkGetPeerSteamID");
+#endif
 
 	lua_pushcfunction(state, lua_network_sendpacket);
 	lua_setfield(state, -2, "networkSendPacket");
