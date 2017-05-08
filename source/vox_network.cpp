@@ -114,9 +114,11 @@ static bool ParseAddress(lua_State *state, const char *addr, ENetAddress &output
 }
 
 int lua_network_sendpacket(lua_State* state) {
-	std::string data = luaL_checkstring(state, 1);
+	auto Ldata = luaL_checkstring(state, 1);
 	int size = luaL_checkinteger(state, 2);
 	int unreliable = lua_toboolean(state, 3);
+
+	std::string* data = new std::string(Ldata, size);
 
 #ifdef VOXELATE_SERVER
 	unsigned int peerID = luaL_checkinteger(state, 4);
@@ -138,9 +140,11 @@ int lua_network_sendpacket(lua_State* state) {
 
 	// this is probably exploitable :weary:
 
-	ENetPacket* packet = enet_packet_create(&data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
+	ENetPacket* packet = enet_packet_create(data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 
 	enet_peer_send(peer, 0, packet);
+
+	enet_host_flush(VOX_ENET_HOST);
 
 	return 0;
 }
@@ -184,18 +188,21 @@ int lua_network_connect(lua_State* state) {
 }
 #endif
 
-std::vector<ENetEvent> events;
+std::vector<ENetEvent *> events;
 std::mutex eventMutex;
 
 void networkEventLoop() {
-	ENetEvent event;
 	/* Wait up to 1000 milliseconds for an event. */
 
 	while (!terminated) {
-		while (enet_host_service(VOX_ENET_HOST, &event, 1000) > 0) {
+		auto event = new ENetEvent();
+		if (enet_host_service(VOX_ENET_HOST, event, 1000) > 0) {
 			eventMutex.lock();
 			events.push_back(event);
 			eventMutex.unlock();
+		}
+		else {
+			delete event;
 		}
 	}
 }
@@ -259,13 +266,14 @@ int lua_network_pollForEvents(lua_State* state) {
 	eventMutex.lock();
 	for(auto event : events) {
 		PeerData* peerData;
+		std::string data;
 
-		switch (event.type) {
+		switch (event->type) {
 		case ENET_EVENT_TYPE_CONNECT:
 			peerData = new PeerData();
 
 #ifdef VOXELATE_SERVER
-			peers[nextPeerID] = event.peer;
+			peers[nextPeerID] = event->peer;
 			nextPeerID++;
 
 			peerData->steamID = "STEAM:0:0";
@@ -275,33 +283,35 @@ int lua_network_pollForEvents(lua_State* state) {
 			peerData->peerID = 0;
 #endif
 
-			event.peer->data = peerData;
+			event->peer->data = peerData;
 
 			LuaHelpers::PushHookRun(state->luabase, "VoxNetworkConnect");
 
 			lua_pushnumber(state, peerData->peerID);
-			lua_pushnumber(state, event.peer->address.host);
+			lua_pushnumber(state, event->peer->address.host);
 
 			LuaHelpers::CallHookRun(state->luabase, 2, 0);
 			
 			break;
 		case ENET_EVENT_TYPE_RECEIVE:
-			peerData = (PeerData*)event.peer->data;
+			peerData = (PeerData*)event->peer->data;
 
 			LuaHelpers::PushHookRun(state->luabase, "VoxNetworkPacket");
 
+			data.assign((const char*)event->packet->data, event->packet->dataLength);
+
 			lua_pushnumber(state, peerData->peerID);
-			lua_pushlstring(state, (char *)event.packet->data, event.packet->dataLength);
-			lua_pushnumber(state, event.channelID);
+			lua_pushlstring(state, data.c_str(), event->packet->dataLength);
+			lua_pushnumber(state, event->channelID);
 
 			LuaHelpers::CallHookRun(state->luabase, 3, 0);
 
-			enet_packet_destroy(event.packet);
+			enet_packet_destroy(event->packet);
 
 			break;
 
 		case ENET_EVENT_TYPE_DISCONNECT:
-			peerData = (PeerData*)event.peer->data;
+			peerData = (PeerData*)event->peer->data;
 
 			LuaHelpers::PushHookRun(state->luabase, "VoxNetworkDisconnect");
 
@@ -309,11 +319,11 @@ int lua_network_pollForEvents(lua_State* state) {
 
 			LuaHelpers::CallHookRun(state->luabase, 1, 0);
 
-			event.peer->data = NULL;
+			event->peer->data = NULL;
 
 #ifdef VOXELATE_SERVER
 			for (auto it = peers.cbegin(); it != peers.cend(); ) {
-				if (event.peer == it->second) {
+				if (event->peer == it->second) {
 					peers.erase(it++);
 				}
 				else {

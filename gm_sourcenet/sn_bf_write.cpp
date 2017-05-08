@@ -417,7 +417,11 @@ LUA_FUNCTION_STATIC(GetString)
 {
 	bf_write *buf = Get(LUA, 1);
 
-	LUA->PushString((const char*)buf->GetData(), ceil(buf->GetMaxNumBits() / 8));
+	int size = ceil(buf->GetMaxNumBits() / 8);
+
+	std::string out(reinterpret_cast<char*>(buf->GetData()), size);
+
+	LUA->PushString(out.c_str(), size);
 
 	return 1;
 }

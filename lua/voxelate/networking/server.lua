@@ -6,6 +6,8 @@ exports.Router = Router
 local SharedRouter = runtime.require("./shared").Router
 runtime.oop.extend(Router,SharedRouter)
 
+local bitbuf = runtime.require("../bitbuffer")
+
 function Router:__ctor(voxelate)
     self.__parent.__ctor(self,voxelate)
 
@@ -64,4 +66,46 @@ function Router:__ctor(voxelate)
             net.WriteString(allocatedPUID)
         net.Send(ply)
     end)
+
+    self:Listen("AuthHandshake",function(data,peerID)
+        if self.PUIDs[data] then
+            if self.PeerIDs[peerID] then
+                self.voxelate.io:PrintError("PUID [%s] has already been allocated to a Peer ID!",data)
+            else
+                self.PeerIDs[peerID] = self.PUIDs[data]
+                self.PeerIDs[self.PUIDs[data]] = peerID
+
+                self.voxelate.io:PrintDebug("PUID [%s] has been allocated to Peer ID [%d]",data,peerID)
+            end
+        else
+            self.voxelate.io:PrintError("Unknown PUID [%s] cannot be allocated to Peer ID [%d]!",data,peerID)
+        end
+    end)
+end
+
+function Router:IncomingPacket(peerID,data,internalChannelID)
+    local reader = bitbuf.Reader(data)
+
+    local channelID = reader:ReadUInt(16)
+    local payload,ok = reader:ReadBytes(#data - 2)
+
+    if not ok then
+        error("Packet read failure")
+    end
+
+    self:PropagateMessage(peerID,channelID,payload:GetString())
+end
+
+function Router:SendInChannel(channelName,payloadData,peerID,unreliable)
+    assert(self.channelsEx[channelName],"Unknown channel: "..channelName)
+
+    local buf = bitbuf.Writer(#payloadData + 2)
+    local payload = UCHARPTR_FromString(payloadData,#payloadData)
+
+    buf:WriteUInt(self.channelsEx[channelName],16)
+    buf:WriteBytes(payload,#payloadData)
+
+    local data = buf:GetString()
+
+    self.voxelate.module.networkSendPacket(data,#data,unreliable,peerID)
 end

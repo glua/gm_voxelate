@@ -9,6 +9,7 @@ local Voxelate = runtime.oop.create("Voxelate")
 
 local module = G_VOX_IMPORTS
 G_VOX_IMPORTS = nil
+exports.module = module
 
 function Voxelate:__ctor()
     self.module = module

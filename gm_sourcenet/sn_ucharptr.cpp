@@ -145,11 +145,36 @@ LUA_FUNCTION_STATIC( Copy )
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(GetString)
+{
+	Container *container = GetUserData(LUA, 1);
+
+	int size = ceil(container->bits / 8);
+
+	std::string out(reinterpret_cast<char*>(container->data), size);
+
+	LUA->PushString(out.c_str(), size);
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC( Constructor )
 {
 	LUA->CheckType( 1, GarrysMod::Lua::Type::NUMBER );
 
 	Push( LUA, static_cast<int32_t>( LUA->GetNumber( 1 ) ) * 8 );
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(ConstructorFromString)
+{
+	LUA->CheckType(1, GarrysMod::Lua::Type::STRING);
+	LUA->CheckType(2, GarrysMod::Lua::Type::NUMBER);
+
+	auto data = Push(LUA, static_cast<int32_t>(LUA->GetNumber(2)) * 8);
+
+	memcpy(data, LUA->GetString(1), LUA->GetNumber(2));
 
 	return 1;
 }
@@ -185,10 +210,16 @@ void Initialize( GarrysMod::Lua::ILuaBase *LUA )
 		LUA->PushCFunction( Copy );
 		LUA->SetField( -2, "Copy" );
 
+		LUA->PushCFunction(GetString);
+		LUA->SetField(-2, "GetString");
+
 	LUA->Pop( 1 );
 
 	LUA->PushCFunction( Constructor );
 	LUA->SetField( GarrysMod::Lua::INDEX_GLOBAL, metaname );
+
+	LUA->PushCFunction(ConstructorFromString);
+	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "UCHARPTR_FromString");
 }
 
 void Deinitialize( GarrysMod::Lua::ILuaBase *LUA )
