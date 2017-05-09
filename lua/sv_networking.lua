@@ -36,7 +36,7 @@ hook.Add("Tick","voxelate_stream_tick",function()
             net.Start("voxelate_init_chunks")
             net.WriteUInt(index,16)
             while size_written<size_limit do
-                local data = IMPORTS.voxData(index,step)
+                local data = IMPORTS.voxData(index,step) -- THIS IS VERY BROKEN
                 if isbool(data) then to_delete[index]=data break end
 
                 net.WriteUInt(step,16)

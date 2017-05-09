@@ -70,39 +70,39 @@ int luaf_voxInit(lua_State* state) {
 		if (IS_SERVERSIDE) {
 			LUA->GetField(2, "useMeshCollisions");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
-				config->sv_useMeshCollisions = LUA->GetBool();
+				config->buildPhysicsMesh = LUA->GetBool();
 			LUA->Pop();
 		}
 		else {
 			LUA->GetField(2, "drawExterior");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
-				config->cl_drawExterior = LUA->GetBool();
+				config->buildExterior = LUA->GetBool();
 			LUA->Pop();
 
 			LUA->GetField(2, "atlasWidth");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-				config->cl_atlasWidth = LUA->GetNumber();
+				config->atlasWidth = LUA->GetNumber();
 			}
 			LUA->Pop();
 
 			LUA->GetField(2, "atlasHeight");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER))
-				config->cl_atlasHeight = LUA->GetNumber();
+				config->atlasHeight = LUA->GetNumber();
 			LUA->Pop();
 
 			LUA->GetField(2, "atlasMaterial");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::STRING))
-				config->cl_atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(LUA->GetString(-1), nullptr);
+				config->atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(LUA->GetString(-1), nullptr);
 			else
-				config->cl_atlasMaterial = IFACE_CL_MATERIALS->FindMaterial("models/debug/debugwhite", nullptr);
+				config->atlasMaterial = IFACE_CL_MATERIALS->FindMaterial("models/debug/debugwhite", nullptr);
 			LUA->Pop();
 
-			config->cl_atlasMaterial->IncrementReferenceCount();
+			config->atlasMaterial->IncrementReferenceCount();
 
 			LUA->GetField(2, "atlasIsPadded");
 			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL) && LUA->GetBool()) {
-				config->cl_pixel_bias_x = (config->cl_atlasMaterial->GetMappingWidth() / config->cl_atlasWidth / 4.0) / config->cl_atlasMaterial->GetMappingWidth();
-				config->cl_pixel_bias_y = (config->cl_atlasMaterial->GetMappingHeight() / config->cl_atlasHeight / 4.0) / config->cl_atlasMaterial->GetMappingHeight();
+				config->_padding_x = (config->atlasMaterial->GetMappingWidth() / config->atlasWidth / 4.0) / config->atlasMaterial->GetMappingWidth();
+				config->_padding_y = (config->atlasMaterial->GetMappingHeight() / config->atlasHeight / 4.0) / config->atlasMaterial->GetMappingHeight();
 			}
 			LUA->Pop();
 
@@ -113,9 +113,9 @@ int luaf_voxInit(lua_State* state) {
 		if (LUA->IsType(-1, GarrysMod::Lua::Type::VECTOR)) {
 			Vector dims = elua_getVector(state, -1);
 			if (dims.x >= 1 && dims.y >= 1 && dims.z >= 1) {
-				config->dimX = dims.x;
-				config->dimY = dims.y;
-				config->dimZ = dims.z;
+				config->dims_x = dims.x;
+				config->dims_y = dims.y;
+				config->dims_z = dims.z;
 			}
 		}
 		LUA->Pop();
@@ -140,7 +140,7 @@ int luaf_voxInit(lua_State* state) {
 						LUA->GetField(-1, "atlasIndex");
 						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
 							int atlasIndex = LUA->GetNumber(-1);
-							AtlasPos atlasPos = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+							AtlasPos atlasPos = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
 							vt.side_xPos = atlasPos;
 							vt.side_xNeg = atlasPos;
 							vt.side_yPos = atlasPos;
@@ -153,42 +153,42 @@ int luaf_voxInit(lua_State* state) {
 						LUA->GetField(-1, "atlasIndex_xPos");
 						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
 							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_xPos = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+							vt.side_xPos = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
 						}
 						LUA->Pop();
 
 						LUA->GetField(-1, "atlasIndex_xNeg");
 						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
 							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_xNeg = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+							vt.side_xNeg = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
 						}
 						LUA->Pop();
 
 						LUA->GetField(-1, "atlasIndex_yPos");
 						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
 							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_yPos = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+							vt.side_yPos = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
 						}
 						LUA->Pop();
 
 						LUA->GetField(-1, "atlasIndex_yNeg");
 						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
 							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_yNeg = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+							vt.side_yNeg = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
 						}
 						LUA->Pop();
 
 						LUA->GetField(-1, "atlasIndex_zPos");
 						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
 							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_zPos = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+							vt.side_zPos = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
 						}
 						LUA->Pop();
 
 						LUA->GetField(-1, "atlasIndex_zNeg");
 						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
 							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_zNeg = AtlasPos(atlasIndex % config->cl_atlasWidth, atlasIndex / config->cl_atlasWidth);
+							vt.side_zNeg = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
 						}
 						LUA->Pop();
 
@@ -289,7 +289,8 @@ int luaf_voxFlagAllChunksForUpdate(lua_State* state) {
 
 	Voxels* v = getIndexedVoxels(index);
 	if (v) {
-		v->flagAllChunksForUpdate();
+		// BROKEN
+		//v->flagAllChunksForUpdate();
 	}
 
 	return 0;

@@ -113,7 +113,7 @@ class Voxels {
 public:
 	~Voxels();
 
-	VoxelChunk* addChunk(Coord x, Coord y, Coord z);
+	VoxelChunk* initChunk(Coord x, Coord y, Coord z);
 	VoxelChunk* getChunk(Coord x, Coord y, Coord z);
 
 	const int getChunkData(Coord x, Coord y, Coord z, char * out);
@@ -125,7 +125,7 @@ public:
 	Vector getExtents();
 	void getCellExtents(Coord& x, Coord &y, Coord &z);
 
-	void flagAllChunksForUpdate();
+	//void flagAllChunksForUpdate();
 
 	void doUpdates(int count, CBaseEntity* ent);
 	void enableUpdates(bool enable);
@@ -143,7 +143,7 @@ public:
 private:
 	bool initialised = false;
 
-	std::unordered_map<XYZCoordinate, VoxelChunk*> chunks_new; // ok zerf lmao
+	std::unordered_map<XYZCoordinate, VoxelChunk> chunks_new; // ok zerf lmao
 	std::set<VoxelChunk*> chunks_flagged_for_update;
 
 	bool updates_enabled = false;

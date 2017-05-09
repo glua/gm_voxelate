@@ -63,51 +63,61 @@ void deleteAllIndexedVoxels() {
 }
 
 Voxels::~Voxels() {
-	for (auto it : chunks_new) {
-		if (it.second != nullptr) {
-			delete it.second;
-		}
-	}
-
-	chunks_new.clear();
 
 	if (config)
 		delete config;
 }
 
-VoxelChunk* Voxels::addChunk(Coord x, Coord y, Coord z) {
-	XYZCoordinate coord = { x, y, z };
+// Sets up a brand new chunk with no datas.
+VoxelChunk* Voxels::initChunk(Coord x, Coord y, Coord z) {
+	auto iter = chunks_new.find({ x, y, z });
 
-	auto chunk = new VoxelChunk(this, x, y, z);
-	chunks_new.insert({coord,chunk});
+	if (iter != chunks_new.end())
+		return &(iter->second);
 
-	return chunk;
+	chunks_new.insert({ { x, y, z }, VoxelChunk(this, x, y, z) });
+
+	return &chunks_new.at({x ,y , z});
 }
 
+// Gets a pointer to a chunk. Returs nullptr if it doesn't exist.
 VoxelChunk* Voxels::getChunk(Coord x, Coord y, Coord z) {
-	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
-		return nullptr;
-	}
+	auto iter = chunks_new.find({ x, y, z });
 
-	return chunks_new.at({ x, y, z });
+	if (iter == chunks_new.end())
+		return nullptr;
+
+	return &(iter->second);
 }
 
+// Fills a buffer at out with COMPRESSED chunk data, returns size.
+// FIXME output buffer must be at least 5% larger than input!
+// Need 8602? Just use a 9000 byte buffer?
 const int Voxels::getChunkData(Coord x, Coord y, Coord z,char* out) {
-	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
-		return 0;
-	}
+	auto iter = chunks_new.find({ x, y, z });
 
-	const char* input = reinterpret_cast<const char*>(chunks_new[{x, y, z}]->voxel_data);
+	if (iter == chunks_new.end())
+		return 0;
+
+	const char* input = reinterpret_cast<const char*>(iter->second.voxel_data);
 
 	return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
 }
 
+//
 void Voxels::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len) {
-	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
+	
+	if (data_compressed == nullptr) {
+		vox_print("NULL DATA %i", data_len);
 		return;
 	}
 
-	fastlz_decompress(data_compressed, data_len, chunks_new[{x, y, z}]->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
+	VoxelChunk* chunk = initChunk(x, y, z);
+
+	fastlz_decompress(data_compressed, data_len, chunk->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
+	
+	// TODO UPDATE FLAGGING
+	// ALSO FLAG NEIGHBORS (BUT ONLY THE THREE THAT SHARE FACES WITH US... (SHIT'S COMPLICATED!))
 	//chunks_flagged_for_update.insert(chunks_new[{x, y, z}]);
 }
 
@@ -117,11 +127,27 @@ void Voxels::initialize(VoxelConfig* config) {
 	// YO 3D LOOP TIME NIGGA
 	// TODO: remove this and only add chunks when entities are nearby
 	// TODO: remove this entirely actually, this only generates positive int chunks, but we're going arbitrary...
-	for (Coord x = 0; x < config->dimX; x++) {
-		for (Coord y = 0; y < config->dimY; y++) {
-			for (Coord z = 0; z < config->dimZ; z++) {
-				addChunk(x, y, z);
+	if (IS_SERVERSIDE) {
+		// Only explicitly init the map on the server
+		if (!config->huge) {
+			Coord max_chunk_x = (config->dims_x - 1) / VOXEL_CHUNK_SIZE;
+			Coord max_chunk_y = (config->dims_y - 1) / VOXEL_CHUNK_SIZE;
+			Coord max_chunk_z = (config->dims_z - 1) / VOXEL_CHUNK_SIZE;
+
+
+			vox_print("---> %i %i %i",max_chunk_x,max_chunk_y,max_chunk_z);
+
+			for (Coord x = 0; x <= max_chunk_x; x++) {
+				for (Coord y = 0; y <= max_chunk_y; y++) {
+					for (Coord z = 0; z <= max_chunk_z; z++) {
+						initChunk(x, y, z);
+					}
+				}
 			}
+			// todo do we do mapgen here?
+		}
+		else {
+			vox_print("HUGE WORLDS NOT IMPLEMENTED YET!");
 		}
 	}
 
@@ -132,31 +158,33 @@ bool Voxels::isInitialized() {
 	return initialised;
 }
 
+// Warning: We don't give a shit about this with huge worlds!
 Vector Voxels::getExtents() {
 	double real_chunk_size = config->scale*VOXEL_CHUNK_SIZE;
 	return Vector(
-		config->dimX*real_chunk_size,
-		config->dimY*real_chunk_size,
-		config->dimZ*real_chunk_size
+		config->dims_x*config->scale,
+		config->dims_y*config->scale,
+		config->dims_z*config->scale
 	);
 }
 
 void Voxels::getCellExtents(int& x, int &y, int &z) {
-	x = config->dimX*VOXEL_CHUNK_SIZE;
-	y = config->dimY*VOXEL_CHUNK_SIZE;
-	z = config->dimZ*VOXEL_CHUNK_SIZE;
+	x = config->dims_x;
+	y = config->dims_y;
+	z = config->dims_z;
 }
 
 // Get real upset and flag every single chunk we know about for an update
 // This happens right after we receive all the chunks.
 // TODO prioritize based on distance from player
 // TODO need different logic for huge worlds
-void Voxels::flagAllChunksForUpdate() {
+
+/*void Voxels::flagAllChunksForUpdate() {
 	// calling this is probably a VERY VERY VERY VERY bad idea once we have an infinite map working
 	for (auto it : chunks_new) {
 		chunks_flagged_for_update.insert(it.second);
 	}
-}
+}*/
 
 // Updates up to n chunks
 // Logic probably okay for huge worlds, although we may have to double check that the chunk still exists,
@@ -178,7 +206,7 @@ void Voxels::doUpdates(int count, CBaseEntity* ent) {
 // Might not hurt to totally ditch this logic and use some other method to determine
 // when chunks should start updating.
 void Voxels::enableUpdates(bool enable) {
-	if (!IS_SERVERSIDE || (config->sv_useMeshCollisions))
+	if (!IS_SERVERSIDE || (config->buildPhysicsMesh))
 		updates_enabled = enable;
 }
 
@@ -288,7 +316,7 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 					return VoxelTraceRes();
 				vx += stepX;
 				tMaxX += tDeltaX;
-				if (vx < 0 || vx >= VOXEL_CHUNK_SIZE*config->dimX)
+				if (vx < 0 || vx >= config->dims_x)
 					return VoxelTraceRes();
 				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
 			}
@@ -297,7 +325,7 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*config->dimZ)
+				if (vz < 0 || vz >= config->dims_z)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -308,7 +336,7 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 					return VoxelTraceRes();
 				vy += stepY;
 				tMaxY += tDeltaY;
-				if (vy < 0 || vy >= VOXEL_CHUNK_SIZE*config->dimY)
+				if (vy < 0 || vy >= config->dims_y)
 					return VoxelTraceRes();
 				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
 			}
@@ -317,7 +345,7 @@ VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*config->dimZ)
+				if (vz < 0 || vz >= config->dims_z)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -450,7 +478,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					return VoxelTraceRes();
 				vx += stepX;
 				tMaxX += tDeltaX;
-				if (vx < 0 || vx >= VOXEL_CHUNK_SIZE*config->dimX)
+				if (vx < 0 || vx >= config->dims_x)
 					return VoxelTraceRes();
 				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
 			}
@@ -459,7 +487,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*config->dimZ)
+				if (vz < 0 || vz >= config->dims_z)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -470,7 +498,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					return VoxelTraceRes();
 				vy += stepY;
 				tMaxY += tDeltaY;
-				if (vy < 0 || vy >= VOXEL_CHUNK_SIZE*config->dimY)
+				if (vy < 0 || vy >= config->dims_y)
 					return VoxelTraceRes();
 				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
 			}
@@ -479,7 +507,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= VOXEL_CHUNK_SIZE*config->dimZ)
+				if (vz < 0 || vz >= config->dims_z)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -576,7 +604,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 // Render every single chunk.
 // TODO for huge worlds, only render close chunks
 void Voxels::draw() {
-	IMaterial* atlasMat = config->cl_atlasMaterial;
+	IMaterial* atlasMat = config->atlasMaterial;
 	if (!isInitialized())
 		return;
 
@@ -592,8 +620,8 @@ void Voxels::draw() {
 	pRenderContext->DisableAllLocalLights();
 
 	// TODO: only draw nearby chunks
-	for (auto it : chunks_new) {
-		it.second->draw(pRenderContext);
+	for (auto pair : chunks_new) {
+		pair.second.draw(pRenderContext);
 	}
 }
 
@@ -654,7 +682,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 	//bool buildExterior; TODO see if this broke anything
 	//if (STATE_CLIENT)
-	bool buildExterior = system->config->cl_drawExterior;
+	bool buildExterior = system->config->buildExterior;
 
 	int lower_bound_x = (buildExterior && posX == 0) ? -1 : 0;
 	int lower_bound_y = (buildExterior && posY == 0) ? -1 : 0;
@@ -870,11 +898,11 @@ void VoxelChunk::addFullVoxelFace(Coord x, Coord y, Coord z, int tx, int ty, byt
 
 		VoxelConfig* cl_config = system->config;
 
-		double uMin = ((double)tx / cl_config->cl_atlasWidth) + cl_config->cl_pixel_bias_x;
-		double uMax = ((tx + 1.0) / cl_config->cl_atlasWidth) - cl_config->cl_pixel_bias_x;
+		double uMin = ((double)tx / cl_config->atlasWidth) + cl_config->_padding_x;
+		double uMax = ((tx + 1.0) / cl_config->atlasWidth) - cl_config->_padding_x;
 
-		double vMin = ((double)ty / cl_config->cl_atlasHeight) + cl_config->cl_pixel_bias_y;
-		double vMax = ((ty + 1.0) / cl_config->cl_atlasHeight) - cl_config->cl_pixel_bias_y;
+		double vMin = ((double)ty / cl_config->atlasHeight) + cl_config->_padding_y;
+		double vMax = ((ty + 1.0) / cl_config->atlasHeight) - cl_config->_padding_y;
 
 		if (dir == DIR_X_POS) {
 			meshBuilder.Position3f(realX + realStep, realY, realZ);
