@@ -156,19 +156,15 @@ int lua_network_sendpacket(lua_State* state) {
 #ifdef VOXELATE_SERVER
 	unsigned int peerID = luaL_checkinteger(state, 4);
 
-	if (peerID > peers.size()) {
-		lua_pushstring(state, "bad peer ID");
-		lua_error(state);
-		return 0;
-	}
+	auto it = peers.find(peerID);
 
-	ENetPeer* peer = peers.at(peerID);
-
-	if (peer == NULL) {
+	if (it == peers.end()) {
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
 	}
+
+	auto peer = it->second;
 #endif
 
 	// this is probably exploitable :weary:
@@ -249,19 +245,15 @@ struct PeerData {
 int lua_network_disconnectPeer(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	if (peerID > peers.size()) {
-		lua_pushstring(state, "bad peer ID");
-		lua_error(state);
-		return 0;
-	}
+	auto it = peers.find(peerID);
 
-	ENetPeer* peer = peers.at(peerID);
-
-	if (peer == NULL) {
+	if (it == peers.end()) {
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
 	}
+
+	auto peer = it->second;
 
 	enet_peer_disconnect(peer, 0);
 
@@ -271,19 +263,15 @@ int lua_network_disconnectPeer(lua_State* state) {
 int lua_network_resetPeer(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	if (peerID > peers.size()) {
-		lua_pushstring(state, "bad peer ID");
-		lua_error(state);
-		return 0;
-	}
+	auto it = peers.find(peerID);
 
-	ENetPeer* peer = peers.at(peerID);
-
-	if (peer == NULL) {
+	if (it == peers.end()) {
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
 	}
+
+	auto peer = it->second;
 
 	enet_peer_reset(peer);
 
@@ -302,19 +290,15 @@ int lua_network_resetPeer(lua_State* state) {
 int lua_network_getPeerSteamID(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	if (peerID > peers.size()) {
-		lua_pushstring(state, "bad peer ID");
-		lua_error(state);
-		return 0;
-	}
+	auto it = peers.find(peerID);
 
-	ENetPeer* peer = peers.at(peerID);
-
-	if (peer == NULL) {
+	if (it == peers.end()) {
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
 	}
+
+	auto peer = it->second;
 
 	auto peerData = (PeerData*)peer->data;
 
@@ -326,19 +310,15 @@ int lua_network_getPeerSteamID(lua_State* state) {
 int lua_network_setPeerSteamID(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	if (peerID > peers.size()) {
-		lua_pushstring(state, "bad peer ID");
-		lua_error(state);
-		return 0;
-	}
+	auto it = peers.find(peerID);
 
-	ENetPeer* peer = peers.at(peerID);
-
-	if (peer == NULL) {
+	if (it == peers.end()) {
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
 	}
+
+	auto peer = it->second;
 
 	auto peerData = (PeerData*)peer->data;
 
@@ -359,11 +339,11 @@ int lua_network_pollForEvents(lua_State* state) {
 			peerData = new PeerData();
 
 #ifdef VOXELATE_SERVER
-			peers[nextPeerID] = event->peer;
 			nextPeerID++;
+			peers[nextPeerID] = event->peer;
 
 			peerData->steamID = "STEAM:0:0";
-			peerData->peerID = peers.size();
+			peerData->peerID = nextPeerID;
 #else
 			peerData->steamID = "STEAM:0:0";
 			peerData->peerID = 0;
