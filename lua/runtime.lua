@@ -231,10 +231,10 @@ function runtime.oop.create(name,secure)
     -- meta.__parent = nil
 
     function meta:__gc()
-        if not self.__destroyed then
-            self.__destroyed = true
-            self:__dtor()
-        end
+        -- if not self.__destroyed then
+        --     self.__destroyed = true
+        --     self:__dtor()
+        -- end
     end
     function meta:__ctor(...)
         if self.__parent and self.__parent.__ctor then return self.__parent.__ctor(self,...) end
