@@ -14,6 +14,8 @@ local P = {
 function VoxelWorldInitChannel:RequestVoxelWorldConfig(worldID)
     assert(CLIENT,"clientside only")
 
+    self.voxelate.io:PrintDebug("Requesting voxel config for %d...",worldID)
+
     local packet = self:NewPacket()
 
     local buffer = packet:GetBuffer()
@@ -26,6 +28,8 @@ end
 
 function VoxelWorldInitChannel:SendVoxelWorldConfig(peerID,worldID)
     assert(SERVER,"serverside only")
+
+    self.voxelate.io:PrintDebug("Sending voxel config for %d to %d...",worldID,peerID)
 
     local packet = self:NewPacket()
     packet:SetPeer(peerID)
@@ -44,6 +48,8 @@ end
 
 function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)
     assert(CLIENT,"serverside only")
+
+    self.voxelate.io:PrintDebug("Receiving voxel config for %d...",worldID)
 
     local config = serialization.deserialize(buffer:ReadString())
 
