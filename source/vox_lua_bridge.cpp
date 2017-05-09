@@ -58,7 +58,7 @@ void elua_pushVector(lua_State* state, Vector v) {
 
 
 int luaf_voxNew(lua_State* state) {
-	LUA->PushNumber(newIndexedVoxels(LUA->GetNumber(1)));
+	LUA->PushNumber(newIndexedVoxelWorld(LUA->GetNumber(1)));
 
 	return 1;
 }
@@ -68,7 +68,7 @@ int luaf_voxNew(lua_State* state) {
 int luaf_voxInit(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
 		VoxelConfig* config = new VoxelConfig();
 		if (IS_SERVERSIDE) {
@@ -221,14 +221,14 @@ int luaf_voxInit(lua_State* state) {
 
 int luaf_voxDelete(lua_State* state) {
 	int index = LUA->GetNumber(1);
-	deleteIndexedVoxels(index);
+	deleteIndexedVoxelWorld(index);
 	return 0;
 }
 
 int luaf_voxDraw(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
 		v->draw();
 	}
@@ -239,7 +239,7 @@ int luaf_voxDraw(lua_State* state) {
 int luaf_voxData(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v == nullptr) {
 		LUA->PushBool(false);
@@ -265,7 +265,7 @@ int luaf_voxData(lua_State* state) {
 int luaf_voxInitChunk(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v != nullptr) {
 		unsigned int len;
@@ -280,7 +280,7 @@ int luaf_voxEnableMeshGeneration(lua_State* state) {
 	int index = LUA->GetNumber(1);
 	bool enable = LUA->GetBool(2);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v) {
 		v->enableUpdates(enable);
 	}
@@ -291,7 +291,7 @@ int luaf_voxEnableMeshGeneration(lua_State* state) {
 int luaf_voxFlagAllChunksForUpdate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v) {
 		v->flagAllChunksForUpdate();
 	}
@@ -302,7 +302,7 @@ int luaf_voxFlagAllChunksForUpdate(lua_State* state) {
 int luaf_voxGenerate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v) {
 		int mx, my, mz;
 		v->getCellExtents(mx, my, mz);
@@ -333,7 +333,7 @@ int luaf_voxGet(lua_State* state) {
 	int y = LUA->CheckNumber(3);
 	int z = LUA->CheckNumber(4);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr)
 		LUA->PushNumber(v->get(x, y, z));
 	else
@@ -349,7 +349,7 @@ int luaf_voxSet(lua_State* state) {
 	int z = LUA->CheckNumber(4);
 	int d = LUA->CheckNumber(5);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
 		if (v->set(x, y, z, d)) {
 			LUA->PushBool(true);
@@ -365,7 +365,7 @@ int luaf_voxUpdate(lua_State* state) {
 
 	CBaseEntity* ent = elua_getEntity(state, 3);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v != nullptr) {
 		v->doUpdates(10, ent);
@@ -377,7 +377,7 @@ int luaf_voxUpdate(lua_State* state) {
 int luaf_voxTrace(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
-	VoxelWorld* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr && v->isInitialized()) {
 		Vector start = elua_getVector(state, 2);
 

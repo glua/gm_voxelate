@@ -99,10 +99,10 @@ struct VoxelConfig {
 class VoxelWorld;
 class VoxelChunk;
 
-int newIndexedVoxels(int index = -1);
-VoxelWorld* getIndexedVoxels(int index);
-void deleteIndexedVoxels(int index);
-void deleteAllIndexedVoxels();
+int newIndexedVoxelWorld(int index = -1);
+VoxelWorld* getIndexedVoxelWorld(int index);
+void deleteIndexedVoxelWorld(int index);
+void deleteAllIndexedVoxelWorlds();
 
 class VoxelWorld {
 	friend class VoxelChunk;
