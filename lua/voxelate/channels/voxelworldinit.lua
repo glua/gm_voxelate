@@ -72,7 +72,7 @@ function VoxelWorldInitChannel:OnIncomingPacket(packet)
         end
     else
         if requestID == P.VOXELATE_WORLD_CONFIG then
-            self:SendVoxelWorldConfig(worldID,buffer)
+            self:ReceiveVoxelWorldConfig(worldID,buffer)
         end
     end
 end
