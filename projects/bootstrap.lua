@@ -1,6 +1,60 @@
 local FILETABLE = FILETABLE
 _G.FILETABLE = nil
 
+do
+    -- hotloading
+    local function getHotloadingPath()
+        local f = file.Open(".vox_hotloading","rb","DATA")
+        if not f then return false end
+
+        local str = f:Read(f:Size())
+        f:Close()
+
+        if not str then return false end
+        return str
+    end
+
+    local hotloadBasePath = getHotloadingPath()
+
+    if hotloadBasePath then
+        print("[VOX-BOOTSTRAP] Attempting to hot-load code...")
+
+        local OLD_FILETABLE = FILETABLE
+        local module = G_VOX_IMPORTS
+
+        local suc = pcall(require,"luaiox")
+
+        if suc then
+            print("[VOX-BOOTSTRAP] Hot-loading code using luaiox!")
+        else
+            print("[VOX-BOOTSTRAP] Hot-loading code using module.readFileUnrestricted!")
+        end
+
+        local function readFileUnrestricted(path)
+            if suc then
+                local f = io.open(hotloadBasePath..path,"rb")
+
+                if f then
+                    local contents = f:read("*a")
+                    f:close()
+
+                    return contents
+                end
+            elseif module.readFileUnrestricted then
+                return module.readFileUnrestricted(hotloadBasePath..path)
+            end
+
+            return OLD_FILETABLE[path]
+        end
+
+        FILETABLE = setmetatable({},{
+            __index = function(_,path)
+                return readFileUnrestricted(path)
+            end
+        })
+    end
+end
+
 local __args = __args or {}
 _G.__args = nil
 

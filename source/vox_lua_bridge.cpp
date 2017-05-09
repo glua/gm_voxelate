@@ -461,6 +461,26 @@ void runBootstrap(lua_State* state) {
 	}
 }
 
+#ifdef VOXELATE_LUA_HOTLOADING
+
+#include <fstream>
+#include <string>
+#include <streambuf>
+
+int luaf_voxReadFile(lua_State* state) {
+	std::string path = luaL_checkstring(state, 1);
+
+	std::ifstream t(path);
+	std::string contents((std::istreambuf_iterator<char>(t)),
+		std::istreambuf_iterator<char>());
+
+	lua_pushlstring(state, contents.c_str(), contents.size());
+
+	return 1;
+}
+
+#endif
+
 void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushSpecial(SPECIAL_GLOB);
 
@@ -507,6 +527,11 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");
+
+#ifdef VOXELATE_LUA_HOTLOADING
+	LUA->PushCFunction(luaf_voxReadFile);
+	LUA->SetField(-2, "readFileUnrestricted");
+#endif
 
 	setupLuaNetworking(state);
 
