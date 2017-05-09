@@ -24,38 +24,38 @@
 #define DIR_Y_NEG 16
 #define DIR_Z_NEG 32
 
-std::vector<VoxelWorld*> indexedVoxelRegistry;
+std::vector<VoxelWorld*> indexedVoxelWorldRegistry;
 
-int newIndexedVoxels(int index) {
+int newIndexedVoxelWorld(int index) {
 	if (index == -1) {
-		indexedVoxelRegistry.push_back(new VoxelWorld());
-		return indexedVoxelRegistry.size() - 1;
+		indexedVoxelWorldRegistry.push_back(new VoxelWorld());
+		return indexedVoxelWorldRegistry.size() - 1;
 	}
 	else {
-		indexedVoxelRegistry.insert(indexedVoxelRegistry.begin() + index, new VoxelWorld());
+		indexedVoxelWorldRegistry.insert(indexedVoxelWorldRegistry.begin() + index, new VoxelWorld());
 		return index;
 	}
 }
 
-VoxelWorld* getIndexedVoxels(int index) {
+VoxelWorld* getIndexedVoxelWorld(int index) {
 	try {
-		return indexedVoxelRegistry.at(index);
+		return indexedVoxelWorldRegistry.at(index);
 	}
 	catch (...) {
 		return nullptr;
 	}
 }
 
-void deleteIndexedVoxels(int index) {
-	delete indexedVoxelRegistry.at(index);
+void deleteIndexedVoxelWorld(int index) {
+	delete indexedVoxelWorldRegistry.at(index);
 	try {
-		indexedVoxelRegistry.at(index) = nullptr;
+		indexedVoxelWorldRegistry.at(index) = nullptr;
 	}
 	catch (...) {}
 }
 
-void deleteAllIndexedVoxels() {
-	for (VoxelWorld* v : indexedVoxelRegistry) {
+void deleteAllIndexedVoxelWorlds() {
+	for (VoxelWorld* v : indexedVoxelWorldRegistry) {
 		if (v != nullptr) {
 			delete v;
 		}
