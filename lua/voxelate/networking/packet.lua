@@ -8,7 +8,6 @@ exports.NetworkPacket = NetworkPacket
 local bitbuf = runtime.require("../bitbuffer")
 
 local StaticPacketBufferMeta = {}
-StaticPacketBufferMeta.__index = StaticPacketBufferMeta
 local _R = debug.getregistry()
 debug.setmetatable(StaticPacketBufferMeta,{__index = _R.sn_bf_write})
 
@@ -19,6 +18,14 @@ end
 function StaticPacketBufferMeta:Broadcast()
     return self.packet:Broadcast(self)
 end
+
+for key,val in pairs(_R.sn_bf_write) do
+    if key:sub(1,2) == "__" then
+        StaticPacketBufferMeta[key] = val
+    end
+end
+
+StaticPacketBufferMeta.__index = StaticPacketBufferMeta
 
 function NetworkPacket:__ctor(incoming,channel,unreliable,peerID,data)
     self.incoming = incoming

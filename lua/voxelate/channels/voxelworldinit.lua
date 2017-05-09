@@ -9,7 +9,7 @@ exports.VoxelWorldInitChannel = VoxelWorldInitChannel
 runtime.oop.extend(VoxelWorldInitChannel,NetworkChannel)
 
 local P = {
-    VOXELATE_WORLD_CONFIG
+    VOXELATE_WORLD_CONFIG = 1,
 }
 
 function VoxelWorldInitChannel:RequestVoxelWorldConfig(worldID)
