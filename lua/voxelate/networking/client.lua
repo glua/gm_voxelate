@@ -74,7 +74,7 @@ function Router:SendInChannel(channelName,payloadData,unreliable)
     buf:WriteUInt(self.channelsEx[channelName],16)
     buf:WriteBytes(payload,#payloadData)
 
-    local data = buf:GetString()
+    local data = buf:GetWrittenString()
 
     self.voxelate.module.networkSendPacket(data,#data,unreliable)
 end

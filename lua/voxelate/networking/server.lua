@@ -155,7 +155,7 @@ function Router:SendInChannel(channelName,payloadData,peerID,unreliable)
     buf:WriteUInt(self.channelsEx[channelName],16)
     buf:WriteBytes(payload,#payloadData)
 
-    local data = buf:GetString()
+    local data = buf:GetWrittenString()
 
     self.voxelate.module.networkSendPacket(data,#data,unreliable,peerID)
 end
@@ -169,7 +169,7 @@ function Router:BroadcastInChannel(channelName,payloadData,unreliable)
     buf:WriteUInt(self.channelsEx[channelName],16)
     buf:WriteBytes(payload,#payloadData)
 
-    local data = buf:GetString()
+    local data = buf:GetWrittenString()
 
     for peerID,_ in pairs(self.PeerIDs) do
         self.voxelate.module.networkSendPacket(data,#data,unreliable,peerID)
