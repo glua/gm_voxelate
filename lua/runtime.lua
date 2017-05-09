@@ -210,7 +210,7 @@ function runtime.oop.construct(meta,...)
                 local v = instance.__parent[k]
 
                 if type(v) == "function" then
-                    return runtime.oop.superBind(self,instance.super,v)
+                    return runtime.oop.superBind(instance,instance.super,v)
                 else
                     return v
                 end
