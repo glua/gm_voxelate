@@ -11,12 +11,14 @@ local StaticPacketBufferMeta = {}
 local _R = debug.getregistry()
 debug.setmetatable(StaticPacketBufferMeta,{__index = _R.sn_bf_write})
 
+local bufferPacketMap = setmetatable({},{__mode = "kv"})
+
 function StaticPacketBufferMeta:Send()
-    return self.packet:Send(self)
+    return bufferPacketMap[self]:SendBuffer(self)
 end
 
 function StaticPacketBufferMeta:Broadcast()
-    return self.packet:Broadcast(self)
+    return bufferPacketMap[self]:BroadcastBuffer(self)
 end
 
 for key,val in pairs(_R.sn_bf_write) do
@@ -58,7 +60,7 @@ function NetworkPacket:GetBuffer(size)
 
         debug.setmetatable(buffer,StaticPacketBufferMeta)
 
-        buffer.packet = self
+        bufferPacketMap[buffer] = self
 
         return buffer
     end
