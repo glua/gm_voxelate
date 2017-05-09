@@ -231,13 +231,17 @@ function runtime.oop.create(name,secure)
     -- meta.__parent = nil
 
     function meta:__gc()
-        -- if not self.__destroyed then
-        --     self.__destroyed = true
-        --     self:__dtor()
-        -- end
+        if not self.__destroyed then
+            self.__destroyed = true
+            self:__dtor()
+        end
     end
-    function meta:__ctor()end
-    function meta:__dtor()end
+    function meta:__ctor()
+        if self.super and self.super.__ctor then return self.super:__ctor() end
+    end
+    function meta:__dtor()
+        if self.super and self.super.__ctor then return self.super:__dtor() end
+    end
 
     function meta:__tostring()
         return string.format("%s%d",self.__name,self.__uuid)
