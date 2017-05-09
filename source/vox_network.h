@@ -11,6 +11,10 @@
 #include <functional>
 #include <string>
 
+#include <bitbuf.h>
+
+typedef std::function<void(int peerID, bf_read reader)> networkCallback;
+
 #define VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA 1
 
 bool network_startup();
@@ -25,7 +29,7 @@ namespace networking {
 #else
 	bool channelSend(uint16_t channelID, void* data, int size, bool unreliable = false);
 #endif
-	void channelListen(uint16_t channelID, std::function<void(int peerID,void* data,int size)> callback);
+	void channelListen(uint16_t channelID, networkCallback callback);
 };
 
 #endif

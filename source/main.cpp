@@ -25,6 +25,8 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
+	voxelworld_initialise_networking_static();
+
 	UCHARPTR::Initialize(LUA);
 	sn_bf_read::Initialize(LUA);
 	sn_bf_write::Initialize(LUA);

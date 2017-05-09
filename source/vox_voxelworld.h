@@ -104,10 +104,14 @@ VoxelWorld* getIndexedVoxelWorld(int index);
 void deleteIndexedVoxelWorld(int index);
 void deleteAllIndexedVoxelWorlds();
 
+void voxelworld_initialise_networking_static();
+
 class VoxelWorld {
 	friend class VoxelChunk;
 public:
 	~VoxelWorld();
+
+	int worldID = -1;
 
 	VoxelChunk* addChunk(Coord x, Coord y, Coord z);
 	VoxelChunk* getChunk(Coord x, Coord y, Coord z);

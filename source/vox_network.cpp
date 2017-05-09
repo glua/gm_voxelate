@@ -5,8 +5,6 @@
 #include <unordered_map>
 #include <algorithm>
 
-#include <bitbuf.h>
-
 ENetAddress address;
 
 #define VOX_NETWORK_LUA_CHANNEL 0
@@ -340,7 +338,7 @@ int lua_network_setPeerSteamID(lua_State* state) {
 }
 #endif
 
-std::unordered_map<int, std::function<void(int peerID, void* data, int size)>> cppChannelCallbacks;
+std::unordered_map<int, networkCallback> cppChannelCallbacks;
 
 int lua_network_pollForEvents(lua_State* state) {
 	eventMutex.lock();
@@ -397,7 +395,7 @@ int lua_network_pollForEvents(lua_State* state) {
 					int channelID = reader.ReadUBitLong(16);
 					
 					if (cppChannelCallbacks[channelID]) {
-						cppChannelCallbacks[channelID](peerData->peerID, event->packet->data, event->packet->dataLength);
+						cppChannelCallbacks[channelID](peerData->peerID, reader);
 					}
 				}
 
@@ -473,7 +471,7 @@ void setupLuaNetworking(lua_State* state) {
 }
 
 namespace networking {
-	void channelListen(uint16_t channelID, std::function<void(int peerID, void* data, int size)> callback) {
+	void channelListen(uint16_t channelID, networkCallback callback) {
 		cppChannelCallbacks[channelID] = callback;
 	}
 
