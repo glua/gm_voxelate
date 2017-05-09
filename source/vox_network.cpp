@@ -362,30 +362,40 @@ int lua_network_pollForEvents(lua_State* state) {
 		case ENET_EVENT_TYPE_RECEIVE:
 			peerData = (PeerData*)event->peer->data;
 
-			LuaHelpers::PushHookRun(state->luabase, "VoxNetworkPacket");
+			if (peerData != NULL) {
+				LuaHelpers::PushHookRun(state->luabase, "VoxNetworkPacket");
 
-			data.assign((const char*)event->packet->data, event->packet->dataLength);
+				data.assign((const char*)event->packet->data, event->packet->dataLength);
 
-			lua_pushnumber(state, peerData->peerID);
-			lua_pushlstring(state, data.c_str(), event->packet->dataLength);
-			lua_pushnumber(state, event->channelID);
+				lua_pushnumber(state, peerData->peerID);
+				lua_pushlstring(state, data.c_str(), event->packet->dataLength);
+				lua_pushnumber(state, event->channelID);
 
-			LuaHelpers::CallHookRun(state->luabase, 3, 0);
+				LuaHelpers::CallHookRun(state->luabase, 3, 0);
 
-			enet_packet_destroy(event->packet);
+				enet_packet_destroy(event->packet);
+			}
+			else {
+				Msg("ENET_EVENT_TYPE_RECEIVE: event->peer->data is null?????\n");
+			}
 
 			break;
 
 		case ENET_EVENT_TYPE_DISCONNECT:
 			peerData = (PeerData*)event->peer->data;
 
-			LuaHelpers::PushHookRun(state->luabase, "VoxNetworkDisconnect");
+			if (peerData != NULL) {
+				LuaHelpers::PushHookRun(state->luabase, "VoxNetworkDisconnect");
 
-			lua_pushnumber(state, peerData->peerID);
+				lua_pushnumber(state, peerData->peerID);
 
-			LuaHelpers::CallHookRun(state->luabase, 1, 0);
+				LuaHelpers::CallHookRun(state->luabase, 1, 0);
 
-			event->peer->data = NULL;
+				event->peer->data = NULL;
+			}
+			else {
+				Msg("ENET_EVENT_TYPE_DISCONNECT: event->peer->data is null?????\n");
+			}
 
 #ifdef VOXELATE_SERVER
 			for (auto it = peers.cbegin(); it != peers.cend(); ) {
