@@ -5,7 +5,12 @@
 #include <unordered_map>
 #include <algorithm>
 
+#include <bitbuf.h>
+
 ENetAddress address;
+
+#define VOX_NETWORK_LUA_CHANNEL 0
+#define VOX_NETWORK_CPP_CHANNEL 1
 
 #ifdef VOXELATE_SERVER
 ENetHost* server;
@@ -176,7 +181,7 @@ int lua_network_sendpacket(lua_State* state) {
 
 	ENetPacket* packet = enet_packet_create(data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 
-	enet_peer_send(peer, 0, packet);
+	enet_peer_send(peer, VOX_NETWORK_LUA_CHANNEL, packet);
 
 	enet_host_flush(VOX_ENET_HOST);
 
@@ -335,6 +340,8 @@ int lua_network_setPeerSteamID(lua_State* state) {
 }
 #endif
 
+std::unordered_map<int, std::function<void(int peerID, std::string data)>> cppChannelCallbacks;
+
 int lua_network_pollForEvents(lua_State* state) {
 	eventMutex.lock();
 	for(auto event : events) {
@@ -371,15 +378,28 @@ int lua_network_pollForEvents(lua_State* state) {
 			peerData = (PeerData*)event->peer->data;
 
 			if (peerData != NULL) {
-				LuaHelpers::PushHookRun(state->luabase, "VoxNetworkPacket");
-
 				data.assign((const char*)event->packet->data, event->packet->dataLength);
 
-				lua_pushnumber(state, peerData->peerID);
-				lua_pushlstring(state, data.c_str(), event->packet->dataLength);
-				lua_pushnumber(state, event->channelID);
+				if (event->channelID == VOX_NETWORK_LUA_CHANNEL) {
+					LuaHelpers::PushHookRun(state->luabase, "VoxNetworkPacket");
 
-				LuaHelpers::CallHookRun(state->luabase, 3, 0);
+					lua_pushnumber(state, peerData->peerID);
+					lua_pushlstring(state, data.c_str(), event->packet->dataLength);
+					lua_pushnumber(state, event->channelID);
+
+					LuaHelpers::CallHookRun(state->luabase, 3, 0);
+				}
+				else if (event->channelID == VOX_NETWORK_CPP_CHANNEL) {
+					bf_read reader;
+
+					reader.StartReading(event->packet->data, event->packet->dataLength);
+
+					int channelID = reader.ReadUBitLong(16);
+					
+					if (cppChannelCallbacks[channelID]) {
+						cppChannelCallbacks[channelID](peerData->peerID, data);
+					}
+				}
 
 				enet_packet_destroy(event->packet);
 			}
@@ -450,4 +470,48 @@ void setupLuaNetworking(lua_State* state) {
 
 	lua_pushcfunction(state, lua_network_sendpacket);
 	lua_setfield(state, -2, "networkSendPacket");
+}
+
+namespace networking {
+	void channelListen(uint16_t channelID, std::function<void(int peerID, std::string data)> callback) {
+		cppChannelCallbacks[channelID] = callback;
+	}
+
+#ifdef VOXELATE_SERVER
+	bool channelSend(int peerID,uint16_t channelID, std::string dataStr, bool unreliable = false) {
+#else
+	bool channelSend(uint16_t channelID, std::string dataStr, bool unreliable = false) {
+#endif
+		bf_write writer;
+
+		auto size = dataStr.size() + 2;
+		auto data = new(std::nothrow) uint8_t[size];
+
+		if (data == NULL) {
+			return false;
+		}
+
+		writer.StartWriting(data, size);
+
+		writer.WriteUBitLong(channelID, 16);
+		writer.WriteBytes(dataStr.c_str(), dataStr.size());
+
+#ifdef VOXELATE_SERVER
+		auto it = peers.find(peerID);
+
+		if (it == peers.end()) {
+			return false;
+		}
+
+		auto peer = it->second;
+#endif
+
+		ENetPacket* packet = enet_packet_create(data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
+
+		enet_peer_send(peer, VOX_NETWORK_CPP_CHANNEL, packet);
+
+		enet_host_flush(VOX_ENET_HOST);
+
+		return true;
+	}
 }

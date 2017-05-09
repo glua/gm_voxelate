@@ -8,10 +8,18 @@
 #include "enet/enet.h"
 #include "glua.h"
 
+#include <functional>
+#include <string>
+
 bool network_startup();
 
 void network_shutdown();
 
 void setupLuaNetworking(lua_State* state);
+
+namespace network {
+	void channelSend(uint16_t channelID, std::string data);
+	void channelListen(uint16_t channelID, std::function<void(int peerID,std::string data)> callback);
+};
 
 #endif
