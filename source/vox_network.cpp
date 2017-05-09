@@ -76,23 +76,27 @@ void network_shutdown() {
 
 	ENetEvent event;
 
-	while (enet_host_service(client, &event, 3000) > 0) {
-		switch (event.type) {
-		case ENET_EVENT_TYPE_RECEIVE:
-			enet_packet_destroy(event.packet);
+	time_t startTime, endTime;
+	
+	startTime = time(NULL);
 
-			break;
-		case ENET_EVENT_TYPE_DISCONNECT:
-			Msg("Successfully disconnected from ENet.\n");
-			disconnected = true;
+	do {
+		endTime = time(NULL);
+		if (enet_host_service(client, &event, 3000) > 0) {
+			if (event.type == ENET_EVENT_TYPE_RECEIVE) {
+				enet_packet_destroy(event.packet);
+			}
+			else if(event.type == ENET_EVENT_TYPE_DISCONNECT) {
+				Msg("Successfully disconnected from ENet.\n");
+				disconnected = true;
 
+				break;
+			}
+		}
+		else {
 			break;
 		}
-
-		if (disconnected) {
-			break;
-		}
-	}
+	} while (difftime(endTime, startTime) <= 3.0); // loop for 3 seconds max
 
 	if (!disconnected) {
 		Msg("Forcefully disconnected from ENet...\n");
