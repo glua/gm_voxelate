@@ -134,6 +134,40 @@ LUA_FUNCTION_STATIC( Size )
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(Resize)
+{
+	sn_bf_common::CheckType(LUA, 1, metatype, metaname);
+	auto bytes = LUA->CheckNumber(2);
+	auto bits = static_cast<int32_t>(bytes) * 8;
+
+	Container *container = GetUserData(LUA, 1);
+
+
+	if (bits <= 0)
+		sn_bf_common::ThrowError(
+			LUA,
+			"invalid amount of bits for a buffer (%d is less than or equal to zero)",
+			bits
+		);
+
+	auto data = new(std::nothrow) uint8_t[(bits + 7) >> 3];
+	if (data == nullptr)
+		LUA->ThrowError("failed to allocate buffer");
+
+	int32_t cpsize = (bits + 7) >> 3;
+
+	if (bits > container->bits) {
+		cpsize = (container->bits + 7) >> 3;
+	}
+	
+	memcpy(data, container->data, cpsize);
+
+	container->data = data;
+	container->bits = bits;
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC( Copy )
 {
 	int32_t bits = 0;
@@ -204,8 +238,11 @@ void Initialize( GarrysMod::Lua::ILuaBase *LUA )
 		LUA->PushCFunction( IsValid );
 		LUA->SetField( -2, "IsValid" );
 
-		LUA->PushCFunction( Size );
-		LUA->SetField( -2, "Size" );
+		LUA->PushCFunction(Size);
+		LUA->SetField(-2, "Size");
+
+		LUA->PushCFunction(Resize);
+		LUA->SetField(-2, "Resize");
 
 		LUA->PushCFunction( Copy );
 		LUA->SetField( -2, "Copy" );
