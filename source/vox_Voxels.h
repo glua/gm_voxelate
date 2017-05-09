@@ -96,18 +96,18 @@ struct VoxelConfig {
 	VoxelType voxelTypes[256];
 };
 
-class Voxels;
+class VoxelWorld;
 class VoxelChunk;
 
 int newIndexedVoxels(int index = -1);
-Voxels* getIndexedVoxels(int index);
+VoxelWorld* getIndexedVoxels(int index);
 void deleteIndexedVoxels(int index);
 void deleteAllIndexedVoxels();
 
-class Voxels {
+class VoxelWorld {
 	friend class VoxelChunk;
 public:
-	~Voxels();
+	~VoxelWorld();
 
 	VoxelChunk* addChunk(Coord x, Coord y, Coord z);
 	VoxelChunk* getChunk(Coord x, Coord y, Coord z);
@@ -150,7 +150,7 @@ private:
 
 class VoxelChunk {
 public:
-	VoxelChunk(Voxels* sys, int x, int y, int z);
+	VoxelChunk(VoxelWorld* sys, int x, int y, int z);
 	~VoxelChunk();
 	void build(CBaseEntity* ent);
 	void draw(CMatRenderContextPtr& pRenderContext);
@@ -169,7 +169,7 @@ private:
 
 	int posX, posY, posZ;
 
-	Voxels* system;
+	VoxelWorld* system;
 	CMeshBuilder meshBuilder;
 	IMesh* current_mesh;
 	std::list<IMesh*> meshes;

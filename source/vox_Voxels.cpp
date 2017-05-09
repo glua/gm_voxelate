@@ -24,20 +24,20 @@
 #define DIR_Y_NEG 16
 #define DIR_Z_NEG 32
 
-std::vector<Voxels*> indexedVoxelRegistry;
+std::vector<VoxelWorld*> indexedVoxelRegistry;
 
 int newIndexedVoxels(int index) {
 	if (index == -1) {
-		indexedVoxelRegistry.push_back(new Voxels());
+		indexedVoxelRegistry.push_back(new VoxelWorld());
 		return indexedVoxelRegistry.size() - 1;
 	}
 	else {
-		indexedVoxelRegistry.insert(indexedVoxelRegistry.begin() + index, new Voxels());
+		indexedVoxelRegistry.insert(indexedVoxelRegistry.begin() + index, new VoxelWorld());
 		return index;
 	}
 }
 
-Voxels* getIndexedVoxels(int index) {
+VoxelWorld* getIndexedVoxels(int index) {
 	try {
 		return indexedVoxelRegistry.at(index);
 	}
@@ -55,14 +55,14 @@ void deleteIndexedVoxels(int index) {
 }
 
 void deleteAllIndexedVoxels() {
-	for (Voxels* v : indexedVoxelRegistry) {
+	for (VoxelWorld* v : indexedVoxelRegistry) {
 		if (v != nullptr) {
 			delete v;
 		}
 	}
 }
 
-Voxels::~Voxels() {
+VoxelWorld::~VoxelWorld() {
 	for (auto it : chunks_new) {
 		if (it.second != nullptr) {
 			delete it.second;
@@ -75,7 +75,7 @@ Voxels::~Voxels() {
 		delete config;
 }
 
-VoxelChunk* Voxels::addChunk(Coord x, Coord y, Coord z) {
+VoxelChunk* VoxelWorld::addChunk(Coord x, Coord y, Coord z) {
 	XYZCoordinate coord = { x, y, z };
 
 	auto chunk = new VoxelChunk(this, x, y, z);
@@ -84,7 +84,7 @@ VoxelChunk* Voxels::addChunk(Coord x, Coord y, Coord z) {
 	return chunk;
 }
 
-VoxelChunk* Voxels::getChunk(Coord x, Coord y, Coord z) {
+VoxelChunk* VoxelWorld::getChunk(Coord x, Coord y, Coord z) {
 	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
 		return nullptr;
 	}
@@ -92,7 +92,7 @@ VoxelChunk* Voxels::getChunk(Coord x, Coord y, Coord z) {
 	return chunks_new.at({ x, y, z });
 }
 
-const int Voxels::getChunkData(Coord x, Coord y, Coord z,char* out) {
+const int VoxelWorld::getChunkData(Coord x, Coord y, Coord z,char* out) {
 	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
 		return 0;
 	}
@@ -102,7 +102,7 @@ const int Voxels::getChunkData(Coord x, Coord y, Coord z,char* out) {
 	return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
 }
 
-void Voxels::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len) {
+void VoxelWorld::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len) {
 	if (x < 0 || x >= config->dimX || y < 0 || y >= config->dimY || z < 0 || z >= config->dimZ) {
 		return;
 	}
@@ -111,7 +111,7 @@ void Voxels::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed
 	//chunks_flagged_for_update.insert(chunks_new[{x, y, z}]);
 }
 
-void Voxels::initialize(VoxelConfig* config) {
+void VoxelWorld::initialize(VoxelConfig* config) {
 	this->config = config;
 
 	// YO 3D LOOP TIME NIGGA
@@ -128,11 +128,11 @@ void Voxels::initialize(VoxelConfig* config) {
 	initialised = true;
 }
 
-bool Voxels::isInitialized() {
+bool VoxelWorld::isInitialized() {
 	return initialised;
 }
 
-Vector Voxels::getExtents() {
+Vector VoxelWorld::getExtents() {
 	double real_chunk_size = config->scale*VOXEL_CHUNK_SIZE;
 	return Vector(
 		config->dimX*real_chunk_size,
@@ -141,7 +141,7 @@ Vector Voxels::getExtents() {
 	);
 }
 
-void Voxels::getCellExtents(int& x, int &y, int &z) {
+void VoxelWorld::getCellExtents(int& x, int &y, int &z) {
 	x = config->dimX*VOXEL_CHUNK_SIZE;
 	y = config->dimY*VOXEL_CHUNK_SIZE;
 	z = config->dimZ*VOXEL_CHUNK_SIZE;
@@ -151,7 +151,7 @@ void Voxels::getCellExtents(int& x, int &y, int &z) {
 // This happens right after we receive all the chunks.
 // TODO prioritize based on distance from player
 // TODO need different logic for huge worlds
-void Voxels::flagAllChunksForUpdate() {
+void VoxelWorld::flagAllChunksForUpdate() {
 	// calling this is probably a VERY VERY VERY VERY bad idea once we have an infinite map working
 	for (auto it : chunks_new) {
 		chunks_flagged_for_update.insert(it.second);
@@ -161,7 +161,7 @@ void Voxels::flagAllChunksForUpdate() {
 // Updates up to n chunks
 // Logic probably okay for huge worlds, although we may have to double check that the chunk still exists,
 // or clean out chunks_flagged_for_update when we unload chunks
-void Voxels::doUpdates(int count, CBaseEntity* ent) {
+void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 	// On the server, we -NEED- the entity. Not so important on the client
 	if (updates_enabled && (!IS_SERVERSIDE || ent != nullptr)) {
 		for (int i = 0; i < count; i++) {
@@ -177,14 +177,14 @@ void Voxels::doUpdates(int count, CBaseEntity* ent) {
 // Going to need totally different logic for huge maps.
 // Might not hurt to totally ditch this logic and use some other method to determine
 // when chunks should start updating.
-void Voxels::enableUpdates(bool enable) {
+void VoxelWorld::enableUpdates(bool enable) {
 	if (!IS_SERVERSIDE || (config->sv_useMeshCollisions))
 		updates_enabled = enable;
 }
 
 // Function for line traces. Re-scales vectors and moves the start to the beggining of the voxel entity,
 // Then calls fast trace function
-VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
+VoxelTraceRes VoxelWorld::doTrace(Vector startPos, Vector delta) {
 	Vector voxel_extents = getExtents();
 
 	if (startPos.WithinAABox(Vector(0,0,0), voxel_extents)) {
@@ -205,7 +205,7 @@ VoxelTraceRes Voxels::doTrace(Vector startPos, Vector delta) {
 
 // Same as above for hull traces.
 // TODO deal with assumption mentioned below...?
-VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents) {
+VoxelTraceRes VoxelWorld::doTraceHull(Vector startPos, Vector delta, Vector extents) {
 	Vector voxel_extents = getExtents();
 
 	//Calculate our bounds based on the offsets used by the player hull. This will not work for everything, but will preserve player movement.
@@ -230,7 +230,7 @@ VoxelTraceRes Voxels::doTraceHull(Vector startPos, Vector delta, Vector extents)
 }
 
 // Fast trace function, based on http://www.cse.chalmers.se/edu/year/2011/course/TDA361/Advanced%20Computer%20Graphics/grid.pdf
-VoxelTraceRes Voxels::iTrace(Vector startPos, Vector delta, Vector defNormal) {
+VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal) {
 	int vx = startPos.x;
 	int vy = startPos.y;
 	int vz = startPos.z;
@@ -368,7 +368,7 @@ int floorCrazy(float f) {
 
 // Same as above, for hull traces.
 // Has a lot of sketchy shit to prevent players getting stuck :(
-VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal) {
+VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal) {
 	double epsilon = .001;
 
 	for (int ix = startPos.x - extents.x + epsilon; ix <= startPos.x + extents.x-epsilon; ix++) {
@@ -575,7 +575,7 @@ VoxelTraceRes Voxels::iTraceHull(Vector startPos, Vector delta, Vector extents, 
 
 // Render every single chunk.
 // TODO for huge worlds, only render close chunks
-void Voxels::draw() {
+void VoxelWorld::draw() {
 	IMaterial* atlasMat = config->cl_atlasMaterial;
 	if (!isInitialized())
 		return;
@@ -606,7 +606,7 @@ int div_floor(int x, int y) {
 }
 
 // Gets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
-uint16 Voxels::get(Coord x, Coord y, Coord z) {
+uint16 VoxelWorld::get(Coord x, Coord y, Coord z) {
 	int qx = x / VOXEL_CHUNK_SIZE;
 
 
@@ -618,7 +618,7 @@ uint16 Voxels::get(Coord x, Coord y, Coord z) {
 }
 
 // Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
-bool Voxels::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
+bool VoxelWorld::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr)
 		return false;
@@ -631,7 +631,7 @@ bool Voxels::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
 // The one thing that comes to mind is mesh generation, which always builds the chunk offset into the mesh
 // I beleive I did this so I wouldn't need to push a matrix for every single chunk (lots of chunks, could be expensive?)
 // Could run into FP issues if we keep the offset built in though, as I'm pretty sure meshes use 32bit floats
-VoxelChunk::VoxelChunk(Voxels* sys,int cx, int cy, int cz) {
+VoxelChunk::VoxelChunk(VoxelWorld* sys,int cx, int cy, int cz) {
 	system = sys;
 	posX = cx;
 	posY = cy;
