@@ -5,7 +5,7 @@
 #include "vox_util.h"
 #include "vox_engine.h"
 #include "vox_lua_bridge.h"
-#include "vox_Voxels.h"
+#include "vox_VoxelWorld.h"
 #include "vox_network.h"
 
 #include "sn_bf_read.hpp"

@@ -3,7 +3,7 @@
 
 #include "vox_engine.h"
 #include "vox_util.h"
-#include "vox_Voxels.h"
+#include "vox_VoxelWorld.h"
 
 #include "vox_network.h"
 
@@ -44,12 +44,12 @@ void elua_pushVector(lua_State* state, Vector v) {
 	LUA->PushNumber(v.y);
 	LUA->PushNumber(v.z);
 	LUA->Call(3, 1);
-	
+
 	/*
 	GarrysMod::Lua::UserData* ud = (UserData*)(LUA->NewUserdata(sizeof(UserData)));
 	ud->type = Type::VECTOR;
 	ud->data = new Vector(v);
-	
+
 	LUA->CreateMetaTableType("Vector", Type::VECTOR);
 	LUA->SetMetaTable(-2);
 	*/
@@ -240,7 +240,7 @@ int luaf_voxData(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxels(index);
-	
+
 	if (v == nullptr) {
 		LUA->PushBool(false);
 		return 1;
@@ -270,7 +270,7 @@ int luaf_voxInitChunk(lua_State* state) {
 	if (v != nullptr) {
 		unsigned int len;
 		const char* data = LUA->GetString(5, &len);
-		
+
 		v->setChunkData(LUA->GetNumber(2), LUA->GetNumber(3), LUA->GetNumber(4), data, len);
 	}
 	return 0;
@@ -370,7 +370,7 @@ int luaf_voxUpdate(lua_State* state) {
 	if (v != nullptr) {
 		v->doUpdates(10, ent);
 	}
-	
+
 	return 0;
 }
 
