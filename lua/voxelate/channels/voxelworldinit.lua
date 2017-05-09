@@ -55,8 +55,6 @@ function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)
     local config = serialization.deserialize(buffer:ReadString())
 
     self.voxelate:SetWorldConfig(worldID,config)
-
-    return buffer:Send()
 end
 
 function VoxelWorldInitChannel:OnIncomingPacket(packet)
