@@ -3,7 +3,7 @@
 assert(jit and jit.version == "LuaJIT 2.0.4","This runtime library is built for LuaJIT 2.0.4!")
 
 local runtime = {}
-runtime.version = 20170508.1
+runtime.version = 20170509
 
 local debug = debug
 
@@ -175,6 +175,21 @@ function runtime.oop.uuid()
     return runtime.oop.ptr
 end
 
+function runtime.oop.superBind(origSelf,inputSelf,fn)
+    return setmetatable({},{
+        __call = function(self,...)
+            if self == inputSelf then
+                self = origSelf
+            end
+
+            return fn(self,...)
+        end,
+        __tostring = function(self)
+            return string.format("SuperFunction: %p",self)
+        end,
+    })
+end
+
 function runtime.oop.construct(meta,...)
     local instance = setmetatable({},meta)
 
@@ -187,6 +202,21 @@ function runtime.oop.construct(meta,...)
 
     -- HACK: table:__gc is not supported in LuaJIT 2.0.3
     instance.__gcproxymeta.__gc = function() return instance:__gc() end
+
+    if instance.__parent then
+        instance.super = {}
+        setmetatable(instance.super,{
+            __index = function(_,k)
+                local v = instance.__parent[k]
+
+                if type(v) == "function" then
+                    return runtime.oop.superBind(self,instance.super,v)
+                else
+                    return v
+                end
+            end,
+        })
+    end
 
     instance:__ctor(...)
 

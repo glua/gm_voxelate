@@ -9,7 +9,7 @@ runtime.oop.extend(Router,SharedRouter)
 local bitbuf = runtime.require("../bitbuffer")
 
 function Router:__ctor(voxelate)
-    self.__parent.__ctor(self,voxelate)
+    self.super:__ctor(voxelate)
 
     hook.Add("InitPostEntity","Voxelate.Networking.BeginSyncSequence",function()
         net.Start("gmod_vox_sync")

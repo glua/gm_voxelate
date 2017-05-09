@@ -9,7 +9,7 @@ runtime.oop.extend(Router,SharedRouter)
 local bitbuf = runtime.require("../bitbuffer")
 
 function Router:__ctor(voxelate)
-    self.__parent.__ctor(self,voxelate)
+    self.super:__ctor(voxelate)
 
     self.PUIDs = setmetatable({},{__mode = "v"}) -- {[PUID] = Player}
     self.PUIDsEx = setmetatable({},{__mode = "k"}) -- {[Player] = PUID}
