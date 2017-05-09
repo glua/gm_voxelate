@@ -8,6 +8,7 @@ exports.NetworkPacket = NetworkPacket
 local bitbuf = runtime.require("../bitbuffer")
 
 local StaticPacketBufferMeta = {}
+StaticPacketBufferMeta.__index = StaticPacketBufferMeta
 local _R = debug.getregistry()
 debug.setmetatable(StaticPacketBufferMeta,{__index = _R.sn_bf_write})
 
