@@ -167,6 +167,7 @@ void VoxelWorld::flagAllChunksForUpdate() {
 }
 
 void voxelworld_initialise_networking_static() {
+#ifdef VOXELATE_CLIENT
 	networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA, [&](int peerID, bf_read reader) {
 		int worldID = reader.ReadUBitLong(8);
 
@@ -197,6 +198,7 @@ void voxelworld_initialise_networking_static() {
 			}
 		}
 	});
+#endif
 }
 
 #ifdef VOXELATE_SERVER
