@@ -11,6 +11,8 @@
 #include <functional>
 #include <string>
 
+#define VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA 1
+
 bool network_startup();
 
 void network_shutdown();

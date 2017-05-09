@@ -12,6 +12,9 @@
 
 #include "fastlz.h"
 
+#include "vox_network.h"
+#include <bitbuf.h>
+
 #define STD_VERT_FMT VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2)
 
 #define BUILD_MAX_VERTS 8*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE
@@ -156,6 +159,46 @@ void VoxelWorld::flagAllChunksForUpdate() {
 	for (auto it : chunks_new) {
 		chunks_flagged_for_update.insert(it.second);
 	}
+}
+
+bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
+	auto maxSize = VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 2 * radius * + 24;
+
+	auto data = new(std::nothrow) uint8_t[maxSize];
+
+	bf_write writer;
+
+	writer.StartWriting(data, maxSize);
+
+	if (data == NULL) {
+		return false;
+	}
+
+	// write chunk num
+
+	writer.WriteUBitLong(radius, 8);
+
+	// write origin
+
+	writer.WriteSBitLong(pos[0], 32);
+	writer.WriteSBitLong(pos[1], 32);
+	writer.WriteSBitLong(pos[2], 32);
+
+	for (Coord x = 0; x < radius; x++) {
+		for (Coord y = 0; y < radius; y++) {
+			for (Coord z = 0; z < radius; z++) {
+				char chunkData[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2];
+				int len = getChunkData(x, y, z, chunkData);
+
+				writer.WriteUBitLong(len, 16);
+				writer.WriteBytes(chunkData, len);
+			}
+		}
+	}
+
+	writer.WriteOneBit(0); // null terminate for good measure
+
+	networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA, data, writer.GetNumBytesWritten());
 }
 
 // Updates up to n chunks

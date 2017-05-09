@@ -123,6 +123,8 @@ public:
 
 	void flagAllChunksForUpdate();
 
+	bool sendChunksAround(int peerID, XYZCoordinate pos, int radius = 10);
+
 	void doUpdates(int count, CBaseEntity* ent);
 	void enableUpdates(bool enable);
 
