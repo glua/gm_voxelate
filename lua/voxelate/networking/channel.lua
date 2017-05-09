@@ -16,6 +16,10 @@ function NetworkChannel:BindToRouter(router)
 
     self.router:RegisterChannelID(self.channelName,self.channelID)
 
+    self.router:Listen(self.channelName,function(...)
+        return self:OnDataInternal(...)
+    end)
+
     return self
 end
 
