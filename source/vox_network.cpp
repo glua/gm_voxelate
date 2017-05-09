@@ -478,9 +478,9 @@ namespace networking {
 	}
 
 #ifdef VOXELATE_SERVER
-	bool channelSend(int peerID,uint16_t channelID, std::string dataStr, bool unreliable = false) {
+	bool channelSend(int peerID,uint16_t channelID, std::string dataStr, bool unreliable) {
 #else
-	bool channelSend(uint16_t channelID, std::string dataStr, bool unreliable = false) {
+	bool channelSend(uint16_t channelID, std::string dataStr, bool unreliable) {
 #endif
 		bf_write writer;
 

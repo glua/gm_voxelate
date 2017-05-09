@@ -18,7 +18,11 @@ void network_shutdown();
 void setupLuaNetworking(lua_State* state);
 
 namespace networking {
-	void channelSend(uint16_t channelID, std::string data);
+#ifdef VOXELATE_SERVER
+	bool channelSend(int peerID, uint16_t channelID, std::string dataStr, bool unreliable = false);
+#else
+	bool channelSend(uint16_t channelID, std::string dataStr, bool unreliable = false);
+#endif
 	void channelListen(uint16_t channelID, std::function<void(int peerID,std::string data)> callback);
 };
 
