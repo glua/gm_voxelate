@@ -5,6 +5,7 @@ local serialization = runtime.require("../serialization")
 local NetworkingChannel = runtime.require("../networking/channel").NetworkingChannel
 
 local VoxelWorldInitChannel = runtime.oop.create("VoxelWorldInitChannel")
+exports.VoxelWorldInitChannel = VoxelWorldInitChannel
 runtime.oop.extend(VoxelWorldInitChannel,NetworkingChannel)
 
 local P = {
