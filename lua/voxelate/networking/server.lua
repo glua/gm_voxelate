@@ -33,12 +33,18 @@ function Router:__ctor(voxelate)
 
     hook.Add("VoxNetworkDisconnect","Voxelate.Networking",function(peerID)
         self.PeerAddress[peerID] = nil
-        local PUID = self.PUIDs[peerID]
-        self.PUIDs[peerID] = nil
-        self.PUIDsEx[PUID] = nil
+
+        local PUID = self.PUIDsEx[ply]
+
+        if PUID then
+            self.PUIDs[PUID] = nil
+        end
+
         local ply = self.PeerIDs[peerID]
         self.PeerIDs[peerID] = nil
+
         if ply then
+            self.PUIDsEx[ply] = nil
             self.PeerIDsEx[ply] = nil
             self.voxelate.io:PrintDebug("An ENet Peer [%d] has disconnected (%s [%s])",peerID,ply:Nick(),ply:SteamID())
         else
@@ -75,14 +81,16 @@ function Router:__ctor(voxelate)
 
                     self.voxelate.networkResetPeer(peerID)
 
-                    local PUID = self.PUIDs[peerID]
+                    local PUID = self.PUIDsEx[ply]
 
                     self.PeerAddress[peerID] = nil
                     self.PeerIDs[peerID] = nil
                     self.PeerIDsEx[ply] = nil
                     self.PeerAddress[peerID] = nil
-                    self.PUIDs[peerID] = nil
-                    self.PUIDsEx[PUID] = nil
+                    self.PUIDsEx[peerID] = nil
+                    if PUID then
+                        self.PUIDs[PUID] = nil
+                    end
                 end
             end)
         end
