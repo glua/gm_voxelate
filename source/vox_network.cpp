@@ -27,6 +27,11 @@ ENetPeer* peer;
 std::thread* eventLoopThread;
 void networkEventLoop();
 
+struct PeerData {
+	int peerID;
+	std::string steamID;
+};
+
 #include "GarrysMod\LuaHelpers.hpp"
 
 bool network_startup() {
@@ -199,6 +204,13 @@ int lua_network_connect(lua_State* state) {
 	if (enet_host_service(client, &event, 15000) > 0 &&
 		event.type == ENET_EVENT_TYPE_CONNECT) {
 
+		auto peerData = new PeerData();
+
+		peerData->steamID = "STEAM:0:0";
+		peerData->peerID = 0;
+
+		peer->data = peerData;
+
 		eventLoopThread = new std::thread(networkEventLoop);
 
 		eventLoopThread->detach();
@@ -235,11 +247,6 @@ void networkEventLoop() {
 		}
 	}
 }
-
-struct PeerData {
-	int peerID;
-	std::string steamID;
-};
 
 #ifdef VOXELATE_SERVER
 int lua_network_disconnectPeer(lua_State* state) {
@@ -345,6 +352,7 @@ int lua_network_pollForEvents(lua_State* state) {
 			peerData->steamID = "STEAM:0:0";
 			peerData->peerID = nextPeerID;
 #else
+			// SHOULD NEVER BE CALLED CLIENTSIDE?!?!?!
 			peerData->steamID = "STEAM:0:0";
 			peerData->peerID = 0;
 #endif
