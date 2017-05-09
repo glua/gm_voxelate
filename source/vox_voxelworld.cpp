@@ -1,4 +1,4 @@
-#include "vox_VoxelWorld.h"
+#include "vox_voxelworld.h"
 
 #include "vox_engine.h"
 
