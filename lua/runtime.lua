@@ -244,7 +244,7 @@ function runtime.oop.create(name,secure)
     end
 
     function meta:__tostring()
-        return string.format("%s%d",self.__name,self.__uuid)
+        return string.format("%s [%d]",self.__name,self.__uuid)
     end
 
     -- meta.__index = function(self,k)
