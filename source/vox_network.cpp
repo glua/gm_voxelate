@@ -340,7 +340,7 @@ int lua_network_setPeerSteamID(lua_State* state) {
 }
 #endif
 
-std::unordered_map<int, std::function<void(int peerID, std::string data)>> cppChannelCallbacks;
+std::unordered_map<int, std::function<void(int peerID, void* data, int size)>> cppChannelCallbacks;
 
 int lua_network_pollForEvents(lua_State* state) {
 	eventMutex.lock();
@@ -397,7 +397,7 @@ int lua_network_pollForEvents(lua_State* state) {
 					int channelID = reader.ReadUBitLong(16);
 					
 					if (cppChannelCallbacks[channelID]) {
-						cppChannelCallbacks[channelID](peerData->peerID, data);
+						cppChannelCallbacks[channelID](peerData->peerID, event->packet->data, event->packet->dataLength);
 					}
 				}
 
@@ -473,28 +473,21 @@ void setupLuaNetworking(lua_State* state) {
 }
 
 namespace networking {
-	void channelListen(uint16_t channelID, std::function<void(int peerID, std::string data)> callback) {
+	void channelListen(uint16_t channelID, std::function<void(int peerID, void* data, int size)> callback) {
 		cppChannelCallbacks[channelID] = callback;
 	}
 
 #ifdef VOXELATE_SERVER
-	bool channelSend(int peerID,uint16_t channelID, std::string dataStr, bool unreliable) {
+	bool channelSend(int peerID,uint16_t channelID, void* data, int size, bool unreliable) {
 #else
-	bool channelSend(uint16_t channelID, std::string dataStr, bool unreliable) {
+	bool channelSend(uint16_t channelID, void* data, int size, bool unreliable) {
 #endif
 		bf_write writer;
 
-		auto size = dataStr.size() + 2;
-		auto data = new(std::nothrow) uint8_t[size];
-
-		if (data == NULL) {
-			return false;
-		}
-
-		writer.StartWriting(data, size);
+		writer.StartWriting(data, size + 2);
 
 		writer.WriteUBitLong(channelID, 16);
-		writer.WriteBytes(dataStr.c_str(), dataStr.size());
+		writer.WriteBytes(data, size);
 
 #ifdef VOXELATE_SERVER
 		auto it = peers.find(peerID);
