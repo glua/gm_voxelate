@@ -236,11 +236,11 @@ function runtime.oop.create(name,secure)
             self:__dtor()
         end
     end
-    function meta:__ctor()
-        if self.super and self.super.__ctor then return self.super:__ctor() end
+    function meta:__ctor(...)
+        if self.__parent and self.__parent.__ctor then return self.__parent.__ctor(self,...) end
     end
-    function meta:__dtor()
-        if self.super and self.super.__ctor then return self.super:__dtor() end
+    function meta:__dtor(...)
+        if self.__parent and self.__parent.__dtor then return self.__parent.__dtor(self,...) end
     end
 
     function meta:__tostring()
