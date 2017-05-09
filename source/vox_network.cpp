@@ -65,13 +65,42 @@ bool network_startup() {
 bool terminated = false;
 
 void network_shutdown() {
+	terminated = true;
+
 #ifdef VOXELATE_SERVER
 	enet_host_destroy(server);
 #else
+	enet_peer_disconnect(peer, 0);
+
+	bool disconnected = false;
+
+	ENetEvent event;
+
+	while (enet_host_service(client, &event, 3000) > 0) {
+		switch (event.type) {
+		case ENET_EVENT_TYPE_RECEIVE:
+			enet_packet_destroy(event.packet);
+
+			break;
+		case ENET_EVENT_TYPE_DISCONNECT:
+			Msg("Successfully disconnected from ENet.\n");
+			disconnected = true;
+
+			break;
+		}
+
+		if (disconnected) {
+			break;
+		}
+	}
+
+	if (!disconnected) {
+		Msg("Forcefully disconnected from ENet...\n");
+		enet_peer_reset(peer);
+	}
+
 	enet_host_destroy(client);
 #endif
-
-	terminated = true;
 
 	enet_deinitialize();
 }
@@ -213,6 +242,59 @@ struct PeerData {
 };
 
 #ifdef VOXELATE_SERVER
+int lua_network_disconnectPeer(lua_State* state) {
+	unsigned int peerID = luaL_checkinteger(state, 1);
+
+	if (peerID >= peers.size()) {
+		lua_pushstring(state, "bad peer ID");
+		lua_error(state);
+		return 0;
+	}
+
+	ENetPeer* peer = peers.at(peerID);
+
+	if (peer == NULL) {
+		lua_pushstring(state, "can't find peer");
+		lua_error(state);
+		return 0;
+	}
+
+	enet_peer_disconnect(peer, 0);
+
+	return 0;
+}
+
+int lua_network_resetPeer(lua_State* state) {
+	unsigned int peerID = luaL_checkinteger(state, 1);
+
+	if (peerID >= peers.size()) {
+		lua_pushstring(state, "bad peer ID");
+		lua_error(state);
+		return 0;
+	}
+
+	ENetPeer* peer = peers.at(peerID);
+
+	if (peer == NULL) {
+		lua_pushstring(state, "can't find peer");
+		lua_error(state);
+		return 0;
+	}
+
+	enet_peer_reset(peer);
+
+	for (auto it = peers.cbegin(); it != peers.cend(); ) {
+		if (peer == it->second) {
+			peers.erase(it++);
+		}
+		else {
+			++it;
+		}
+	}
+
+	return 0;
+}
+
 int lua_network_getPeerSteamID(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
@@ -351,6 +433,12 @@ void setupLuaNetworking(lua_State* state) {
 	lua_setfield(state, -2, "networkPoll");
 
 #ifdef VOXELATE_SERVER
+	lua_pushcfunction(state, lua_network_disconnectPeer);
+	lua_setfield(state, -2, "networkDisconnectPeer");
+
+	lua_pushcfunction(state, lua_network_resetPeer);
+	lua_setfield(state, -2, "networkResetPeer");
+
 	lua_pushcfunction(state, lua_network_setPeerSteamID);
 	lua_setfield(state, -2, "networkSetPeerSteamID");
 

@@ -33,6 +33,9 @@ function Router:__ctor(voxelate)
 
     hook.Add("VoxNetworkDisconnect","Voxelate.Networking",function(peerID)
         self.PeerAddress[peerID] = nil
+        local PUID = self.PUIDs[peerID]
+        self.PUIDs[peerID] = nil
+        self.PUIDsEx[PUID] = nil
         local ply = self.PeerIDs[peerID]
         self.PeerIDs[peerID] = nil
         if ply then
@@ -45,6 +48,44 @@ function Router:__ctor(voxelate)
 
     hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,data,channelID)
         self:IncomingPacket(peerID,data,channelID)
+    end)
+
+    gameevent.Listen("player_disconnect")
+    hook.Add("player_disconnect","Voxelate.ManualPlayerDisconnect",function(data)
+        local name = data.name
+        local steamID = data.networkid
+        -- local id = data.userid
+        local bot = data.bot
+        -- local reason = data.reason
+
+        if bot then return end
+
+        local ply = player.GetBySteamID(steamID)
+
+        local peerID = self.PeerIDsEx[ply]
+
+        if peerID then
+            self.voxelate.io:PrintDebug("Disconnecting %s [%s] from ENet...",name,steamID)
+
+            self.voxelate.networkDisconnectPeer(peerID)
+
+            timer.Simple(5,function()
+                if self.PeerIDs[peerID] then
+                    self.voxelate.io:PrintDebug("Forcefully disconnecting %s [%s] from ENet...",name,steamID)
+
+                    self.voxelate.networkResetPeer(peerID)
+
+                    local PUID = self.PUIDs[peerID]
+
+                    self.PeerAddress[peerID] = nil
+                    self.PeerIDs[peerID] = nil
+                    self.PeerIDsEx[ply] = nil
+                    self.PeerAddress[peerID] = nil
+                    self.PUIDs[peerID] = nil
+                    self.PUIDsEx[PUID] = nil
+                end
+            end)
+        end
     end)
 
     util.AddNetworkString("gmod_vox_sync")
