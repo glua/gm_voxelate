@@ -127,7 +127,10 @@ public:
 
 	void flagAllChunksForUpdate();
 
+
+#ifdef VOXELATE_SERVER
 	bool sendChunksAround(int peerID, XYZCoordinate pos, int radius = 10);
+#endif
 
 	void doUpdates(int count, CBaseEntity* ent);
 	void enableUpdates(bool enable);
