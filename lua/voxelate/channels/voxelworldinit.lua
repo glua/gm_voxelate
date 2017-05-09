@@ -71,7 +71,7 @@ function VoxelWorldInitChannel:OnIncomingPacket(packet)
             self:SendVoxelWorldConfig(packet:GetPeer(),worldID)
         end
     else
-        if packet:ReadUInt(8) == P.VOXELATE_WORLD_CONFIG then
+        if requestID == P.VOXELATE_WORLD_CONFIG then
             self:SendVoxelWorldConfig(worldID,buffer)
         end
     end
