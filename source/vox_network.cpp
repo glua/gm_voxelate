@@ -156,7 +156,7 @@ int lua_network_sendpacket(lua_State* state) {
 #ifdef VOXELATE_SERVER
 	unsigned int peerID = luaL_checkinteger(state, 4);
 
-	if (peerID >= peers.size()) {
+	if (peerID > peers.size()) {
 		lua_pushstring(state, "bad peer ID");
 		lua_error(state);
 		return 0;
@@ -249,7 +249,7 @@ struct PeerData {
 int lua_network_disconnectPeer(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	if (peerID >= peers.size()) {
+	if (peerID > peers.size()) {
 		lua_pushstring(state, "bad peer ID");
 		lua_error(state);
 		return 0;
@@ -271,7 +271,7 @@ int lua_network_disconnectPeer(lua_State* state) {
 int lua_network_resetPeer(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	if (peerID >= peers.size()) {
+	if (peerID > peers.size()) {
 		lua_pushstring(state, "bad peer ID");
 		lua_error(state);
 		return 0;
@@ -302,7 +302,7 @@ int lua_network_resetPeer(lua_State* state) {
 int lua_network_getPeerSteamID(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	if (peerID >= peers.size()) {
+	if (peerID > peers.size()) {
 		lua_pushstring(state, "bad peer ID");
 		lua_error(state);
 		return 0;
@@ -326,7 +326,7 @@ int lua_network_getPeerSteamID(lua_State* state) {
 int lua_network_setPeerSteamID(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	if (peerID >= peers.size()) {
+	if (peerID > peers.size()) {
 		lua_pushstring(state, "bad peer ID");
 		lua_error(state);
 		return 0;
