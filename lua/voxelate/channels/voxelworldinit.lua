@@ -48,7 +48,7 @@ function VoxelWorldInitChannel:SendVoxelWorldConfig(peerID,worldID)
 end
 
 function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)
-    assert(CLIENT,"serverside only")
+    assert(CLIENT,"clientside only")
 
     self.voxelate.io:PrintDebug("Receiving voxel config for %d...",worldID)
 
