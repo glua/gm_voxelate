@@ -17,7 +17,7 @@ function Router:__ctor(voxelate)
     end)
 
     hook.Add("VoxNetworkDisconnect","Voxelate.Networking",function()
-        self.voxelate.io:PrintDebug("We have disconnected from the server...",peerID,ply:Nick(),ply:SteamID())
+        self.voxelate.io:PrintDebug("We have disconnected from the server...")
     end)
 
     hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,data,channelID)
