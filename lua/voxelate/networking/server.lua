@@ -97,6 +97,7 @@ function Router:IncomingPacket(peerID,data,internalChannelID)
 end
 
 function Router:SendInChannel(channelName,payloadData,peerID,unreliable)
+    assert(type(peerID) == "number","Peer ID must be a number")
     assert(self.channelsEx[channelName],"Unknown channel: "..channelName)
 
     local buf = bitbuf.Writer(#payloadData + 2)
@@ -108,4 +109,20 @@ function Router:SendInChannel(channelName,payloadData,peerID,unreliable)
     local data = buf:GetString()
 
     self.voxelate.module.networkSendPacket(data,#data,unreliable,peerID)
+end
+
+function Router:BroadcastInChannel(channelName,payloadData,unreliable)
+    assert(self.channelsEx[channelName],"Unknown channel: "..channelName)
+
+    local buf = bitbuf.Writer(#payloadData + 2)
+    local payload = UCHARPTR_FromString(payloadData,#payloadData)
+
+    buf:WriteUInt(self.channelsEx[channelName],16)
+    buf:WriteBytes(payload,#payloadData)
+
+    local data = buf:GetString()
+
+    for peerID,_ in pairs(self.PeerIDs) do
+        self.voxelate.module.networkSendPacket(data,#data,unreliable,peerID)
+    end
 end

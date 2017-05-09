@@ -31,6 +31,8 @@ function Router:GeneratePUID()
 end
 
 function Router:RegisterChannelID(channelName,channelID)
+    assert(self.channels[channelID],"Channel ID "..channelID.." is already being used by "..self.channels[channelID])
+
     self.channels[channelID] = channelName
     self.channelsEx[channelName] = channelID
 end

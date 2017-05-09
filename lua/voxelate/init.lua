@@ -14,6 +14,8 @@ exports.module = module
 function Voxelate:__ctor()
     self.module = module
 
+    self.voxelWorldConfigs = {}
+
     if CLIENT then
         self.io = IO:__new("Voxelate.CL",{r=255,g=255,b=0},{r=155,g=155,b=255})
 
@@ -23,6 +25,10 @@ function Voxelate:__ctor()
 
         self.router = ServerRouter:__new(self)
     end
+end
+
+function Voxelate:AddVoxelWorld(index,config)
+    self.voxelWorldConfigs[index] = config
 end
 
 exports.Voxelate = Voxelate:__new()

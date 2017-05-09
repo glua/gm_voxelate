@@ -426,6 +426,19 @@ LUA_FUNCTION_STATIC(GetString)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(GetWrittenString)
+{
+	bf_write *buf = Get(LUA, 1);
+
+	int size = ceil(buf->GetNumBitsWritten() / 8);
+
+	std::string out(reinterpret_cast<char*>(buf->GetData()), size);
+
+	LUA->PushString(out.c_str(), size);
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(Constructor)
 {
 	int32_t bits = 0;
@@ -555,6 +568,9 @@ void Initialize( GarrysMod::Lua::ILuaBase *LUA )
 
 		LUA->PushCFunction(GetString);
 		LUA->SetField(-2, "GetString");
+
+		LUA->PushCFunction(GetWrittenString);
+		LUA->SetField(-2, "GetWrittenString");
 
 	LUA->Pop( 1 );
 
