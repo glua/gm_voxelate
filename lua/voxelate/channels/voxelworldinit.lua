@@ -1,0 +1,71 @@
+local runtime,exports = ...
+
+local serialization = runtime.require("../serialization")
+
+local NetworkingChannel = runtime.require("../networking/channel").NetworkingChannel
+
+local VoxelWorldInitChannel = runtime.oop.create("VoxelWorldInitChannel")
+runtime.oop.extend(VoxelWorldInitChannel,NetworkingChannel)
+
+local P = {
+    VOXELATE_WORLD_CONFIG
+}
+
+function VoxelWorldInitChannel:RequestVoxelWorldConfig(worldID)
+    assert(CLIENT,"clientside only")
+
+    local packet = self:NewPacket()
+
+    local buffer = packet:GetBuffer()
+
+    buffer:WriteUInt(worldID,8)
+    buffer:WriteUInt(P.VOXELATE_WORLD_CONFIG,8)
+
+    return buffer:Send()
+end
+
+function VoxelWorldInitChannel:SendVoxelWorldConfig(peerID,worldID)
+    assert(SERVER,"serverside only")
+
+    local packet = self:NewPacket()
+    packet:SetPeer(peerID)
+
+    local buffer = packet:GetBuffer()
+
+    local config = self.voxelate:GetWorldConfig(worldID) or {}
+
+    buffer:WriteUInt(worldID,8)
+    buffer:WriteUInt(P.VOXELATE_WORLD_CONFIG,8)
+
+    buffer:WriteString(serialization.serialize(config))
+
+    return buffer:Send()
+end
+
+function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)
+    assert(CLIENT,"serverside only")
+
+    local config = serialization.deserialize(buffer:ReadString())
+
+    self.voxelate:SetWorldConfig(worldID,config)
+
+    return buffer:Send()
+end
+
+function VoxelWorldInitChannel:OnIncomingPacket(packet)
+    local buffer = packet:GetBuffer()
+
+    local worldID = buffer:ReadUInt(8)
+    local requestID = buffer:ReadUInt(8)
+
+    if SERVER then
+        if requestID == P.VOXELATE_WORLD_CONFIG then
+            -- time to send world config
+            self:SendVoxelWorldConfig(packet:GetPeer(),worldID)
+        end
+    else
+        if packet:ReadUInt(8) == P.VOXELATE_WORLD_CONFIG then
+            self:SendVoxelWorldConfig(worldID,buffer)
+        end
+    end
+end

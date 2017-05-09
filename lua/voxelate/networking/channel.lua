@@ -12,6 +12,7 @@ end
 
 function NetworkChannel:BindToRouter(router)
     self.router = router
+    self.voxelate = self.router.voxelate
 
     self.router:RegisterChannelID(self.channelName,self.channelID)
 

@@ -19,17 +19,17 @@ function ENT:Initialize()
 
 		config._ent = self
 
-        self:AddVoxelWorld(index,config)
+        self:AddVoxelWorld(index,self,config)
 
 		gm_voxelate.module.voxInit(index,config)
 		gm_voxelate.module.voxEnableMeshGeneration(index,true)
 	else
 		local index = self:GetInternalIndex()
 
+        self:AddVoxelWorld(index,self)
+
 		gm_voxelate.module.voxNew(index)
 
-		net.Start("voxelate_req")
-		net.WriteUInt(index,16)
-		net.SendToServer()
+		gm_voxelate.channels.voxelWorldInit:RequestVoxelWorldConfig(index)
 	end
 end
