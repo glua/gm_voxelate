@@ -177,7 +177,7 @@ end
 
 function runtime.oop.superBind(origSelf,inputSelf,fn)
     return setmetatable({},{
-        __call = function(self,...)
+        __call = function(_,self,...)
             if self == inputSelf then
                 self = origSelf
             end
@@ -206,11 +206,11 @@ function runtime.oop.construct(meta,...)
     if instance.__parent then
         instance.super = {}
         setmetatable(instance.super,{
-            __index = function(_,k)
+            __index = function(self,k)
                 local v = instance.__parent[k]
 
                 if type(v) == "function" then
-                    return runtime.oop.superBind(instance,instance.super,v)
+                    return runtime.oop.superBind(instance,self,v)
                 else
                     return v
                 end
