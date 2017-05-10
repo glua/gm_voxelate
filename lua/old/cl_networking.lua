@@ -10,12 +10,16 @@ end)
 net.Receive("voxelate_init_chunks",function(len)
     local index = net.ReadUInt(16)
     while true do
-        local chunk_n = net.ReadUInt(16)
-        if chunk_n==65535 then break end
+        local chunk_x = net.ReadUInt(16)
+        if chunk_x==65535 then break end
+
+		local chunk_y = net.ReadUInt(16)
+		local chunk_z = net.ReadUInt(16)
 
         local data_len = net.ReadUInt(16)
+
         local data = net.ReadData(data_len)
-        IMPORTS.voxInitChunk(index,chunk_n,data)
+        IMPORTS.voxInitChunk(index, chunk_x, chunk_y, chunk_z, data)
     end
 end)
 
