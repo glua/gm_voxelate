@@ -63,6 +63,9 @@ void deleteAllIndexedVoxels() {
 }
 
 Voxels::~Voxels() {
+	for (auto it : chunks_map) {
+		delete it.second;
+	}
 
 	if (config)
 		delete config;
@@ -70,36 +73,55 @@ Voxels::~Voxels() {
 
 // Sets up a brand new chunk with no datas.
 VoxelChunk* Voxels::initChunk(Coord x, Coord y, Coord z) {
-	auto iter = chunks_new.find({ x, y, z });
+	auto iter = chunks_map.find({ x, y, z });
 
-	if (iter != chunks_new.end())
-		return &(iter->second);
+	if (iter != chunks_map.end())
+		return iter->second;
 
-	chunks_new.insert({ { x, y, z }, VoxelChunk(this, x, y, z) });
+	VoxelChunk* chunk = new VoxelChunk(this, x, y, z);
 
-	return &chunks_new.at({x ,y , z});
+	chunks_map.insert({ { x, y, z }, chunk });
+
+	chunks_flagged_for_update.insert(chunk);
+
+	// TODO UPDATE FLAGGING
+	// ALSO FLAG NEIGHBORS (BUT ONLY THE THREE THAT SHARE FACES WITH US... (SHIT'S COMPLICATED!))
+	/*if (y == 0) {
+	VoxelChunk* c = system->getChunk(posX, posY - 1, posZ);
+	if (c)
+	system->chunks_flagged_for_update.insert(c);
+	}
+
+	if (z == 0) {
+	VoxelChunk* c = system->getChunk(posX, posY, posZ - 1);
+	if (c)
+	system->chunks_flagged_for_update.insert(c);*/
+
+	//chunks_flagged_for_update.insert(chunks_new[{x, y, z}]);
+
+	return chunk;
 }
 
 // Gets a pointer to a chunk. Returs nullptr if it doesn't exist.
 VoxelChunk* Voxels::getChunk(Coord x, Coord y, Coord z) {
-	auto iter = chunks_new.find({ x, y, z });
+	auto iter = chunks_map.find({ x, y, z });
 
-	if (iter == chunks_new.end())
+	if (iter == chunks_map.end())
 		return nullptr;
 
-	return &(iter->second);
+	return iter->second;
 }
 
 // Fills a buffer at out with COMPRESSED chunk data, returns size.
 // FIXME output buffer must be at least 5% larger than input!
 // Need 8602? Just use a 9000 byte buffer?
 const int Voxels::getChunkData(Coord x, Coord y, Coord z,char* out) {
-	auto iter = chunks_new.find({ x, y, z });
+	auto iter = chunks_map.find({ x, y, z });
 
-	if (iter == chunks_new.end())
+	if (iter == chunks_map.end())
 		return 0;
 
-	const char* input = reinterpret_cast<const char*>(iter->second.voxel_data);
+	const char* input = reinterpret_cast<const char*>(iter->second->voxel_data);
 
 	return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
 }
@@ -115,10 +137,7 @@ void Voxels::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed
 	VoxelChunk* chunk = initChunk(x, y, z);
 
 	fastlz_decompress(data_compressed, data_len, chunk->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
-	
-	// TODO UPDATE FLAGGING
-	// ALSO FLAG NEIGHBORS (BUT ONLY THE THREE THAT SHARE FACES WITH US... (SHIT'S COMPLICATED!))
-	//chunks_flagged_for_update.insert(chunks_new[{x, y, z}]);
+
 }
 
 void Voxels::initialize(VoxelConfig* config) {
@@ -172,6 +191,17 @@ void Voxels::getCellExtents(int& x, int &y, int &z) {
 	x = config->dims_x;
 	y = config->dims_y;
 	z = config->dims_z;
+}
+
+
+std::vector<Vector> Voxels::getAllChunkPositions() {
+	std::vector<Vector> positions;
+
+	for (auto pair : chunks_map) {
+		positions.push_back( Vector(pair.first[0], pair.first[1], pair.first[2]) );
+	}
+
+	return positions;
 }
 
 // Get real upset and flag every single chunk we know about for an update
@@ -620,8 +650,8 @@ void Voxels::draw() {
 	pRenderContext->DisableAllLocalLights();
 
 	// TODO: only draw nearby chunks
-	for (auto pair : chunks_new) {
-		pair.second.draw(pRenderContext);
+	for (auto pair : chunks_map) {
+		pair.second->draw(pRenderContext);
 	}
 }
 

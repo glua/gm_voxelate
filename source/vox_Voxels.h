@@ -125,6 +125,8 @@ public:
 	Vector getExtents();
 	void getCellExtents(Coord& x, Coord &y, Coord &z);
 
+	std::vector<Vector> getAllChunkPositions();
+
 	//void flagAllChunksForUpdate();
 
 	void doUpdates(int count, CBaseEntity* ent);
@@ -143,7 +145,7 @@ public:
 private:
 	bool initialised = false;
 
-	std::unordered_map<XYZCoordinate, VoxelChunk> chunks_new; // ok zerf lmao
+	std::unordered_map<XYZCoordinate, VoxelChunk*> chunks_map; // ok zerf lmao
 	std::set<VoxelChunk*> chunks_flagged_for_update;
 
 	bool updates_enabled = false;

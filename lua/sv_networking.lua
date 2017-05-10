@@ -30,25 +30,31 @@ end)
 hook.Add("Tick","voxelate_stream_tick",function()
     for ply,tasks in pairs(INIT_TASKS) do
         local to_delete = {}
-        for index,step in pairs(tasks) do
+        for index,chunks_left in pairs(tasks) do
             local size_limit = 2000
             local size_written = 0
             net.Start("voxelate_init_chunks")
             net.WriteUInt(index,16)
             while size_written<size_limit do
-                local data = IMPORTS.voxData(index,step) -- THIS IS VERY BROKEN
-                if isbool(data) then to_delete[index]=data break end
+				local cpos = table.remove(chunks_left)
 
-                net.WriteUInt(step,16)
+                local data = IMPORTS.voxData(index,cpos.x,cpos.y,cpos.z) -- THIS IS VERY BROKEN
+                if data == nil then to_delete[index]=false break end
+
+                net.WriteUInt(cpos.x,16)
+                net.WriteUInt(cpos.y,16)
+                net.WriteUInt(cpos.z,16)
                 net.WriteUInt(#data,16)
                 net.WriteData(data,#data)
 
                 size_written = size_written + #data
-                step = step+1
+                if #chunks_left == 0 then
+					to_delete[index]=true
+					break
+				end
             end
             net.WriteUInt(65535,16)
             net.Send(ply)
-            tasks[index] = step
         end
         for index,success in pairs(to_delete) do
             tasks[index]=nil
@@ -75,17 +81,19 @@ net.Receive("voxelate_req",function(len,ply)
         net.WriteTable(CONFIGS[index])
         net.Send(ply)
 
-        INIT_TASKS[ply][index]=0
+        INIT_TASKS[ply][index]=IMPORTS.voxGetAllChunks(index)
     end
 end)
 
 function IMPORTS.voxReInit(index)
+	print("CALLED RE-INIT, FIXME")
+
     local plys = {}
     for ply,tasks in pairs(INIT_TASKS) do
-        if tasks[index] then tasks[index]=0 table.insert(plys,ply) end
+        if tasks[index] then tasks[index]= IMPORTS.voxGetAllChunks(index) table.insert(plys,ply) end
     end
     for ply,tasks in pairs(COMPLETED_TASKS) do
-        if tasks[index] then tasks[index]=nil INIT_TASKS[ply][index]=0 table.insert(plys,ply) end
+        if tasks[index] then tasks[index]=nil INIT_TASKS[ply][index]= IMPORTS.voxGetAllChunks(index) table.insert(plys,ply) end
     end
 
     net.Start("voxelate_init_restart")

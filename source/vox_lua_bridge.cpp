@@ -238,8 +238,7 @@ int luaf_voxData(lua_State* state) {
 	Voxels* v = getIndexedVoxels(index);
 	
 	if (v == nullptr) {
-		LUA->PushBool(false);
-		return 1;
+		return 0;
 	}
 
 	int x = LUA->GetNumber(2);
@@ -250,11 +249,33 @@ int luaf_voxData(lua_State* state) {
 
 	int out_len = v->getChunkData(x, y, z, data);
 	if (out_len == 0) {
-		LUA->PushBool(true);
-		return 1;
+		return 0;
 	}
 
 	LUA->PushString(data,out_len);
+	return 1;
+}
+
+// TEMP?
+int luaf_getAllChunks(lua_State* state) {
+	int index = LUA->GetNumber(1);
+
+	Voxels* v = getIndexedVoxels(index);
+
+	if (v == nullptr) {
+		return 0;
+	}
+
+	auto chunk_positions = v->getAllChunkPositions();
+	LUA->CreateTable();
+	int i = 1;
+	for (auto v : chunk_positions) {
+		LUA->PushNumber(i);
+		elua_pushVector(state, v);
+		LUA->SetTable(-3);
+		i++;
+	}
+
 	return 1;
 }
 
@@ -266,7 +287,7 @@ int luaf_voxInitChunk(lua_State* state) {
 	if (v != nullptr) {
 		unsigned int len;
 		const char* data = LUA->GetString(5, &len);
-		
+
 		v->setChunkData(LUA->GetNumber(2), LUA->GetNumber(3), LUA->GetNumber(4), data, len);
 	}
 	return 0;
@@ -289,6 +310,7 @@ int luaf_voxFlagAllChunksForUpdate(lua_State* state) {
 
 	Voxels* v = getIndexedVoxels(index);
 	if (v) {
+		vox_print("TRIED TO FLAG ALL CHUNKS!");
 		// BROKEN
 		//v->flagAllChunksForUpdate();
 	}
@@ -473,6 +495,9 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushCFunction(luaf_voxInitChunk);
 	LUA->SetField(-2, "voxInitChunk");
+
+	LUA->PushCFunction(luaf_getAllChunks);
+	LUA->SetField(-2, "voxGetAllChunks");
 
 	LUA->PushCFunction(luaf_voxEnableMeshGeneration);
 	LUA->SetField(-2, "voxEnableMeshGeneration");
