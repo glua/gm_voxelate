@@ -264,7 +264,7 @@ int luaf_voxData(lua_State* state) {
 int luaf_getAllChunks(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
-	Voxels* v = getIndexedVoxels(index);
+	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v == nullptr) {
 		return 0;

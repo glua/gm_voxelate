@@ -79,13 +79,13 @@ VoxelWorld::~VoxelWorld() {
 	}
 
 	// Don't think this is needed but W/E
-	chunks_new.clear();
+	chunks_map.clear();
 
 	if (config)
 		delete config;
 }
 
-VoxelChunk* VoxelWorld::addChunk(Coord x, Coord y, Coord z) {
+VoxelChunk* VoxelWorld::initChunk(Coord x, Coord y, Coord z) {
 	auto iter = chunks_map.find({ x, y, z });
 
 	if (iter != chunks_map.end())
@@ -725,7 +725,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 // Render every single chunk.
 // TODO for huge worlds, only render close chunks
 void VoxelWorld::draw() {
-	IMaterial* atlasMat = config->cl_atlasMaterial;
+	IMaterial* atlasMat = config->atlasMaterial;
 	if (!isInitialized())
 		return;
 
