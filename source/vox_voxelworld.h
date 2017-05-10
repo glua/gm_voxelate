@@ -129,7 +129,7 @@ public:
 
 
 #ifdef VOXELATE_SERVER
-	bool sendChunksAround(int peerID, XYZCoordinate pos, int radius = 10);
+	bool sendChunksAround(int peerID, XYZCoordinate pos, Coord radius = 10);
 #endif
 
 	void doUpdates(int count, CBaseEntity* ent);
