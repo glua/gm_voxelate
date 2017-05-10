@@ -303,7 +303,7 @@ bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 
 	writer.WriteOneBit(0); // null terminate for good measure
 
-	networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA, data, writer.GetNumBytesWritten());
+	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA, data, writer.GetNumBytesWritten());
 }
 #endif
 
