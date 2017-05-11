@@ -725,9 +725,10 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 // Render every single chunk.
 // TODO for huge worlds, only render close chunks
 void VoxelWorld::draw() {
-	IMaterial* atlasMat = config->atlasMaterial;
 	if (!isInitialized())
 		return;
+
+	IMaterial* atlasMat = config->atlasMaterial;
 
 	CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 

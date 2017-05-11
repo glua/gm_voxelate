@@ -39,6 +39,7 @@ function Voxelate:AddChannel(class,name,id)
     self.channels[name]:BindToRouter(self.router)
 end
 
+-- i dont think this is really necessary but w/e
 function Voxelate:AddVoxelWorld(index,ent,config)
     self.voxelWorldEnts[index] = ent
     self.voxelWorldConfigs[index] = config
@@ -48,8 +49,12 @@ function Voxelate:GetWorldConfig(index)
     return self.voxelWorldConfigs[index]
 end
 
+-- warning - this might get called without a valid ent in the future - is this an issue?
 function Voxelate:SetWorldConfig(index,config)
     self.voxelWorldConfigs[index] = config
+
+	gm_voxelate.module.voxInit(index,config)
+	gm_voxelate.module.voxEnableMeshGeneration(index,true)
 end
 
 exports.Voxelate = Voxelate:__new()
