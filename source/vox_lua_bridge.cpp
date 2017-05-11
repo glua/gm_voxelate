@@ -347,7 +347,7 @@ int luaf_voxTrace(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v != nullptr && v->isInitialized()) {
+	if (v != nullptr) {
 		Vector start = elua_getVector(state, 2);
 
 		Vector delta = elua_getVector(state, 3);

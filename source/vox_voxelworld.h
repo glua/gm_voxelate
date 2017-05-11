@@ -108,8 +108,10 @@ struct VoxelConfig {
 class VoxelWorld;
 class VoxelChunk;
 
-int newIndexedVoxelWorld(int index = -1, VoxelConfig& config);
+int newIndexedVoxelWorld(int index, VoxelConfig& config);
+
 VoxelWorld* getIndexedVoxelWorld(int index);
+
 void deleteIndexedVoxelWorld(int index);
 void deleteAllIndexedVoxelWorlds();
 
@@ -129,8 +131,7 @@ public:
 	const int getChunkData(Coord x, Coord y, Coord z, char * out);
 	void setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len);
 
-	void initialize(VoxelConfig* config);
-	bool isInitialized();
+	void initialize();
 
 	Vector getExtents();
 	void getCellExtents(Coord& x, Coord &y, Coord &z);
@@ -154,14 +155,14 @@ public:
 	uint16 get(Coord x, Coord y, Coord z);
 	bool set(Coord x, Coord y, Coord z, uint16 d,bool flagChunks=true);
 private:
-	bool initialised = false;
+	//bool initialised = false;
 
 	std::unordered_map<XYZCoordinate, VoxelChunk*> chunks_map; // ok zerf lmao
 	std::set<VoxelChunk*> chunks_flagged_for_update;
 
 	bool updates_enabled = false;
 
-	VoxelConfig* config = nullptr;
+	VoxelConfig config;
 };
 
 
