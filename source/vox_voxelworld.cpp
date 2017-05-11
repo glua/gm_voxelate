@@ -28,10 +28,10 @@
 
 std::vector<VoxelWorld*> indexedVoxelWorldRegistry;
 
-int newIndexedVoxelWorld(int index) {
+int newIndexedVoxelWorld(int index, VoxelConfig& config) {
 	if (index == -1) {
 		auto idx = indexedVoxelWorldRegistry.size();
-		auto world = new VoxelWorld();
+		auto world = new VoxelWorld(config);
 
 		world->worldID = idx;
 
@@ -215,17 +215,6 @@ std::vector<Vector> VoxelWorld::getAllChunkPositions() {
 	return positions;
 }
 
-// Get real upset and flag every single chunk we know about for an update
-// This happens right after we receive all the chunks.
-// TODO prioritize based on distance from player
-// TODO need different logic for huge worlds
-/*void VoxelWorld::flagAllChunksForUpdate() {
-	// calling this is probably a VERY VERY VERY VERY bad idea once we have an infinite map working
-	for (auto it : chunks_new) {
-		chunks_flagged_for_update.insert(it.second);
-	}
-}*/
-
 void voxelworld_initialise_networking_static() {
 #ifdef VOXELATE_CLIENT
 	networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA, [&](int peerID, bf_read reader) {
@@ -320,15 +309,6 @@ void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 			chunks_flagged_for_update.erase(iter);
 		}
 	}
-}
-
-// Enables updates -- Client doesn't want to update until it has all the chunks
-// Going to need totally different logic for huge maps.
-// Might not hurt to totally ditch this logic and use some other method to determine
-// when chunks should start updating.
-void VoxelWorld::enableUpdates(bool enable) {
-	if (!IS_SERVERSIDE || (config->buildPhysicsMesh))
-		updates_enabled = enable;
 }
 
 // Function for line traces. Re-scales vectors and moves the start to the beggining of the voxel entity,

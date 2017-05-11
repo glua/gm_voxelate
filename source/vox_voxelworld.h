@@ -73,18 +73,23 @@ struct VoxelConfigClient;
 struct VoxelConfigServer;
 
 struct VoxelConfig {
+	VoxelConfig() {
+		vox_print("new config");
+	}
 	~VoxelConfig() {
+		vox_print("delete config [dec refs]");
+
 		if (atlasMaterial)
 			atlasMaterial->DecrementReferenceCount();
 	}
 
-	int dims_x = 1;
-	int dims_y = 1;
-	int dims_z = 1;
+	int dims_x = VOXEL_CHUNK_SIZE;
+	int dims_y = VOXEL_CHUNK_SIZE;
+	int dims_z = VOXEL_CHUNK_SIZE;
 
 	bool huge = false;
 
-	double scale = 1;
+	double scale = 32;
 
 	bool buildPhysicsMesh = false;
 	bool buildExterior = false;
@@ -103,7 +108,7 @@ struct VoxelConfig {
 class VoxelWorld;
 class VoxelChunk;
 
-int newIndexedVoxelWorld(int index = -1);
+int newIndexedVoxelWorld(int index = -1, VoxelConfig& config);
 VoxelWorld* getIndexedVoxelWorld(int index);
 void deleteIndexedVoxelWorld(int index);
 void deleteAllIndexedVoxelWorlds();
@@ -113,6 +118,7 @@ void voxelworld_initialise_networking_static();
 class VoxelWorld {
 	friend class VoxelChunk;
 public:
+	VoxelWorld(VoxelConfig& config);
 	~VoxelWorld();
 
 	int worldID = -1;
@@ -131,15 +137,11 @@ public:
 
 	std::vector<Vector> getAllChunkPositions();
 
-	//void flagAllChunksForUpdate();
-
-
 #ifdef VOXELATE_SERVER
 	bool sendChunksAround(int peerID, XYZCoordinate pos, Coord radius = 10);
 #endif
 
 	void doUpdates(int count, CBaseEntity* ent);
-	void enableUpdates(bool enable);
 
 	VoxelTraceRes doTrace(Vector startPos, Vector delta);
 	VoxelTraceRes doTraceHull(Vector startPos, Vector delta, Vector extents);
