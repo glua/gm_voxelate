@@ -119,16 +119,17 @@ int luaf_voxNewWorld(lua_State* state) {
 	}
 
 	// Atlas crap
-	const char* temp_mat_name = config_string(state, "atlasMaterial", "models/debug/debugwhite");
-	config.atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(temp_mat_name, nullptr);
-	config.atlasMaterial->IncrementReferenceCount();
+	if (!IS_SERVERSIDE) {
+		const char* temp_mat_name = config_string(state, "atlasMaterial", "models/debug/debugwhite");
+		config.atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(temp_mat_name, nullptr);
 
-	config.atlasWidth = config_num(state, "atlasWidth", 1);
-	config.atlasHeight = config_num(state, "atlasHeight", 1);
+		config.atlasWidth = config_num(state, "atlasWidth", 1);
+		config.atlasHeight = config_num(state, "atlasHeight", 1);
 
-	if (config_bool(state, "atlasIsPadded", false)) {
-		config._padding_x = (config.atlasMaterial->GetMappingWidth() / config.atlasWidth / 4.0) / config.atlasMaterial->GetMappingWidth();
-		config._padding_y = (config.atlasMaterial->GetMappingHeight() / config.atlasHeight / 4.0) / config.atlasMaterial->GetMappingHeight();
+		if (config_bool(state, "atlasIsPadded", false)) {
+			config._padding_x = (config.atlasMaterial->GetMappingWidth() / config.atlasWidth / 4.0) / config.atlasMaterial->GetMappingWidth();
+			config._padding_y = (config.atlasMaterial->GetMappingHeight() / config.atlasHeight / 4.0) / config.atlasMaterial->GetMappingHeight();
+		}
 	}
 
 	// Mesh building options
@@ -355,7 +356,6 @@ int luaf_voxTrace(lua_State* state) {
 		VoxelTraceRes r;
 		if (LUA->GetBool(4)) {
 			Vector extents = elua_getVector(state,5);
-
 			r = v->doTraceHull(start, delta, extents);
 		}
 		else {

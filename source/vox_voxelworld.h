@@ -73,15 +73,6 @@ struct VoxelConfigClient;
 struct VoxelConfigServer;
 
 struct VoxelConfig {
-	VoxelConfig() {
-		vox_print("new config");
-	}
-	~VoxelConfig() {
-		vox_print("delete config [dec refs]");
-
-		if (atlasMaterial)
-			atlasMaterial->DecrementReferenceCount();
-	}
 
 	int dims_x = VOXEL_CHUNK_SIZE;
 	int dims_y = VOXEL_CHUNK_SIZE;
@@ -159,8 +150,6 @@ private:
 
 	std::unordered_map<XYZCoordinate, VoxelChunk*> chunks_map; // ok zerf lmao
 	std::set<VoxelChunk*> chunks_flagged_for_update;
-
-	bool updates_enabled = false;
 
 	VoxelConfig config;
 };

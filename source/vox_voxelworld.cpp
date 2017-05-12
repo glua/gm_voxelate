@@ -71,7 +71,12 @@ void deleteAllIndexedVoxelWorlds() {
 }
 
 VoxelWorld::VoxelWorld(VoxelConfig& config) {
+	this->config = config;
 
+	if (config.atlasMaterial != nullptr)
+		config.atlasMaterial->IncrementReferenceCount();
+
+	initialize();
 }
 
 VoxelWorld::~VoxelWorld() {
@@ -84,6 +89,9 @@ VoxelWorld::~VoxelWorld() {
 
 	// Don't think this is needed but W/E
 	chunks_map.clear();
+
+	if (config.atlasMaterial != nullptr)
+		config.atlasMaterial->DecrementReferenceCount();
 }
 
 VoxelChunk* VoxelWorld::initChunk(Coord x, Coord y, Coord z) {
@@ -298,7 +306,7 @@ bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 // or clean out chunks_flagged_for_update when we unload chunks
 void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 	// On the server, we -NEED- the entity. Not so important on the client
-	if (updates_enabled && (!IS_SERVERSIDE || ent != nullptr)) {
+	if (!IS_SERVERSIDE || (ent != nullptr && config.buildPhysicsMesh) ) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
