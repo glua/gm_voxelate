@@ -134,8 +134,9 @@ VoxelChunk* VoxelWorld::getChunk(Coord x, Coord y, Coord z) {
 }
 
 // Fills a buffer at out with COMPRESSED chunk data, returns size.
-// FIXME output buffer must be at least 5% larger than input!
-// Need 8602? Just use a 9000 byte buffer?
+
+const int CHUNK_BUFFER_SIZE = 9000;
+
 const int VoxelWorld::getChunkData(Coord x, Coord y, Coord z,char* out) {
 	auto iter = chunks_map.find({ x, y, z });
 
@@ -222,7 +223,33 @@ std::vector<Vector> VoxelWorld::getAllChunkPositions() {
 
 void voxelworld_initialise_networking_static() {
 #ifdef VOXELATE_CLIENT
-	networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA, [&](int peerID, bf_read reader) {
+	networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, [&](int peerID, const char* data, size_t data_len) {
+		bf_read reader;
+		reader.StartReading(data, data_len);
+
+		int worldID = reader.ReadUBitLong(8);
+		vox_print("hello? %i",worldID);
+
+		auto world = getIndexedVoxelWorld(worldID);
+
+		if (world == NULL) {
+			return;
+		}
+
+		XYZCoordinate pos = {
+			reader.ReadSBitLong(32),
+			reader.ReadSBitLong(32),
+			reader.ReadSBitLong(32)
+		};
+
+		vox_print("Get chunk %i %i %i %i", worldID, pos[0], pos[1], pos[2]);
+
+	});
+
+	networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, [&](int peerID, const char* data, size_t data_len) {
+		bf_read reader;
+		reader.StartReading(data, data_len);
+
 		int worldID = reader.ReadUBitLong(8);
 
 		auto world = getIndexedVoxelWorld(worldID);
@@ -244,7 +271,7 @@ void voxelworld_initialise_networking_static() {
 				for (Coord z = 0; z < radius; z++) {
 					auto dataSize = reader.ReadUBitLong(16);
 
-					char chunkData[9000];
+					char chunkData[CHUNK_BUFFER_SIZE];
 					reader.ReadBytes(chunkData, dataSize);
 
 					world->setChunkData(origin[0] + x, origin[1] + y, origin[2] + z, chunkData, dataSize);
@@ -256,6 +283,33 @@ void voxelworld_initialise_networking_static() {
 }
 
 #ifdef VOXELATE_SERVER
+
+bool VoxelWorld::sendChunk(int peerID, XYZCoordinate pos) {
+	static char msg[CHUNK_BUFFER_SIZE + 128];
+
+	bf_write writer;
+	writer.StartWriting(msg, CHUNK_BUFFER_SIZE + 128);
+
+	writer.WriteUBitLong(worldID, 8);
+
+	writer.WriteSBitLong(pos[0], 32);
+	writer.WriteSBitLong(pos[1], 32);
+	writer.WriteSBitLong(pos[2], 32);
+
+	//int compressed_size = getChunkData(pos[0], pos[1], pos[2], msg + writer.GetNumBytesWritten());
+
+
+	//if (compressed_size == 0)
+	//	return false;
+
+	int compressed_size = 0;
+
+	vox_print("Send %i", writer.GetNumBytesWritten() + compressed_size);
+
+	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, &msg, writer.GetNumBytesWritten() + compressed_size );
+}
+
+
 bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 	auto maxSize = VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 2 * radius * + 24;
 
@@ -286,7 +340,7 @@ bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 	for (Coord x = 0; x < radius; x++) {
 		for (Coord y = 0; y < radius; y++) {
 			for (Coord z = 0; z < radius; z++) {
-				char chunkData[9000];
+				char chunkData[CHUNK_BUFFER_SIZE];
 				int len = getChunkData(pos[0] + x, pos[1] + y, pos[2] + z, chunkData);
 
 				writer.WriteUBitLong(len, 16);
@@ -297,7 +351,7 @@ bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 
 	writer.WriteOneBit(0); // null terminate for good measure
 
-	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA, data, writer.GetNumBytesWritten());
+	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, data, writer.GetNumBytesWritten());
 }
 #endif
 

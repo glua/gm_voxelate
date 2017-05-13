@@ -13,9 +13,10 @@
 
 #include <bitbuf.h>
 
-typedef std::function<void(int peerID, bf_read reader)> networkCallback;
+typedef std::function<void(int peerID, const char* data, size_t data_len)> networkCallback;
 
-#define VOX_NETWORK_CHANNEL_CHUNKRADIUS_DATA 1
+#define VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE 1
+#define VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS 2
 
 bool network_startup();
 

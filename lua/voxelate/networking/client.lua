@@ -52,7 +52,7 @@ function Router:StartENet()
 		self.ready = true
 
 		for i,data in ipairs(self.packetsToSendOnReady) do
-			self.voxelate.module.networkSendPacket(data.data,#data.data,data.unreliable)
+			self.voxelate.module.networkSendPacket(data.channel,data.data,#data.data,data.unreliable)
 		end
 
 		self.packetsToSendOnReady = {}
