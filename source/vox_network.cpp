@@ -6,20 +6,18 @@
 #include <algorithm>
 
 #ifdef VOXELATE_SERVER
-int nextPeerID = 0;
+unsigned int nextPeerID = 0;
 std::unordered_map<int,ENetPeer*> peers;
 
 struct server_client {
 	unsigned int peerID;
 	std::string steamID;
-	unsigned int get_uid() const { return peerID; }
+	std::string ip;
+	unsigned int get_id() const { return peerID; }
 };
 
 enetpp::server<server_client> server;
 #else
-// ENetHost* client;
-// ENetPeer* peer;
-
 enetpp::client client;
 #endif
 
@@ -27,15 +25,6 @@ enetpp::client client;
 #include <chrono>
 #include <thread>
 #include <mutex>
-
-std::mutex enetMutex;
-std::thread* eventLoopThread;
-void networkEventLoop();
-
-struct PeerData {
-	int peerID;
-	std::string steamID;
-};
 
 #include "GarrysMod\LuaHelpers.hpp"
 
@@ -45,16 +34,23 @@ bool network_startup() {
 #ifdef VOXELATE_SERVER
 	auto init_client_func = [&](server_client& client, const char* ip) {
 		client.peerID = nextPeerID;
+		client.ip = ip;
 		nextPeerID++;
 	};
+
+	server.set_trace_handler([&](std::string err) {
+		Msg("[ENetPP-SV] [ERR] %s\n", err);
+	});
 
 	server.start_listening(enetpp::server_listen_params<server_client>()
 		.set_max_client_count(128)
 		.set_channel_count(VOX_NETWORK_MAX_CHANNELS)
 		.set_listen_port(VOX_NETWORK_PORT)
 		.set_initialize_client_function(init_client_func));
-
-	eventLoopThread = new std::thread(networkEventLoop);
+#else
+	client.set_trace_handler([&](std::string err) {
+		Msg("[ENetPP-CL] [ERR] %s\n", err);
+	});
 #endif
 
 	return true;
@@ -88,52 +84,13 @@ int lua_network_sendpacket(lua_State* state) {
 		lua_error(state);
 	}
 
-	enetMutex.lock();
 #ifdef VOXELATE_SERVER
 	unsigned int peerID = luaL_checkinteger(state, 4);
 
-	auto it = peers.find(peerID);
-
-	if (it == peers.end()) {
-		enetMutex.unlock();
-		lua_pushstring(state, "can't find peer");
-		lua_error(state);
-		return 0;
-	}
-
-	auto peer = it->second;
-#endif
-
-	if (peer == NULL) {
-		enetMutex.unlock();
-#ifdef VOXELATE_CLIENT
-		lua_pushstring(state, "attempt to send packet before network init");
+	server.send_packet_to(peerID, channel, (const enet_uint8*)data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 #else
-		lua_pushstring(state, "attempt to send packet to null peer");
+	client.send_packet(channel, (const enet_uint8*)data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 #endif
-		lua_error(state);
-		return 0;
-	}
-
-	// this is probably exploitable :weary:
-
-	ENetPacket* packet = enet_packet_create(data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
-
-	if (enet_peer_send(peer, static_cast<enet_uint8>(channel), packet) != 0) {
-		enet_packet_destroy(packet);
-
-		enetMutex.unlock();
-
-		lua_pushstring(state, "couldn't send packet");
-		lua_error(state);
-		return 0;
-	}
-
-	enet_host_flush(VOX_ENET_HOST);
-
-	enetMutex.unlock();
-
-	enet_packet_destroy(packet);
 
 	return 0;
 }
@@ -152,109 +109,56 @@ int lua_network_connect(lua_State* state) {
 	params.set_outgoing_bandwidth(0);
 
 	client.connect(params);
+
+	return 0;
 }
 #endif
 
 #ifdef VOXELATE_SERVER
 int lua_network_disconnectPeer(lua_State* state) {
-	enetMutex.lock();
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	auto it = peers.find(peerID);
-
-	if (it == peers.end()) {
-		enetMutex.unlock();
-
-		lua_pushstring(state, "can't find peer");
-		lua_error(state);
-		return 0;
-	}
-
-	auto peer = it->second;
-
-	enet_peer_disconnect(peer, 0);
-	enetMutex.unlock();
+	server.disconnect_client(peerID, false);
 
 	return 0;
 }
 
 int lua_network_resetPeer(lua_State* state) {
-	enetMutex.lock();
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	auto it = peers.find(peerID);
-
-	if (it == peers.end()) {
-		enetMutex.unlock();
-
-		lua_pushstring(state, "can't find peer");
-		lua_error(state);
-		return 0;
-	}
-
-	auto peer = it->second;
-
-	enet_peer_reset(peer);
-
-	for (auto it = peers.cbegin(); it != peers.cend(); ) {
-		if (peer == it->second) {
-			peers.erase(it++);
-		}
-		else {
-			++it;
-		}
-	}
-
-	enetMutex.unlock();
+	server.disconnect_client(peerID, true);
 
 	return 0;
 }
 
 int lua_network_getPeerSteamID(lua_State* state) {
-	enetMutex.lock();
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	auto it = peers.find(peerID);
+	auto peer = server.get_client(peerID);
 
-	if (it == peers.end()) {
-		enetMutex.unlock();
+	if (peer == NULL) {
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
 	}
 
-	auto peer = it->second;
-
-	auto peerData = (PeerData*)peer->data;
-
-	lua_pushstring(state, peerData->steamID.c_str());
-
-	enetMutex.unlock();
+	lua_pushstring(state, peer->steamID.c_str());
 
 	return 1;
 }
 
 int lua_network_setPeerSteamID(lua_State* state) {
-	enetMutex.lock();
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	auto it = peers.find(peerID);
+	auto peer = server.get_client(peerID);
 
-	if (it == peers.end()) {
-		enetMutex.unlock();
-
+	if (peer == NULL) {
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
 	}
 
-	auto peer = it->second;
-
-	auto peerData = (PeerData*)peer->data;
-
-	peerData->steamID = luaL_checkstring(state, 2);
-
-	enetMutex.unlock();
+	peer->steamID = luaL_checkstring(state, 2);
 
 	return 0;
 }
@@ -263,99 +167,71 @@ int lua_network_setPeerSteamID(lua_State* state) {
 std::unordered_map<int, networkCallback> cppChannelCallbacks;
 
 int lua_network_pollForEvents(lua_State* state) {
-	eventMutex.lock();
-	for(auto event : events) {
-		PeerData* peerData;
-
-		switch (event->type) {
-		case ENET_EVENT_TYPE_CONNECT:
-			peerData = new PeerData();
-
 #ifdef VOXELATE_SERVER
-			nextPeerID++;
-			peers[nextPeerID] = event->peer;
-
-			peerData->steamID = "STEAM:0:0";
-			peerData->peerID = nextPeerID;
+	auto on_connected = [&](server_client& client) {
 #else
-			// SHOULD NEVER BE CALLED CLIENTSIDE?!?!?!
-			peerData->steamID = "STEAM:0:0";
-			peerData->peerID = 0;
+	auto on_connected = [&]() {
 #endif
-
-			event->peer->data = peerData;
-
-			LuaHelpers::PushHookRun(state->luabase, "VoxNetworkConnect");
-
-			lua_pushnumber(state, peerData->peerID);
-			lua_pushnumber(state, event->peer->address.host);
-
-			LuaHelpers::CallHookRun(state->luabase, 2, 0);
-			
-			break;
-		case ENET_EVENT_TYPE_RECEIVE:
-			peerData = (PeerData*)event->peer->data;
-
-			if (peerData != NULL) {
-
-				if (event->channelID < VOX_NETWORK_CPP_CHANNEL_START) {
-					LuaHelpers::PushHookRun(state->luabase, "VoxNetworkPacket");
-
-					lua_pushnumber(state, peerData->peerID);
-					lua_pushnumber(state, event->channelID);
-					lua_pushlstring(state, reinterpret_cast<char*>(event->packet->data), event->packet->dataLength);
-
-					LuaHelpers::CallHookRun(state->luabase, 3, 0);
-				}
-				else {
-
-					int channelID = event->channelID - VOX_NETWORK_CPP_CHANNEL_START;
-					
-					if (cppChannelCallbacks.find(channelID) != cppChannelCallbacks.end()) {
-						cppChannelCallbacks[channelID](peerData->peerID, reinterpret_cast<char*>(event->packet->data), event->packet->dataLength);
-					}
-				}
-
-				enet_packet_destroy(event->packet);
-			}
-			else {
-				Msg("ENET_EVENT_TYPE_RECEIVE: event->peer->data is null?????\n");
-			}
-
-			break;
-
-		case ENET_EVENT_TYPE_DISCONNECT:
-			peerData = (PeerData*)event->peer->data;
-
-			if (peerData != NULL) {
-				LuaHelpers::PushHookRun(state->luabase, "VoxNetworkDisconnect");
-
-				lua_pushnumber(state, peerData->peerID);
-
-				LuaHelpers::CallHookRun(state->luabase, 1, 0);
-
-				event->peer->data = NULL;
-			}
-			else {
-				Msg("ENET_EVENT_TYPE_DISCONNECT: event->peer->data is null?????\n");
-			}
+		LuaHelpers::PushHookRun(state->luabase, "VoxNetworkConnect");
 
 #ifdef VOXELATE_SERVER
-			for (auto it = peers.cbegin(); it != peers.cend(); ) {
-				if (event->peer == it->second) {
-					peers.erase(it++);
-				}
-				else {
-					++it;
-				}
-			}
+		lua_pushnumber(state, client.get_id());
+		lua_pushstring(state, client.ip.c_str());
+
+		LuaHelpers::CallHookRun(state->luabase, 2, 0);
+#else
+		LuaHelpers::CallHookRun(state->luabase, 0, 0);
 #endif
+	};
+
+#ifdef VOXELATE_SERVER
+	auto on_data_received = [&](server_client& client, enet_uint8 channelID, const enet_uint8* data, size_t data_size) {
+		auto peerID = client.peerID;
+#else
+	auto on_data_received = [&](enet_uint8 channelID, const enet_uint8* data, size_t data_size) {
+		unsigned int peerID = 0;
+#endif
+		if (channelID < VOX_NETWORK_CPP_CHANNEL_START) {
+			LuaHelpers::PushHookRun(state->luabase, "VoxNetworkPacket");
+
+			lua_pushnumber(state, peerID);
+			lua_pushnumber(state, channelID);
+			lua_pushlstring(state, (char*)data, data_size);
+
+			LuaHelpers::CallHookRun(state->luabase, 3, 0);
 		}
-	}
+		else {
 
-	events.clear();
+			int channelID = channelID - VOX_NETWORK_CPP_CHANNEL_START;
 
-	eventMutex.unlock();
+			if (cppChannelCallbacks.find(channelID) != cppChannelCallbacks.end()) {
+				cppChannelCallbacks[channelID](peerID, (char*)data, data_size);
+			}
+		}
+	};
+
+
+#ifdef VOXELATE_SERVER
+	auto on_disconnected = [&](unsigned int peerID) {
+#else
+	auto on_disconnected = [&]() {
+#endif
+		LuaHelpers::PushHookRun(state->luabase, "VoxNetworkDisconnect");
+
+#ifdef VOXELATE_SERVER
+		lua_pushnumber(state, peerID);
+
+		LuaHelpers::CallHookRun(state->luabase, 1, 0);
+#else
+		LuaHelpers::CallHookRun(state->luabase, 0, 0);
+#endif
+	};
+
+#ifdef VOXELATE_SERVER
+	server.consume_events(on_connected, on_disconnected, on_data_received);
+#else
+	client.consume_events(on_connected, on_disconnected, on_data_received);
+#endif
 
 	return 0;
 }
@@ -398,33 +274,11 @@ namespace networking {
 	bool channelSend(uint16_t channelID, void* data, int size, bool unreliable) {
 #endif
 
-		enetMutex.lock();
-
 #ifdef VOXELATE_SERVER
-		auto it = peers.find(peerID);
-
-		if (it == peers.end()) {
-			enetMutex.unlock();
-			return false;
-		}
-
-		auto peer = it->second;
+		server.send_packet_to(peerID, channelID, (const enet_uint8*)data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 #else
-		if (peer == NULL) {
-			enetMutex.unlock();
-			return false;
-		}
+		client.send_packet(channelID, (const enet_uint8*)data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 #endif
-
-		ENetPacket* packet = enet_packet_create(data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
-
-		enet_peer_send(peer, VOX_NETWORK_CPP_CHANNEL_START + channelID, packet);
-
-		enet_host_flush(VOX_ENET_HOST);
-
-		enet_packet_destroy(packet);
-
-		enetMutex.unlock();
 
 		return true;
 	}

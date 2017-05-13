@@ -10,6 +10,7 @@
 #include <assert.h>
 #include "server_listen_params.h"
 #include "server_queued_packet.h"
+#include "server_queued_disconnect.h"
 #include "server_event.h"
 #include "global_state.h"
 #include "set_current_thread_name.h"
@@ -37,6 +38,9 @@ namespace enetpp {
 
 		std::queue<server_queued_packet> _packet_queue;
 		std::mutex _packet_queue_mutex;
+
+		std::queue<server_queued_disconnect> _disconnect_queue;
+		std::mutex _disconnect_queue_mutex;
 
 		std::queue<event_type> _event_queue;
 		std::queue<event_type> _event_queue_copy; //member variable instead of stack variable to prevent mallocs?
@@ -92,6 +96,14 @@ namespace enetpp {
 			delete_all_connected_clients();
 		}
 
+		void disconnect_client(unsigned int client_id, bool force) {
+			assert(is_listening());
+			if (_thread != nullptr) {
+				std::lock_guard<std::mutex> lock(_disconnect_queue_mutex);
+				_disconnect_queue.emplace(client_id, force);
+			}
+		}
+
 		void send_packet_to(unsigned int client_id, enet_uint8 channel_id, const enet_uint8* data, size_t data_size, enet_uint32 flags) {
 			assert(is_listening());
 			if (_thread != nullptr) {
@@ -117,7 +129,7 @@ namespace enetpp {
 		void consume_events(
 			std::function<void(ClientT& client)> on_client_connected,
 			std::function<void(unsigned int client_id)> on_client_disconnected,
-			std::function<void(ClientT& client, const enet_uint8* data, size_t data_size)> on_client_data_received) {
+			std::function<void(ClientT& client, enet_uint8 channel_id, const enet_uint8* data, size_t data_size)> on_client_data_received) {
 
 			if (!_event_queue.empty()) {
 
@@ -148,7 +160,7 @@ namespace enetpp {
 						}
 
 						case ENET_EVENT_TYPE_RECEIVE: {
-							on_client_data_received(*e._client, e._packet->data, e._packet->dataLength);
+							on_client_data_received(*e._client, e._channel_id, e._packet->data, e._packet->dataLength);
 							enet_packet_destroy(e._packet);
 							break;
 						}
@@ -165,6 +177,14 @@ namespace enetpp {
 
 		const client_ptr_vector& get_connected_clients() const {
 			return _connected_clients;
+		}
+
+		ClientT* get_client(unsigned int client_id) const {
+			for (auto it : get_connected_clients()) {
+				if (it->get_id() == client_id) {
+					return it;
+				}
+			}
 		}
 
 	private:
@@ -191,6 +211,7 @@ namespace enetpp {
 				}
 
 				if (host != nullptr) {
+					perform_queued_disconnects_in_thread();
 					send_queued_packets_in_thread();
 					capture_events_in_thread(params, host);
 				}
@@ -205,6 +226,27 @@ namespace enetpp {
 				iter.second->data = nullptr;
 			}
 			_thread_peer_map.clear();
+		}
+
+		void perform_queued_disconnects_in_thread() {
+			if (!_disconnect_queue.empty()) {
+				std::lock_guard<std::mutex> lock(_disconnect_queue_mutex);
+				while (!_disconnect_queue.empty()) {
+					auto qp = _disconnect_queue.front();
+					_disconnect_queue.pop();
+
+					auto pi = _thread_peer_map.find(qp._client_id);
+					if (pi != _thread_peer_map.end()) {
+
+						if (qp._force) {
+							enet_peer_reset(pi->second);
+						}
+						else {
+							enet_peer_disconnect(pi->second, 0);
+						}
+					}
+				}
+			}
 		}
 
 		void send_queued_packets_in_thread() {

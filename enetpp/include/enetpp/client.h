@@ -90,7 +90,7 @@ namespace enetpp {
 		void client::consume_events(
 			std::function<void()> on_connected,
 			std::function<void()> on_disconnected,
-			std::function<void(const enet_uint8* data, size_t data_size)> on_data_received) {
+			std::function<void(enet_uint8 channel_id, const enet_uint8* data, size_t data_size)> on_data_received) {
 
 			if (!_event_queue.empty()) {
 
@@ -123,7 +123,7 @@ namespace enetpp {
 						}
 
 						case ENET_EVENT_TYPE_RECEIVE: {
-							on_data_received(e.packet->data, e.packet->dataLength);
+							on_data_received(e.channelID, e.packet->data, e.packet->dataLength);
 							enet_packet_destroy(e.packet);
 							break;
 						}
