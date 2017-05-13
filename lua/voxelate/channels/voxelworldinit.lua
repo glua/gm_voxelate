@@ -10,6 +10,7 @@ runtime.oop.extend(VoxelWorldInitChannel,NetworkChannel)
 
 local P = {
 	VOXELATE_WORLD_CONFIG = 1,
+	VOXELATE_WORLD_CHUNK_STARTUP = 2,
 }
 
 function VoxelWorldInitChannel:RequestVoxelWorldConfig(worldID)
@@ -44,8 +45,6 @@ function VoxelWorldInitChannel:SendVoxelWorldConfig(peerID,worldID)
 
 	buffer:WriteString(serialization.serialize(config))
 
-	self.voxelate.module.voxSendChunks(worldID,peerID,0,0,0,2) -- 2x2x2 test
-
 	return buffer:Send()
 end
 
@@ -59,6 +58,42 @@ function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)
 	self.voxelate:SetWorldConfig(worldID,config)
 
 	gm_voxelate.module.voxNewWorld(config,worldID)
+
+	self:RequestVoxelStartupChunks(worldID,0,0,0,3)
+end
+
+function VoxelWorldInitChannel:RequestVoxelStartupChunks(worldID,origin_x,origin_y,origin_z,radius)
+	assert(CLIENT,"clientside only")
+
+	self.voxelate.io:PrintDebug("Requesting voxel config for %d...",worldID)
+
+	local packet = self:NewPacket()
+
+	local buffer = packet:GetBuffer()
+
+	buffer:WriteUInt(worldID,8)
+	buffer:WriteUInt(P.VOXELATE_WORLD_CHUNK_STARTUP,8)
+
+	buffer:WriteUInt(origin_x,32)
+	buffer:WriteUInt(origin_y,32)
+	buffer:WriteUInt(origin_z,32)
+	buffer:WriteUInt(radius,4)
+
+	return buffer:Send()
+end
+
+function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
+	assert(SERVER,"serverside only")
+
+	self.voxelate.io:PrintDebug("Sending voxel config for %d to %d...",worldID,peerID)
+
+	local origin_x = buffer:ReadUInt(32)
+	local origin_y = buffer:ReadUInt(32)
+	local origin_z = buffer:ReadUInt(32)
+
+	local radius = buffer:ReadUInt(4)
+
+	self.voxelate.module.voxSendChunks(worldID,peerID,origin_x,origin_y,origin_z,radius)
 end
 
 function VoxelWorldInitChannel:OnIncomingPacket(packet)
@@ -71,6 +106,9 @@ function VoxelWorldInitChannel:OnIncomingPacket(packet)
 		if requestID == P.VOXELATE_WORLD_CONFIG then
 			-- time to send world config
 			self:SendVoxelWorldConfig(packet:GetPeer(),worldID)
+		elseif requestID == P.VOXELATE_WORLD_CHUNK_STARTUP then
+			-- time to send world config
+			self:SendVoxelStartupChunks(packet:GetPeer(),worldID,buffer)
 		end
 	else
 		if requestID == P.VOXELATE_WORLD_CONFIG then
