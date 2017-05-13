@@ -74,6 +74,7 @@ function Router:SendInChannel(channelName,payloadData,unreliable)
 		self.packetsToSendOnReady[#self.packetsToSendOnReady + 1] = {
 			data = payloadData,
 			unreliable = unreliable,
+			channel = channelID,
 		}
 	end
 end
