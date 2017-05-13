@@ -19,7 +19,7 @@ function ENT:Initialize()
 
 		self:SetInternalIndex(index)
 
-        gm_voxelate:SetWorldConfig(index,config)
+		gm_voxelate:SetWorldConfig(index,config)
 
 		self:SetupBounds(config)
 
