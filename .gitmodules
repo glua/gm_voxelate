@@ -4,6 +4,3 @@
 [submodule "enet"]
 	path = enet
 	url = https://github.com/lsalzman/enet
-[submodule "enetpp"]
-	path = enetpp
-	url = https://github.com/jseward/enetpp
