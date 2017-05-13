@@ -175,6 +175,16 @@ int lua_network_sendpacket(lua_State* state) {
 	auto peer = it->second;
 #endif
 
+	if (peer == NULL) {
+#ifdef VOXELATE_CLIENT
+		lua_pushstring(state, "attempt to send packet before network init");
+#else
+		lua_pushstring(state, "attempt to send packet to null peer");
+#endif
+		lua_error(state);
+		return 0;
+	}
+
 	// this is probably exploitable :weary:
 
 	ENetPacket* packet = enet_packet_create(data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
