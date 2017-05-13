@@ -47,11 +47,6 @@ function VoxelWorldInitChannel:SendVoxelWorldConfig(peerID,worldID)
 
 	local res = buffer:Send()
 
-	self.voxelate.module.voxSendChunk(worldID,peerID,0,0,0)
-	self.voxelate.module.voxSendChunk(worldID,peerID,1,2,3)
-	self.voxelate.module.voxSendChunk(worldID,peerID,4,5,6)
-	self.voxelate.module.voxSendChunk(worldID,peerID,7,8,9)
-
 	return res
 end
 
@@ -66,10 +61,10 @@ function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)
 
 	self.voxelate.module.voxNewWorld(config,worldID)
 
-	self:RequestVoxelStartupChunks(worldID,0,0,0,3)
+	self:RequestVoxelStartupChunks(worldID,0,0,0)
 end
 
-function VoxelWorldInitChannel:RequestVoxelStartupChunks(worldID,origin_x,origin_y,origin_z,radius)
+function VoxelWorldInitChannel:RequestVoxelStartupChunks(worldID,origin_x,origin_y,origin_z)
 	assert(CLIENT,"clientside only")
 
 	self.voxelate.io:PrintDebug("Requesting voxel chunk startup pack for %d...",worldID)
@@ -84,7 +79,6 @@ function VoxelWorldInitChannel:RequestVoxelStartupChunks(worldID,origin_x,origin
 	buffer:WriteUInt(origin_x,32)
 	buffer:WriteUInt(origin_y,32)
 	buffer:WriteUInt(origin_z,32)
-	buffer:WriteUInt(radius,4)
 
 	return buffer:Send()
 end
@@ -94,13 +88,29 @@ function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 
 	self.voxelate.io:PrintDebug("Sending voxel chunk startup pack for %d to %d...",worldID,peerID)
 
+	-- UNUSED
 	local origin_x = buffer:ReadUInt(32)
 	local origin_y = buffer:ReadUInt(32)
 	local origin_z = buffer:ReadUInt(32)
 
-	local radius = buffer:ReadUInt(4)
+	local config = self.voxelate:GetWorldConfig(worldID)
 
-	self.voxelate.module.voxSendChunks(worldID,peerID,origin_x,origin_y,origin_z,radius)
+	local function chunkSenderThread()
+		self.voxelate.io:PrintDebug("Sending chunk initialisation data for %d to %d...",worldID,peerID)
+		for x=1,math.ceil(config.dimensions.x/16) do
+			for y=1,math.ceil(config.dimensions.y/16) do
+				for z=1,math.ceil(config.dimensions.z/16) do
+					self.voxelate.module.voxSendChunk(worldID,peerID,x,y,z)
+				end
+
+				timer.Simple(0.01,chunkSenderThread)
+				coroutine.yield()
+			end
+		end
+		self.voxelate.io:PrintDebug("Chunk initialisation data sent to %d...",peerID)
+	end
+	chunkSenderThread = coroutine.wrap(chunkSenderThread) -- create thread
+	chunkSenderThread() -- launch thread
 end
 
 function VoxelWorldInitChannel:OnIncomingPacket(packet)
