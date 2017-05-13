@@ -61,35 +61,18 @@ function Router:StartENet()
 	end
 end
 
-function Router:IncomingPacket(data,internalChannelID)
-	local reader = bitbuf.Reader(data)
-
-	local channelID = reader:ReadUInt(16)
-	local payload,ok = reader:ReadBytes(#data - 2)
-
-	if not ok then
-		error("Packet read failure")
-	end
-
-	self:PropagateMessage(false,channelID,payload:GetString())
+function Router:IncomingPacket(data,channelID)
+	self:PropagateMessage(false,channelID,data)
 end
 
 function Router:SendInChannel(channelName,payloadData,unreliable)
 	assert(self.channelsEx[channelName],"Unknown channel: "..channelName)
 
-	local buf = bitbuf.Writer(#payloadData + 2)
-	local payload = UCHARPTR_FromString(payloadData,#payloadData)
-
-	buf:WriteUInt(self.channelsEx[channelName],16)
-	buf:WriteBytes(payload,#payloadData)
-
-	local data = buf:GetWrittenString()
-
 	if self.ready then
-		self.voxelate.module.networkSendPacket(data,#data,unreliable)
+		self.voxelate.module.networkSendPacket(self.channelsEx[channelName],payloadData,#payloadData,unreliable)
 	else
 		self.packetsToSendOnReady[#self.packetsToSendOnReady + 1] = {
-			data = data,
+			data = payloadData,
 			unreliable = unreliable,
 		}
 	end

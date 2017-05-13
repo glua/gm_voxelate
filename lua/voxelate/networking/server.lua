@@ -132,17 +132,8 @@ function Router:__ctor(voxelate)
 	end)
 end
 
-function Router:IncomingPacket(peerID,data,internalChannelID)
-	local reader = bitbuf.Reader(data)
-
-	local channelID = reader:ReadUInt(16)
-	local payload,ok = reader:ReadBytes(#data - 2)
-
-	if not ok then
-		error("Packet read failure")
-	end
-
-	self:PropagateMessage(peerID,channelID,payload:GetString())
+function Router:IncomingPacket(peerID,data,channelID)
+	self:PropagateMessage(peerID,channelID,data)
 end
 
 function Router:SendInChannel(channelName,payloadData,peerID,unreliable)
@@ -151,30 +142,15 @@ function Router:SendInChannel(channelName,payloadData,peerID,unreliable)
 
 	local channelNum = self.channelsEx[channelName]
 
-
-	local buf = bitbuf.Writer(#payloadData + 2)
-	local payload = UCHARPTR_FromString(payloadData,#payloadData)
-
-	buf:WriteUInt(self.channelsEx[channelName],16)
-	buf:WriteBytes(payload,#payloadData)
-
-	local data = buf:GetWrittenString()
-
-	self.voxelate.module.networkSendPacket(data,#data,unreliable,peerID)
+	self.voxelate.module.networkSendPacket(channelNum,payloadData,#payloadData,unreliable,peerID)
 end
 
 function Router:BroadcastInChannel(channelName,payloadData,unreliable)
 	assert(self.channelsEx[channelName],"Unknown channel: "..channelName)
 
-	local buf = bitbuf.Writer(#payloadData + 2)
-	local payload = UCHARPTR_FromString(payloadData,#payloadData)
-
-	buf:WriteUInt(self.channelsEx[channelName],16)
-	buf:WriteBytes(payload,#payloadData)
-
-	local data = buf:GetWrittenString()
+	local channelNum = self.channelsEx[channelName]
 
 	for peerID,_ in pairs(self.PeerIDs) do
-		self.voxelate.module.networkSendPacket(data,#data,unreliable,peerID)
+		self.voxelate.module.networkSendPacket(channelNum,data,#data,unreliable,peerID)
 	end
 end
