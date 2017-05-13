@@ -53,7 +53,7 @@ reactphysics3d::Vector3* vox_lua_getVector(lua_State* state, int32_t index) {
 int vox_lua_vector_gc(lua_State* state) {
 	auto vecptr = vox_lua_getVectorPtr(state, 1);
 
-	delete vecptr;
+	vecptr->reset();
 	LUA->SetUserType(1, nullptr);
 
 	return 0;
