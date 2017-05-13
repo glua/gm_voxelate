@@ -114,7 +114,7 @@ int vox_lua_vector_getUnit(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
 	auto result = vecptr->getUnit();
-	vox_lua_pushVector(state, &result);
+	vox_lua_pushVectorCopy(state, result);
 
 	return 1;
 }
@@ -123,7 +123,7 @@ int vox_lua_vector_getOneUnitOrthogonalVector(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
 	auto result = vecptr->getOneUnitOrthogonalVector();
-	vox_lua_pushVector(state, &result);
+	vox_lua_pushVectorCopy(state, result);
 
 	return 1;
 }
@@ -176,7 +176,7 @@ int vox_lua_vector_getAbsoluteVector(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
 	auto result = vecptr->getAbsoluteVector();
-	vox_lua_pushVector(state, &result);
+	vox_lua_pushVectorCopy(state, result);
 
 	return 0;
 }
@@ -248,7 +248,7 @@ int vox_lua_vector_add(lua_State* state) {
 	auto vecptr2 = vox_lua_getVector(state, 2);
 
 	auto result = *vecptr + *vecptr2;
-	vox_lua_pushVector(state, &result);
+	vox_lua_pushVectorCopy(state, result);
 
 	return 1;
 }
@@ -258,7 +258,7 @@ int vox_lua_vector_sub(lua_State* state) {
 	auto vecptr2 = vox_lua_getVector(state, 2);
 
 	auto result = *vecptr - *vecptr2;
-	vox_lua_pushVector(state, &result);
+	vox_lua_pushVectorCopy(state, result);
 
 	return 1;
 }
@@ -270,13 +270,13 @@ int vox_lua_vector_mul(lua_State* state) {
 		double num = lua_tonumber(state, 2);
 
 		auto result = *vecptr * num;
-		vox_lua_pushVector(state, &result);
+		vox_lua_pushVectorCopy(state, result);
 	}
 	else {
 		auto vecptr2 = vox_lua_getVector(state, 2);
 
 		auto result = *vecptr * *vecptr2;
-		vox_lua_pushVector(state, &result);
+		vox_lua_pushVectorCopy(state, result);
 	}
 
 	return 1;
@@ -289,13 +289,13 @@ int vox_lua_vector_div(lua_State* state) {
 		double num = lua_tonumber(state, 2);
 
 		auto result = *vecptr / num;
-		vox_lua_pushVector(state, &result);
+		vox_lua_pushVectorCopy(state, result);
 	}
 	else {
 		auto vecptr2 = vox_lua_getVector(state, 2);
 
 		auto result = *vecptr / *vecptr2;
-		vox_lua_pushVector(state, &result);
+		vox_lua_pushVectorCopy(state, result);
 	}
 
 	return 1;
