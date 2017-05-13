@@ -314,7 +314,8 @@ int luaf_voxGet(lua_State* state) {
 		LUA->PushNumber(v->get(x, y, z));
 	else
 		LUA->PushNumber(0);
-	return 0;
+
+	return 1;
 }
 
 int luaf_voxSet(lua_State* state) {
