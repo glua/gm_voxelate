@@ -45,7 +45,14 @@ function VoxelWorldInitChannel:SendVoxelWorldConfig(peerID,worldID)
 
 	buffer:WriteString(serialization.serialize(config))
 
-	return buffer:Send()
+	local res = buffer:Send()
+
+	self.voxelate.module.voxSendChunk(worldID,peerID,0,0,0)
+	self.voxelate.module.voxSendChunk(worldID,peerID,1,2,3)
+	self.voxelate.module.voxSendChunk(worldID,peerID,4,5,6)
+	self.voxelate.module.voxSendChunk(worldID,peerID,7,8,9)
+
+	return res
 end
 
 function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)

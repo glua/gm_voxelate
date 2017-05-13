@@ -149,6 +149,9 @@ function Router:SendInChannel(channelName,payloadData,peerID,unreliable)
 	assert(type(peerID) == "number","Peer ID must be a number")
 	assert(self.channelsEx[channelName],"Unknown channel: "..channelName)
 
+	local channelNum = self.channelsEx[channelName]
+
+
 	local buf = bitbuf.Writer(#payloadData + 2)
 	local payload = UCHARPTR_FromString(payloadData,#payloadData)
 

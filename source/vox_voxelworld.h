@@ -130,6 +130,7 @@ public:
 	std::vector<Vector> getAllChunkPositions();
 
 #ifdef VOXELATE_SERVER
+	bool sendChunk(int peerID, XYZCoordinate pos);
 	bool sendChunksAround(int peerID, XYZCoordinate pos, Coord radius = 10);
 #endif
 

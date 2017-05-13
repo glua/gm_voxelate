@@ -351,6 +351,25 @@ int luaf_voxUpdate(lua_State* state) {
 }
 
 #ifdef VOXELATE_SERVER
+int luaf_voxSendChunk(lua_State* state) {
+	int index = LUA->GetNumber(1);
+	int peerID = LUA->GetNumber(2);
+	int x = LUA->GetNumber(3);
+	int y = LUA->GetNumber(4);
+	int z = LUA->GetNumber(5);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+
+	if (v != nullptr) {
+		lua_pushboolean(state, v->sendChunk(peerID, { x, y, z }));
+	}
+	else {
+		lua_pushboolean(state, false);
+	}
+
+	return 1;
+}
+
 int luaf_voxSendChunks(lua_State* state) {
 	int index = LUA->GetNumber(1);
 	int peerID = LUA->GetNumber(2);
@@ -368,7 +387,7 @@ int luaf_voxSendChunks(lua_State* state) {
 		lua_pushboolean(state, false);
 	}
 
-	return 0;
+	return 1;
 }
 #endif
 
@@ -517,6 +536,9 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->SetField(-2, "VERSION");
 
 #ifdef VOXELATE_SERVER
+	LUA->PushCFunction(luaf_voxSendChunk);
+	LUA->SetField(-2, "voxSendChunk");
+
 	LUA->PushCFunction(luaf_voxSendChunks);
 	LUA->SetField(-2, "voxSendChunks");
 #endif
