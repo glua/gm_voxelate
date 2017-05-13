@@ -1,3 +1,9 @@
+// both required
+
+#include "glua.h"
+
+#include "vox_lua_advanced_vector.hpp"
+
 #include "vox_lua_bridge.h"
 #include "vox_lua_src.h"
 
@@ -543,6 +549,7 @@ void init_lua(lua_State* state, const char* version_string) {
 #endif
 
 	setupLuaNetworking(state);
+	setupLuaAdvancedVectors(state);
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
 

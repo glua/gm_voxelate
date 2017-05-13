@@ -75,6 +75,8 @@ function ENT:Draw()
 	local m = Matrix()
 	m:Translate(self:GetPos())
 
+	-- TODO: when in an infinite world, place the player at Vec(0,0,0) and render the voxel world around the player
+
 	cam.PushModelMatrix(m)
 	gm_voxelate.module.voxDraw(index)
 	cam.PopModelMatrix()
