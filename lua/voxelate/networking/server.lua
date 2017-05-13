@@ -52,7 +52,7 @@ function Router:__ctor(voxelate)
 		end
 	end)
 
-	hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,data,channelID)
+	hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,channelID,data)
 		self:IncomingPacket(peerID,data,channelID)
 	end)
 

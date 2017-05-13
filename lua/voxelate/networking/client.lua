@@ -22,7 +22,7 @@ function Router:__ctor(voxelate)
 		self.voxelate.io:PrintDebug("We have disconnected from the server...")
 	end)
 
-	hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,data,channelID)
+	hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,channelID,data)
 		self:IncomingPacket(data,channelID)
 	end)
 
