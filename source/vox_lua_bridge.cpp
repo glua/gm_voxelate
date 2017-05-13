@@ -6,6 +6,7 @@
 #include "vox_voxelworld.h"
 
 #include "vox_network.h"
+#include "vox_lua_advanced_vector.h"
 
 #include "GarrysMod\LuaHelpers.hpp"
 
@@ -521,6 +522,7 @@ void init_lua(lua_State* state, const char* version_string) {
 #endif
 
 	setupLuaNetworking(state);
+	setupLuaAdvancedVectors(state);
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
 

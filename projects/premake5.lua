@@ -75,6 +75,45 @@ CreateWorkspace({name = "voxelate"})
 		IncludeScanning()
 		IncludeDetouring()
 
+	project("gm_adv_vectors")
+		kind("StaticLib")
+		language("C++11")
+
+		warnings("Off")
+
+		includedirs({"../reactphysics3d/src"})
+		links({"reactphysics3d"})
+
+		files({
+			"../gm_adv_vectors/*.h",
+			"../gm_adv_vectors/*.hpp",
+			"../gm_adv_vectors/*.hxx",
+			"../gm_adv_vectors/*.c",
+			"../gm_adv_vectors/*.cpp",
+			"../gm_adv_vectors/*.cxx",
+		})
+		includedirs({
+			"../gm_adv_vectors",
+		})
+
+		vpaths({
+			["Header files/*"] = {
+				"../gm_adv_vectors/*.h",
+				"../gm_adv_vectors/*.hpp",
+				"../gm_adv_vectors/*.hxx",
+			},
+			["Source files/*"] = {
+				"../gm_adv_vectors/*.c",
+				"../gm_adv_vectors/*.cpp",
+				"../gm_adv_vectors/*.cxx",
+			}
+		})
+
+		IncludeLuaShared()
+		IncludeSDKCommon()
+		IncludeSDKTier0()
+		IncludeSDKTier1()
+
 	CreateProject({serverside = true})
 		language("C++11")
 
@@ -82,8 +121,8 @@ CreateWorkspace({name = "voxelate"})
 			luaEntryPoint("init.lua")
 			includeLua("../lua/**")
 
-		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../gm_sourcenet"})
-		links({"fastlz","reactphysics3d","enet","gm_sourcenet"})
+		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../gm_sourcenet","../gm_adv_vectors"})
+		links({"fastlz","reactphysics3d","enet","gm_sourcenet","gm_adv_vectors"})
 
 		IncludeSDKCommon()
 		IncludeSDKTier0()
@@ -111,8 +150,8 @@ CreateWorkspace({name = "voxelate"})
 			luaEntryPoint("init.lua")
 			includeLua("../lua/**")
 
-		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../gm_sourcenet"})
-		links({"fastlz","reactphysics3d","enet","gm_sourcenet"})
+		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../gm_sourcenet","../gm_adv_vectors"})
+		links({"fastlz","reactphysics3d","enet","gm_sourcenet","gm_adv_vectors"})
 
 		IncludeSDKCommon()
 		IncludeSDKTier0()
