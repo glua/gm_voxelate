@@ -201,7 +201,7 @@ int lua_network_sendpacket(lua_State* state) {
 		return 0;
 	}
 
-	enet_host_flush(VOX_ENET_HOST);
+	// enet_host_flush(VOX_ENET_HOST);
 
 	enet_packet_destroy(packet);
 
@@ -516,7 +516,7 @@ namespace networking {
 
 		enet_peer_send(peer, VOX_NETWORK_CPP_CHANNEL_START + channelID, packet);
 
-		enet_host_flush(VOX_ENET_HOST);
+		// enet_host_flush(VOX_ENET_HOST);
 
 		enet_packet_destroy(packet);
 
