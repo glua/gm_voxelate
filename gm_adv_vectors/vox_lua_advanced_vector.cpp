@@ -1,19 +1,13 @@
-#include "vox_lua_advanced_vector.h"
+#include "vox_lua_advanced_vector.hpp"
 
 static uint8_t metatype = GarrysMod::Lua::Type::NONE;
 static const char *metaname = "AdvancedVector";
 
-#include "reactphysics3d.h"
-
-#include <memory>
-
 #if defined _WIN32
-const char *tostring_format = "%s: 0x%p";
+const char *tostring_format = "%s: %p";
 #elif defined __linux || defined __APPLE__
 const char *tostring_format = "%s: %p";
 #endif
-
-typedef std::shared_ptr<reactphysics3d::Vector3> VectorPtr;
 
 #define LUA state->luabase
 

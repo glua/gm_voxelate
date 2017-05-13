@@ -1,3 +1,9 @@
+// both required
+
+#include "glua.h"
+
+#include "vox_lua_advanced_vector.hpp"
+
 #include "vox_lua_bridge.h"
 #include "vox_lua_src.h"
 
@@ -6,7 +12,6 @@
 #include "vox_voxelworld.h"
 
 #include "vox_network.h"
-#include "vox_lua_advanced_vector.h"
 
 #include "GarrysMod\LuaHelpers.hpp"
 
