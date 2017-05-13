@@ -497,6 +497,10 @@ namespace networking {
 		writer.WriteUBitLong(channelID, 16);
 		writer.WriteBytes(data, size);
 
+		if (peer == NULL) {
+			return false;
+		}
+
 #ifdef VOXELATE_SERVER
 		auto it = peers.find(peerID);
 

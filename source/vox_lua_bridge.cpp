@@ -344,6 +344,28 @@ int luaf_voxUpdate(lua_State* state) {
 	return 0;
 }
 
+#ifdef VOXELATE_SERVER
+int luaf_voxSendChunks(lua_State* state) {
+	int index = LUA->GetNumber(1);
+	int peerID = LUA->GetNumber(2);
+	int x = LUA->GetNumber(3);
+	int y = LUA->GetNumber(4);
+	int z = LUA->GetNumber(5);
+	int radius = LUA->GetNumber(6);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+
+	if (v != nullptr) {
+		lua_pushboolean(state, v->sendChunksAround(peerID, {x, y, z}, radius));
+	}
+	else {
+		lua_pushboolean(state, false);
+	}
+
+	return 0;
+}
+#endif
+
 int luaf_voxTrace(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
@@ -487,6 +509,11 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");
+
+#ifdef VOXELATE_SERVER
+	LUA->PushCFunction(luaf_voxSendChunks);
+	LUA->SetField(-2, "voxSendChunks");
+#endif
 
 #ifdef VOXELATE_LUA_HOTLOADING
 	LUA->PushCFunction(luaf_voxReadFile);
