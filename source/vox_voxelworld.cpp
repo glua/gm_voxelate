@@ -244,7 +244,7 @@ void voxelworld_initialise_networking_static() {
 				for (Coord z = 0; z < radius; z++) {
 					auto dataSize = reader.ReadUBitLong(16);
 
-					char chunkData[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2];
+					char chunkData[9000];
 					reader.ReadBytes(chunkData, dataSize);
 
 					world->setChunkData(origin[0] + x, origin[1] + y, origin[2] + z, chunkData, dataSize);
@@ -286,7 +286,7 @@ bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 	for (Coord x = 0; x < radius; x++) {
 		for (Coord y = 0; y < radius; y++) {
 			for (Coord z = 0; z < radius; z++) {
-				char chunkData[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2];
+				char chunkData[9000];
 				int len = getChunkData(pos[0] + x, pos[1] + y, pos[2] + z, chunkData);
 
 				writer.WriteUBitLong(len, 16);
