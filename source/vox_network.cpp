@@ -24,6 +24,7 @@ ENetPeer* peer;
 #include <thread>
 #include <mutex>
 
+std::mutex eventMutex;
 std::thread* eventLoopThread;
 void networkEventLoop();
 
@@ -193,6 +194,7 @@ int lua_network_sendpacket(lua_State* state) {
 
 	ENetPacket* packet = enet_packet_create(data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 
+	eventMutex.lock();
 	if (enet_peer_send(peer, static_cast<enet_uint8>(channel), packet) != 0) {
 		enet_packet_destroy(packet);
 
@@ -200,6 +202,7 @@ int lua_network_sendpacket(lua_State* state) {
 		lua_error(state);
 		return 0;
 	}
+	eventMutex.unlock();
 
 	// enet_host_flush(VOX_ENET_HOST);
 
@@ -219,6 +222,8 @@ int lua_network_connect(lua_State* state) {
 
 	address.port = VOX_NETWORK_PORT;
 
+	eventMutex.lock();
+
 	peer = enet_host_connect(client, &address, VOX_NETWORK_MAX_CHANNELS, 0);
 	if (peer == NULL) {
 		lua_pushnil(state);
@@ -236,6 +241,8 @@ int lua_network_connect(lua_State* state) {
 
 		peer->data = peerData;
 
+		eventMutex.unlock();
+
 		eventLoopThread = new std::thread(networkEventLoop);
 
 		eventLoopThread->detach();
@@ -245,6 +252,7 @@ int lua_network_connect(lua_State* state) {
 	}
 	else {
 		enet_peer_reset(peer);
+		eventMutex.unlock();
 
 		lua_pushnil(state);
 		lua_pushstring(state, "Connection to server failed.");
@@ -255,31 +263,33 @@ int lua_network_connect(lua_State* state) {
 #endif
 
 std::vector<ENetEvent *> events;
-std::mutex eventMutex;
 
 void networkEventLoop() {
-	/* Wait up to 1000 milliseconds for an event. */
-
 	while (!terminated) {
+		eventMutex.lock();
 		auto event = new ENetEvent();
-		if (enet_host_service(VOX_ENET_HOST, event, 1000) > 0) {
-			eventMutex.lock();
+
+		if (enet_host_service(VOX_ENET_HOST, event, 0) > 0) { // non blocking mode
 			events.push_back(event);
-			eventMutex.unlock();
 		}
 		else {
 			delete event;
 		}
+
+		eventMutex.unlock();
 	}
 }
 
 #ifdef VOXELATE_SERVER
 int lua_network_disconnectPeer(lua_State* state) {
+	eventMutex.lock();
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
 	auto it = peers.find(peerID);
 
 	if (it == peers.end()) {
+		eventMutex.unlock();
+
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
@@ -288,16 +298,20 @@ int lua_network_disconnectPeer(lua_State* state) {
 	auto peer = it->second;
 
 	enet_peer_disconnect(peer, 0);
+	eventMutex.unlock();
 
 	return 0;
 }
 
 int lua_network_resetPeer(lua_State* state) {
+	eventMutex.lock();
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
 	auto it = peers.find(peerID);
 
 	if (it == peers.end()) {
+		eventMutex.unlock();
+
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
@@ -316,15 +330,19 @@ int lua_network_resetPeer(lua_State* state) {
 		}
 	}
 
+	eventMutex.unlock();
+
 	return 0;
 }
 
 int lua_network_getPeerSteamID(lua_State* state) {
+	eventMutex.lock();
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
 	auto it = peers.find(peerID);
 
 	if (it == peers.end()) {
+		eventMutex.unlock();
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
@@ -336,15 +354,20 @@ int lua_network_getPeerSteamID(lua_State* state) {
 
 	lua_pushstring(state, peerData->steamID.c_str());
 
+	eventMutex.unlock();
+
 	return 1;
 }
 
 int lua_network_setPeerSteamID(lua_State* state) {
+	eventMutex.lock();
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
 	auto it = peers.find(peerID);
 
 	if (it == peers.end()) {
+		eventMutex.unlock();
+
 		lua_pushstring(state, "can't find peer");
 		lua_error(state);
 		return 0;
@@ -355,6 +378,8 @@ int lua_network_setPeerSteamID(lua_State* state) {
 	auto peerData = (PeerData*)peer->data;
 
 	peerData->steamID = luaL_checkstring(state, 2);
+
+	eventMutex.unlock();
 
 	return 0;
 }
@@ -498,16 +523,20 @@ namespace networking {
 	bool channelSend(uint16_t channelID, void* data, int size, bool unreliable) {
 #endif
 
+		eventMutex.lock();
+
 #ifdef VOXELATE_SERVER
 		auto it = peers.find(peerID);
 
 		if (it == peers.end()) {
+			eventMutex.unlock();
 			return false;
 		}
 
 		auto peer = it->second;
 #else
 		if (peer == NULL) {
+			eventMutex.unlock();
 			return false;
 		}
 #endif
@@ -519,6 +548,8 @@ namespace networking {
 		// enet_host_flush(VOX_ENET_HOST);
 
 		enet_packet_destroy(packet);
+
+		eventMutex.unlock();
 
 		return true;
 	}
