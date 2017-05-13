@@ -43,9 +43,9 @@ function Router:StartENet()
 
 	self.voxelate.io:PrintDebug("Connecting to %s...",serverIP)
 
-	local suc,err = self.voxelate.module.networkConnect(serverIP)
+	self.voxelate.module.networkConnect(serverIP)
 
-	if suc then
+	--[[if suc then
 		self.voxelate.io:Print("Now connected to %s via ENet!",serverIP)
 
 		self:SendInChannel("AuthHandshake",self.clientPUID)
@@ -58,7 +58,7 @@ function Router:StartENet()
 		self.packetsToSendOnReady = {}
 	else
 		self.voxelate.io:PrintError("Couldn't connect to %s via ENet: %s",serverIP,tostring(err))
-	end
+	end]]
 end
 
 function Router:IncomingPacket(data,channelID)

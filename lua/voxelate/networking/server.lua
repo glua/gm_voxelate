@@ -18,14 +18,7 @@ function Router:__ctor(voxelate)
 
 	self.PeerAddress = {} -- {[PeerID] = IPAddress}
 
-	hook.Add("VoxNetworkConnect","Voxelate.Networking",function(peerID,addressNum)
-		local address = string.format(
-			"%d.%d.%d.%d",
-			bit.band(addressNum,0x000000FF),
-			bit.rshift(bit.band(addressNum,0x0000FF00),8),
-			bit.rshift(bit.band(addressNum,0x00FF0000),16),
-			bit.rshift(bit.band(addressNum,0xFF000000),24)
-		)
+	hook.Add("VoxNetworkConnect","Voxelate.Networking",function(peerID,address)
 
 		self.voxelate.io:PrintDebug("A new ENet Peer [%d] has connected from %s",peerID,address)
 		self.PeerAddress[peerID] = address
