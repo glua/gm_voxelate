@@ -57,7 +57,7 @@ function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)
 
 	self.voxelate:SetWorldConfig(worldID,config)
 
-	gm_voxelate.module.voxNewWorld(config,worldID)
+	self.voxelate.module.voxNewWorld(config,worldID)
 
 	self:RequestVoxelStartupChunks(worldID,0,0,0,3)
 end
