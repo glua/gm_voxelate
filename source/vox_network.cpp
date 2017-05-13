@@ -271,6 +271,7 @@ namespace networking {
 #else
 	bool channelSend(uint16_t channelID, void* data, int size, bool unreliable) {
 #endif
+		channelID += VOX_NETWORK_CPP_CHANNEL_START;
 
 #ifdef VOXELATE_SERVER
 		server.send_packet_to(peerID, channelID, (const enet_uint8*)data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
