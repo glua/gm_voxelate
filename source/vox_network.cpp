@@ -497,10 +497,6 @@ namespace networking {
 		writer.WriteUBitLong(channelID, 16);
 		writer.WriteBytes(data, size);
 
-		if (peer == NULL) {
-			return false;
-		}
-
 #ifdef VOXELATE_SERVER
 		auto it = peers.find(peerID);
 
@@ -509,6 +505,10 @@ namespace networking {
 		}
 
 		auto peer = it->second;
+#else
+		if (peer == NULL) {
+			return false;
+		}
 #endif
 
 		ENetPacket* packet = enet_packet_create(data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
