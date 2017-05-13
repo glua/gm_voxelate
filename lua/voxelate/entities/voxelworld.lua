@@ -10,38 +10,40 @@ end
 
 function ENT:Initialize()
 	if SERVER then
-		local index = gm_voxelate.module.voxNew(-1)
-
-		self:SetInternalIndex(index)
-
 		local config = self.config
 		self.config = nil
 
 		config._ent = self
 
-        gm_voxelate:AddVoxelWorld(index,self,config)
+		local index = gm_voxelate.module.voxNewWorld(config)
 
-		gm_voxelate.module.voxInit(index,config)
-		gm_voxelate.module.voxEnableMeshGeneration(index,true)
+		self:SetInternalIndex(index)
+
+        gm_voxelate:SetWorldConfig(index,config)
+
+		self:SetupBounds(config)
+
+		if config.generator then
+			self:generate(config.generator)
+		end
 	else
 		local index = self:GetInternalIndex()
-
-        gm_voxelate:AddVoxelWorld(index,self)
-
-		gm_voxelate.module.voxNew(index)
 
 		gm_voxelate.channels.voxelWorldInit:RequestVoxelWorldConfig(index)
 	end
 end
 
 -- Called by module... We can probably just call it directly though.
-function ENT:_initMisc(size_x,size_y,size_z)
+function ENT:SetupBounds(config)
 	print("misc init")
 	self:EnableCustomCollisions(true)
 	self:SetSolid(SOLID_BBOX)
 
+	local dims = config.dimensions or Vector(16,16,16)
+	local scale = config.scale or 32
+
 	local mins = Vector(0,0,0)
-	local maxs = Vector(size_x,size_y,size_z)
+	local maxs = dims*scale
 
 	self.correct_maxs = maxs
 
@@ -103,8 +105,8 @@ if SERVER then
 	function ENT:generate(f)
 		local index = self:GetInternalIndex()
 		gm_voxelate.module.voxGenerate(index,f)
-		gm_voxelate.module.voxReInit(index)
-		gm_voxelate.module.voxFlagAllChunksForUpdate(index)
+		--gm_voxelate.module.voxReInit(index)
+		--gm_voxelate.module.voxFlagAllChunksForUpdate(index)
 	end
 end
 

@@ -28,10 +28,10 @@
 
 std::vector<VoxelWorld*> indexedVoxelWorldRegistry;
 
-int newIndexedVoxelWorld(int index) {
+int newIndexedVoxelWorld(int index, VoxelConfig& config) {
 	if (index == -1) {
 		auto idx = indexedVoxelWorldRegistry.size();
-		auto world = new VoxelWorld();
+		auto world = new VoxelWorld(config);
 
 		world->worldID = idx;
 
@@ -40,7 +40,7 @@ int newIndexedVoxelWorld(int index) {
 		return idx;
 	}
 	else {
-		indexedVoxelWorldRegistry.insert(indexedVoxelWorldRegistry.begin() + index, new VoxelWorld());
+		indexedVoxelWorldRegistry.insert(indexedVoxelWorldRegistry.begin() + index, new VoxelWorld(config));
 		return index;
 	}
 }
@@ -70,6 +70,15 @@ void deleteAllIndexedVoxelWorlds() {
 	}
 }
 
+VoxelWorld::VoxelWorld(VoxelConfig& config) {
+	this->config = config;
+
+	if (config.atlasMaterial != nullptr)
+		config.atlasMaterial->IncrementReferenceCount();
+
+	initialize();
+}
+
 VoxelWorld::~VoxelWorld() {
 	for (auto it : chunks_map) {
 		// Pretty sure chunk pointers should never be null but I guess it can't hurt to check
@@ -81,8 +90,8 @@ VoxelWorld::~VoxelWorld() {
 	// Don't think this is needed but W/E
 	chunks_map.clear();
 
-	if (config)
-		delete config;
+	if (config.atlasMaterial != nullptr)
+		config.atlasMaterial->DecrementReferenceCount();
 }
 
 VoxelChunk* VoxelWorld::initChunk(Coord x, Coord y, Coord z) {
@@ -150,18 +159,19 @@ void VoxelWorld::setChunkData(Coord x, Coord y, Coord z, const char* data_compre
 
 }
 
-void VoxelWorld::initialize(VoxelConfig* config) {
-	this->config = config;
+// used to be called by some stupid shit
+// now always called by ctor
+void VoxelWorld::initialize() {
 
 	// YO 3D LOOP TIME NIGGA
 	// TODO: remove this and only add chunks when entities are nearby
 	// TODO: remove this entirely actually, this only generates positive int chunks, but we're going arbitrary...
 	if (IS_SERVERSIDE) {
 		// Only explicitly init the map on the server
-		if (!config->huge) {
-			Coord max_chunk_x = (config->dims_x - 1) / VOXEL_CHUNK_SIZE;
-			Coord max_chunk_y = (config->dims_y - 1) / VOXEL_CHUNK_SIZE;
-			Coord max_chunk_z = (config->dims_z - 1) / VOXEL_CHUNK_SIZE;
+		if (!config.huge) {
+			Coord max_chunk_x = (config.dims_x - 1) / VOXEL_CHUNK_SIZE;
+			Coord max_chunk_y = (config.dims_y - 1) / VOXEL_CHUNK_SIZE;
+			Coord max_chunk_z = (config.dims_z - 1) / VOXEL_CHUNK_SIZE;
 
 
 			vox_print("---> %i %i %i",max_chunk_x,max_chunk_y,max_chunk_z);
@@ -179,28 +189,23 @@ void VoxelWorld::initialize(VoxelConfig* config) {
 			vox_print("HUGE WORLDS NOT IMPLEMENTED YET!");
 		}
 	}
-
-	initialised = true;
-}
-
-bool VoxelWorld::isInitialized() {
-	return initialised;
 }
 
 // Warning: We don't give a shit about this with huge worlds!
 Vector VoxelWorld::getExtents() {
 
 	return Vector(
-		config->dims_x*config->scale,
-		config->dims_y*config->scale,
-		config->dims_z*config->scale
+		config.dims_x*config.scale,
+		config.dims_y*config.scale,
+		config.dims_z*config.scale
 	);
 }
 
-void VoxelWorld::getCellExtents(int& x, int &y, int &z) {
-	x = config->dims_x;
-	y = config->dims_y;
-	z = config->dims_z;
+void VoxelWorld::getCellExtents(Coord& x, Coord& y, Coord& z) {
+
+	x = config.dims_x;
+	y = config.dims_y;
+	z = config.dims_z;
 }
 
 // This was added for my dumbass lua networking. A modified version that dont use source vectors
@@ -214,17 +219,6 @@ std::vector<Vector> VoxelWorld::getAllChunkPositions() {
 
 	return positions;
 }
-
-// Get real upset and flag every single chunk we know about for an update
-// This happens right after we receive all the chunks.
-// TODO prioritize based on distance from player
-// TODO need different logic for huge worlds
-/*void VoxelWorld::flagAllChunksForUpdate() {
-	// calling this is probably a VERY VERY VERY VERY bad idea once we have an infinite map working
-	for (auto it : chunks_new) {
-		chunks_flagged_for_update.insert(it.second);
-	}
-}*/
 
 void voxelworld_initialise_networking_static() {
 #ifdef VOXELATE_CLIENT
@@ -312,7 +306,7 @@ bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 // or clean out chunks_flagged_for_update when we unload chunks
 void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 	// On the server, we -NEED- the entity. Not so important on the client
-	if (updates_enabled && (!IS_SERVERSIDE || ent != nullptr)) {
+	if (!IS_SERVERSIDE || (ent != nullptr && config.buildPhysicsMesh) ) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
@@ -322,22 +316,13 @@ void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 	}
 }
 
-// Enables updates -- Client doesn't want to update until it has all the chunks
-// Going to need totally different logic for huge maps.
-// Might not hurt to totally ditch this logic and use some other method to determine
-// when chunks should start updating.
-void VoxelWorld::enableUpdates(bool enable) {
-	if (!IS_SERVERSIDE || (config->buildPhysicsMesh))
-		updates_enabled = enable;
-}
-
 // Function for line traces. Re-scales vectors and moves the start to the beggining of the voxel entity,
 // Then calls fast trace function
 VoxelTraceRes VoxelWorld::doTrace(Vector startPos, Vector delta) {
 	Vector voxel_extents = getExtents();
 
 	if (startPos.WithinAABox(Vector(0,0,0), voxel_extents)) {
-		return iTrace(startPos/config->scale , delta/config->scale, Vector(0,0,0)) * config->scale;
+		return iTrace(startPos/config.scale , delta/config.scale, Vector(0,0,0)) * config.scale;
 	}
 	else {
 		Ray_t ray;
@@ -348,7 +333,7 @@ VoxelTraceRes VoxelWorld::doTrace(Vector startPos, Vector delta) {
 		startPos = tr.endpos;
 		delta *= 1-tr.fraction;
 
-		return iTrace(startPos / config->scale, delta / config->scale, tr.plane.normal) * config->scale;
+		return iTrace(startPos / config.scale, delta / config.scale, tr.plane.normal) * config.scale;
 	}
 }
 
@@ -363,7 +348,7 @@ VoxelTraceRes VoxelWorld::doTraceHull(Vector startPos, Vector delta, Vector exte
 	Vector box_upper = startPos + Vector(extents.x, extents.y, extents.z*2);
 
 	if (IsBoxIntersectingBox(box_lower,box_upper,Vector(0,0,0),voxel_extents)) {
-		return iTraceHull(startPos/config->scale,delta/config->scale,extents/config->scale, Vector(0,0,0)) * config->scale;
+		return iTraceHull(startPos/config.scale,delta/config.scale,extents/config.scale, Vector(0,0,0)) * config.scale;
 	}
 	else {
 		Ray_t ray;
@@ -374,7 +359,7 @@ VoxelTraceRes VoxelWorld::doTraceHull(Vector startPos, Vector delta, Vector exte
 		startPos = tr.endpos;
 		delta *= 1 - tr.fraction;
 
-		return iTraceHull(startPos / config->scale, delta / config->scale, extents / config->scale, tr.plane.normal) * config->scale;
+		return iTraceHull(startPos / config.scale, delta / config.scale, extents / config.scale, tr.plane.normal) * config.scale;
 	}
 }
 
@@ -385,7 +370,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 	int vz = startPos.z;
 
 	uint16 vdata = get(vx, vy, vz);
-	VoxelType& vt = config->voxelTypes[vdata];
+	VoxelType& vt = config.voxelTypes[vdata];
 	if (vt.form == VFORM_CUBE) {
 		VoxelTraceRes res;
 		res.fraction = 0;
@@ -437,7 +422,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 					return VoxelTraceRes();
 				vx += stepX;
 				tMaxX += tDeltaX;
-				if (vx < 0 || vx >= config->dims_x)
+				if (vx < 0 || vx >= config.dims_x)
 					return VoxelTraceRes();
 				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
 			}
@@ -446,7 +431,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= config->dims_z)
+				if (vz < 0 || vz >= config.dims_z)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -457,7 +442,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 					return VoxelTraceRes();
 				vy += stepY;
 				tMaxY += tDeltaY;
-				if (vy < 0 || vy >= config->dims_y)
+				if (vy < 0 || vy >= config.dims_y)
 					return VoxelTraceRes();
 				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
 			}
@@ -466,13 +451,13 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= config->dims_z)
+				if (vz < 0 || vz >= config.dims_z)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
 		}
 		uint16 vdata = get(vx, vy, vz);
-		VoxelType& vt = config->voxelTypes[vdata];
+		VoxelType& vt = config.voxelTypes[vdata];
 		if (vt.form == VFORM_CUBE) {
 			VoxelTraceRes res;
 			if (dir == DIR_X_POS) {
@@ -524,7 +509,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 		for (int iy = startPos.y - extents.y + epsilon; iy <= startPos.y + extents.y-epsilon; iy++) {
 			for (int iz = startPos.z + epsilon; iz <= startPos.z + extents.z * 2-epsilon; iz++) {
 				uint16 vdata = get(ix, iy, iz);
-				VoxelType& vt = config->voxelTypes[vdata];
+				VoxelType& vt = config.voxelTypes[vdata];
 				if (vt.form == VFORM_CUBE) {
 					VoxelTraceRes res;
 					res.fraction = 0;
@@ -599,7 +584,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 					return VoxelTraceRes();
 				vx += stepX;
 				tMaxX += tDeltaX;
-				if (vx < 0 || vx >= config->dims_x)
+				if (vx < 0 || vx >= config.dims_x)
 					return VoxelTraceRes();
 				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
 			}
@@ -608,7 +593,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= config->dims_z)
+				if (vz < 0 || vz >= config.dims_z)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -619,7 +604,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 					return VoxelTraceRes();
 				vy += stepY;
 				tMaxY += tDeltaY;
-				if (vy < 0 || vy >= config->dims_y)
+				if (vy < 0 || vy >= config.dims_y)
 					return VoxelTraceRes();
 				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
 			}
@@ -628,7 +613,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= config->dims_z)
+				if (vz < 0 || vz >= config.dims_z)
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -641,7 +626,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 			for (int iy = baseY - extents.y + epsilon; iy <= baseY + extents.y - epsilon; iy++) {
 				for (int iz = baseZ + epsilon; iz <= baseZ + extents.z * 2 - epsilon; iz++) {
 					uint16 vdata = get(vx, iy, iz);
-					VoxelType& vt = config->voxelTypes[vdata];
+					VoxelType& vt = config.voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
 						res.fraction = t;
@@ -668,7 +653,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 			for (int ix = baseX - extents.x + epsilon; ix <= baseX + extents.x - epsilon; ix++) {
 				for (int iz = baseZ + epsilon; iz <= baseZ + extents.z * 2 - epsilon; iz++) {
 					uint16 vdata = get(ix, vy, iz);
-					VoxelType& vt = config->voxelTypes[vdata];
+					VoxelType& vt = config.voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
 						res.fraction = t;
@@ -695,7 +680,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 			for (int ix = baseX - extents.x + epsilon; ix <= baseX + extents.x - epsilon; ix++) {
 				for (int iy = baseY - extents.y + epsilon; iy <= baseY + extents.y - epsilon; iy++) {
 					uint16 vdata = get(ix, iy, vz);
-					VoxelType& vt = config->voxelTypes[vdata];
+					VoxelType& vt = config.voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
 						res.fraction = t;
@@ -725,10 +710,8 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 // Render every single chunk.
 // TODO for huge worlds, only render close chunks
 void VoxelWorld::draw() {
-	if (!isInitialized())
-		return;
 
-	IMaterial* atlasMat = config->atlasMaterial;
+	IMaterial* atlasMat = config.atlasMaterial;
 
 	CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 
@@ -804,7 +787,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 	//bool buildExterior; TODO see if this broke anything
 	//if (STATE_CLIENT)
-	bool buildExterior = system->config->buildExterior;
+	bool buildExterior = system->config.buildExterior;
 
 	int lower_bound_x = (buildExterior && posX == 0) ? -1 : 0;
 	int lower_bound_y = (buildExterior && posY == 0) ? -1 : 0;
@@ -815,7 +798,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 	//int upper_bound_y = next_chunk_y != nullptr ? VOXEL_CHUNK_SIZE : upper_bound_def;
 	//int upper_bound_z = next_chunk_z != nullptr ? VOXEL_CHUNK_SIZE : upper_bound_def;
 
-	VoxelType* blockTypes = system->config->voxelTypes;
+	VoxelType* blockTypes = system->config.voxelTypes;
 
 	for (int x = lower_bound_x; x < VOXEL_CHUNK_SIZE; x++) {
 		for (int y = lower_bound_y; y < VOXEL_CHUNK_SIZE; y++) {
@@ -1005,11 +988,11 @@ void VoxelChunk::meshStop(CBaseEntity* ent) {
 }
 
 void VoxelChunk::addFullVoxelFace(Coord x, Coord y, Coord z, int tx, int ty, byte dir) {
-	double realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config->scale;
-	double realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config->scale;
-	double realZ = (z + posZ*VOXEL_CHUNK_SIZE) * system->config->scale;
+	double realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+	double realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+	double realZ = (z + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
 
-	double realStep = system->config->scale;
+	double realStep = system->config.scale;
 
 	if (!IS_SERVERSIDE) {
 		if (verts_remaining < 4) {
@@ -1018,7 +1001,7 @@ void VoxelChunk::addFullVoxelFace(Coord x, Coord y, Coord z, int tx, int ty, byt
 		}
 		verts_remaining -= 4;
 
-		VoxelConfig* cl_config = system->config;
+		VoxelConfig* cl_config = &(system->config);
 
 		double uMin = ((double)tx / cl_config->atlasWidth) + cl_config->_padding_x;
 		double uMax = ((tx + 1.0) / cl_config->atlasWidth) - cl_config->_padding_x;

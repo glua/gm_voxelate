@@ -406,7 +406,7 @@ if(gmod) then
 	registerSerializer {
 		code = "v",
 		serialize = function(obj)
-			return "v",s_format("^%f,%f,%f$",obj.x,obj.y,obj.z)
+			return "v",s_format("%f,%f,%f",obj.x,obj.y,obj.z)
 		end,
 		deserialize = function(data)
 			local x,y,z = s_match(data,"^([%d.]+),([%d.]+),([%d.]+)$")
@@ -418,7 +418,7 @@ if(gmod) then
 	registerSerializer {
 		code = "c",
 		serialize = function(obj)
-			return "c",s_format("^%f,%f,%f,%f$",obj.r,obj.g,obj.b)
+			return "c",s_format("%f,%f,%f,%f",obj.r,obj.g,obj.b)
 		end,
 		deserialize = function(data)
 			local r,g,b,a = s_match(data,"^([%d.]+),([%d.]+),([%d.]+),([%d.]+)$")

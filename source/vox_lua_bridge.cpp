@@ -55,171 +55,166 @@ void elua_pushVector(lua_State* state, Vector v) {
 	*/
 }
 
+bool config_bool(lua_State* state, const char* name, bool default_value) {
+	LUA->GetField(1, name);
+	if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
+		default_value = LUA->GetBool();
+	LUA->Pop();
+
+	return default_value;
+}
+
+double config_num(lua_State* state, const char* name, double default_value) {
+	LUA->GetField(1, name);
+	if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER))
+		default_value = LUA->GetNumber();
+	LUA->Pop();
+
+	return default_value;
+}
+
+const char* config_string(lua_State* state, const char* name, const char* default_value) {
+	LUA->GetField(1, name);
+	if (LUA->IsType(-1, GarrysMod::Lua::Type::STRING))
+		default_value = LUA->GetString();
+	LUA->Pop();
+
+	return default_value;
+}
+
+Vector config_vector(lua_State* state, const char* name, Vector default_value) {
+	LUA->GetField(1, name);
+	if (LUA->IsType(-1, GarrysMod::Lua::Type::VECTOR))
+		default_value = elua_getVector(state, -1);
+	LUA->Pop();
+
+	return default_value;
+}
 
 
-int luaf_voxNew(lua_State* state) {
-	LUA->PushNumber(newIndexedVoxelWorld(LUA->GetNumber(1)));
+//Friend function of VoxelWorld, handles all configuration.
+//Todo use some sort of struct for config and shove it into the voxels class
+int luaf_voxNewWorld(lua_State* state) {
+
+	int index = -1;
+
+	if (LUA->IsType(2, GarrysMod::Lua::Type::NUMBER))
+		index = LUA->GetNumber(2);
+
+	VoxelConfig config;
+
+	// Dimensions
+	config.huge = config_bool(state, "huge", false);
+
+	Vector temp_dims = config_vector(state, "dimensions", Vector(VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE));
+	if (!config.huge) {
+
+		config.dims_x = temp_dims.x;
+		config.dims_y = temp_dims.y;
+		config.dims_z = temp_dims.z;
+
+		if (config.dims_x < 1 || config.dims_y < 1 || config.dims_z < 1) {
+			LUA->ThrowError("Invalid dimensions for voxel world.");
+		}
+	}
+
+	// Atlas crap
+	if (!IS_SERVERSIDE) {
+		const char* temp_mat_name = config_string(state, "atlasMaterial", "models/debug/debugwhite");
+		config.atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(temp_mat_name, nullptr);
+
+		config.atlasWidth = config_num(state, "atlasWidth", 1);
+		config.atlasHeight = config_num(state, "atlasHeight", 1);
+
+		if (config_bool(state, "atlasIsPadded", false)) {
+			config._padding_x = (config.atlasMaterial->GetMappingWidth() / config.atlasWidth / 4.0) / config.atlasMaterial->GetMappingWidth();
+			config._padding_y = (config.atlasMaterial->GetMappingHeight() / config.atlasHeight / 4.0) / config.atlasMaterial->GetMappingHeight();
+		}
+	}
+
+	// Mesh building options
+	config.buildPhysicsMesh = config_bool(state, "buildPhysicsMesh",false);
+	config.buildExterior = config_bool(state, "buildExterior", false);
+
+	// The rest of this is going to have to wait...
+	LUA->GetField(1, "voxelTypes");
+	if (LUA->IsType(-1, GarrysMod::Lua::Type::TABLE)) {
+		LUA->PushNil();
+		while (LUA->Next(-2)) {
+			if (LUA->IsType(-2, GarrysMod::Lua::Type::NUMBER)) {
+				VoxelType& vt = config.voxelTypes[static_cast<int>(LUA->GetNumber(-2))];
+				vt.form = VFORM_CUBE;
+				if (LUA->IsType(-1, GarrysMod::Lua::Type::TABLE)) {
+					LUA->GetField(-1, "atlasIndex");
+					if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+						int atlasIndex = LUA->GetNumber(-1);
+						AtlasPos atlasPos = AtlasPos(atlasIndex % config.atlasWidth, atlasIndex / config.atlasWidth);
+						vt.side_xPos = atlasPos;
+						vt.side_xNeg = atlasPos;
+						vt.side_yPos = atlasPos;
+						vt.side_yNeg = atlasPos;
+						vt.side_zPos = atlasPos;
+						vt.side_zNeg = atlasPos;
+					}
+					LUA->Pop();
+
+					LUA->GetField(-1, "atlasIndex_xPos");
+					if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+						int atlasIndex = LUA->GetNumber(-1);
+						vt.side_xPos = AtlasPos(atlasIndex % config.atlasWidth, atlasIndex / config.atlasWidth);
+					}
+					LUA->Pop();
+
+					LUA->GetField(-1, "atlasIndex_xNeg");
+					if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+						int atlasIndex = LUA->GetNumber(-1);
+						vt.side_xNeg = AtlasPos(atlasIndex % config.atlasWidth, atlasIndex / config.atlasWidth);
+					}
+					LUA->Pop();
+
+					LUA->GetField(-1, "atlasIndex_yPos");
+					if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+						int atlasIndex = LUA->GetNumber(-1);
+						vt.side_yPos = AtlasPos(atlasIndex % config.atlasWidth, atlasIndex / config.atlasWidth);
+					}
+					LUA->Pop();
+
+					LUA->GetField(-1, "atlasIndex_yNeg");
+					if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+						int atlasIndex = LUA->GetNumber(-1);
+						vt.side_yNeg = AtlasPos(atlasIndex % config.atlasWidth, atlasIndex / config.atlasWidth);
+					}
+					LUA->Pop();
+
+					LUA->GetField(-1, "atlasIndex_zPos");
+					if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+						int atlasIndex = LUA->GetNumber(-1);
+						vt.side_zPos = AtlasPos(atlasIndex % config.atlasWidth, atlasIndex / config.atlasWidth);
+					}
+					LUA->Pop();
+
+					LUA->GetField(-1, "atlasIndex_zNeg");
+					if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
+						int atlasIndex = LUA->GetNumber(-1);
+						vt.side_zNeg = AtlasPos(atlasIndex % config.atlasWidth, atlasIndex / config.atlasWidth);
+					}
+					LUA->Pop();
+
+				}
+			}
+			LUA->Pop();
+		}
+	}
+	LUA->Pop();
+
+	index = newIndexedVoxelWorld(index, config);
+
+	LUA->PushNumber(index);
 
 	return 1;
 }
 
-//Friend function of VoxelWorld, handles all configuration.
-//Todo use some sort of struct for config and shove it into the voxels class
-int luaf_voxInit(lua_State* state) {
-	int index = LUA->GetNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v != nullptr) {
-		VoxelConfig* config = new VoxelConfig();
-		if (IS_SERVERSIDE) {
-			LUA->GetField(2, "useMeshCollisions");
-			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
-				config->buildPhysicsMesh = LUA->GetBool();
-			LUA->Pop();
-		}
-		else {
-			LUA->GetField(2, "drawExterior");
-			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
-				config->buildExterior = LUA->GetBool();
-			LUA->Pop();
-
-			LUA->GetField(2, "atlasWidth");
-			if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-				config->atlasWidth = LUA->GetNumber();
-			}
-			LUA->Pop();
-
-			LUA->GetField(2, "atlasHeight");
-			if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER))
-				config->atlasHeight = LUA->GetNumber();
-			LUA->Pop();
-
-			LUA->GetField(2, "atlasMaterial");
-			if (LUA->IsType(-1, GarrysMod::Lua::Type::STRING))
-				config->atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(LUA->GetString(-1), nullptr);
-			else
-				config->atlasMaterial = IFACE_CL_MATERIALS->FindMaterial("models/debug/debugwhite", nullptr);
-			LUA->Pop();
-
-			config->atlasMaterial->IncrementReferenceCount();
-
-			LUA->GetField(2, "atlasIsPadded");
-			if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL) && LUA->GetBool()) {
-				config->_padding_x = (config->atlasMaterial->GetMappingWidth() / config->atlasWidth / 4.0) / config->atlasMaterial->GetMappingWidth();
-				config->_padding_y = (config->atlasMaterial->GetMappingHeight() / config->atlasHeight / 4.0) / config->atlasMaterial->GetMappingHeight();
-			}
-			LUA->Pop();
-
-			//vox_print("%f <-> %f", config->cl_pixel_bias_x, config->cl_pixel_bias_y);
-		}
-
-		LUA->GetField(2, "dimensions");
-		if (LUA->IsType(-1, GarrysMod::Lua::Type::VECTOR)) {
-			Vector dims = elua_getVector(state, -1);
-			if (dims.x >= 1 && dims.y >= 1 && dims.z >= 1) {
-				config->dims_x = dims.x;
-				config->dims_y = dims.y;
-				config->dims_z = dims.z;
-			}
-		}
-		LUA->Pop();
-
-		LUA->GetField(2, "scale");
-		if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-			double n = LUA->GetNumber();
-			if (n > 0) {
-				config->scale = n;
-			}
-		}
-		LUA->Pop();
-
-		LUA->GetField(2, "voxelTypes");
-		if (LUA->IsType(-1, GarrysMod::Lua::Type::TABLE)) {
-			LUA->PushNil();
-			while (LUA->Next(-2)) {
-				if (LUA->IsType(-2, GarrysMod::Lua::Type::NUMBER)) {
-					VoxelType& vt = config->voxelTypes[static_cast<int>(LUA->GetNumber(-2))];
-					vt.form = VFORM_CUBE;
-					if (LUA->IsType(-1, GarrysMod::Lua::Type::TABLE)) {
-						LUA->GetField(-1, "atlasIndex");
-						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-							int atlasIndex = LUA->GetNumber(-1);
-							AtlasPos atlasPos = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
-							vt.side_xPos = atlasPos;
-							vt.side_xNeg = atlasPos;
-							vt.side_yPos = atlasPos;
-							vt.side_yNeg = atlasPos;
-							vt.side_zPos = atlasPos;
-							vt.side_zNeg = atlasPos;
-						}
-						LUA->Pop();
-
-						LUA->GetField(-1, "atlasIndex_xPos");
-						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_xPos = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
-						}
-						LUA->Pop();
-
-						LUA->GetField(-1, "atlasIndex_xNeg");
-						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_xNeg = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
-						}
-						LUA->Pop();
-
-						LUA->GetField(-1, "atlasIndex_yPos");
-						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_yPos = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
-						}
-						LUA->Pop();
-
-						LUA->GetField(-1, "atlasIndex_yNeg");
-						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_yNeg = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
-						}
-						LUA->Pop();
-
-						LUA->GetField(-1, "atlasIndex_zPos");
-						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_zPos = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
-						}
-						LUA->Pop();
-
-						LUA->GetField(-1, "atlasIndex_zNeg");
-						if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER)) {
-							int atlasIndex = LUA->GetNumber(-1);
-							vt.side_zNeg = AtlasPos(atlasIndex % config->atlasWidth, atlasIndex / config->atlasWidth);
-						}
-						LUA->Pop();
-
-					}
-				}
-				LUA->Pop();
-			}
-		}
-		LUA->Pop();
-
-		v->initialize(config);
-
-		LUA->GetField(2, "_ent");
-		LUA->GetField(-1, "_initMisc");
-		LUA->Push(-2);
-		Vector extents = v->getExtents();
-		LUA->PushNumber(extents.x);
-		LUA->PushNumber(extents.y);
-		LUA->PushNumber(extents.z);
-		LUA->Call(4, 0);
-		LUA->Pop();
-	}
-
-	return 0;
-}
-
-int luaf_voxDelete(lua_State* state) {
+int luaf_voxDeleteWorld(lua_State* state) {
 	int index = LUA->GetNumber(1);
 	deleteIndexedVoxelWorld(index);
 	return 0;
@@ -260,29 +255,6 @@ int luaf_voxData(lua_State* state) {
 	return 1;
 }
 
-// TEMP?
-int luaf_getAllChunks(lua_State* state) {
-	int index = LUA->GetNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-
-	if (v == nullptr) {
-		return 0;
-	}
-
-	auto chunk_positions = v->getAllChunkPositions();
-	LUA->CreateTable();
-	int i = 1;
-	for (auto v : chunk_positions) {
-		LUA->PushNumber(i);
-		elua_pushVector(state, v);
-		LUA->SetTable(-3);
-		i++;
-	}
-
-	return 1;
-}
-
 int luaf_voxInitChunk(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
@@ -294,31 +266,6 @@ int luaf_voxInitChunk(lua_State* state) {
 
 		v->setChunkData(LUA->GetNumber(2), LUA->GetNumber(3), LUA->GetNumber(4), data, len);
 	}
-	return 0;
-}
-
-int luaf_voxEnableMeshGeneration(lua_State* state) {
-	int index = LUA->GetNumber(1);
-	bool enable = LUA->GetBool(2);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v) {
-		v->enableUpdates(enable);
-	}
-
-	return 0;
-}
-
-int luaf_voxFlagAllChunksForUpdate(lua_State* state) {
-	int index = LUA->GetNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v) {
-		vox_print("TRIED TO FLAG ALL CHUNKS!");
-		// BROKEN
-		//v->flagAllChunksForUpdate();
-	}
-
 	return 0;
 }
 
@@ -401,7 +348,7 @@ int luaf_voxTrace(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v != nullptr && v->isInitialized()) {
+	if (v != nullptr) {
 		Vector start = elua_getVector(state, 2);
 
 		Vector delta = elua_getVector(state, 3);
@@ -409,7 +356,6 @@ int luaf_voxTrace(lua_State* state) {
 		VoxelTraceRes r;
 		if (LUA->GetBool(4)) {
 			Vector extents = elua_getVector(state,5);
-
 			r = v->doTraceHull(start, delta, extents);
 		}
 		else {
@@ -509,14 +455,11 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->CreateTable();
 
-	LUA->PushCFunction(luaf_voxNew);
-	LUA->SetField(-2, "voxNew");
+	LUA->PushCFunction(luaf_voxNewWorld);
+	LUA->SetField(-2, "voxNewWorld");
 
-	LUA->PushCFunction(luaf_voxInit);
-	LUA->SetField(-2, "voxInit");
-
-	LUA->PushCFunction(luaf_voxDelete);
-	LUA->SetField(-2, "voxDelete");
+	LUA->PushCFunction(luaf_voxDeleteWorld);
+	LUA->SetField(-2, "voxDeleteWorld");
 
 	LUA->PushCFunction(luaf_voxDraw);
 	LUA->SetField(-2, "voxDraw");
@@ -526,15 +469,6 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushCFunction(luaf_voxInitChunk);
 	LUA->SetField(-2, "voxInitChunk");
-
-	LUA->PushCFunction(luaf_getAllChunks);
-	LUA->SetField(-2, "voxGetAllChunks");
-
-	LUA->PushCFunction(luaf_voxEnableMeshGeneration);
-	LUA->SetField(-2, "voxEnableMeshGeneration");
-
-	LUA->PushCFunction(luaf_voxFlagAllChunksForUpdate);
-	LUA->SetField(-2, "voxFlagAllChunksForUpdate");
 
 	LUA->PushCFunction(luaf_voxUpdate);
 	LUA->SetField(-2, "voxUpdate");
