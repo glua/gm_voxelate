@@ -156,8 +156,11 @@ void VoxelWorld::setChunkData(Coord x, Coord y, Coord z, const char* data_compre
 
 	VoxelChunk* chunk = initChunk(x, y, z);
 
-	fastlz_decompress(data_compressed, data_len, chunk->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
+	auto res = fastlz_decompress(data_compressed, data_len, chunk->voxel_data, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2);
 
+	if (res == 0) {
+		vox_print("VoxelWorld::setChunkData -> FastLZ decompression failed! [%i, %i, %i]", x, y, z);
+	}
 }
 
 // used to be called by some stupid shit
@@ -244,6 +247,12 @@ void voxelworld_initialise_networking_static() {
 
 		vox_print("Get chunk %i %i %i %i", worldID, pos[0], pos[1], pos[2]);
 
+		auto dataSize = reader.GetNumBytesLeft();
+
+		char chunkData[CHUNK_BUFFER_SIZE];
+		reader.ReadBytes(chunkData, dataSize);
+
+		world->setChunkData(pos[0], pos[1], pos[2], chunkData, dataSize);
 	});
 
 	networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, [&](int peerID, const char* data, size_t data_len) {
@@ -296,13 +305,11 @@ bool VoxelWorld::sendChunk(int peerID, XYZCoordinate pos) {
 	writer.WriteSBitLong(pos[1], 32);
 	writer.WriteSBitLong(pos[2], 32);
 
-	//int compressed_size = getChunkData(pos[0], pos[1], pos[2], msg + writer.GetNumBytesWritten());
+	int compressed_size = getChunkData(pos[0], pos[1], pos[2], msg + writer.GetNumBytesWritten());
 
 
-	//if (compressed_size == 0)
-	//	return false;
-
-	int compressed_size = 0;
+	if (compressed_size == 0)
+		return false;
 
 	vox_print("Send %i", writer.GetNumBytesWritten() + compressed_size);
 
