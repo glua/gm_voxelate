@@ -5,19 +5,22 @@
 #include <unordered_map>
 #include <algorithm>
 
-ENetAddress address;
-
 #ifdef VOXELATE_SERVER
-ENetHost* server;
 int nextPeerID = 0;
 std::unordered_map<int,ENetPeer*> peers;
 
-#define VOX_ENET_HOST server
-#else
-ENetHost* client;
-ENetPeer* peer;
+struct server_client {
+	unsigned int peerID;
+	std::string steamID;
+	unsigned int get_uid() const { return peerID; }
+};
 
-#define VOX_ENET_HOST client
+enetpp::server<server_client> server;
+#else
+// ENetHost* client;
+// ENetPeer* peer;
+
+enetpp::client client;
 #endif
 
 #include <string>
@@ -37,33 +40,21 @@ struct PeerData {
 #include "GarrysMod\LuaHelpers.hpp"
 
 bool network_startup() {
-	if (enet_initialize() != 0) {
-		Msg("ENet initialization failed...\n");
-
-		return false;
-	}
-
-	address.host = ENET_HOST_ANY;
-	address.port = VOX_NETWORK_PORT;
+	enetpp::global_state::get().initialize();
 
 #ifdef VOXELATE_SERVER
-	server = enet_host_create(&address, 128, static_cast<size_t>(VOX_NETWORK_MAX_CHANNELS), 0, 0);
+	auto init_client_func = [&](server_client& client, const char* ip) {
+		client.peerID = nextPeerID;
+		nextPeerID++;
+	};
 
-	if (server == NULL) {
-		Msg("ENet initialization failed at server creation...\n");
-
-		return false;
-	}
+	server.start_listening(enetpp::server_listen_params<server_client>()
+		.set_max_client_count(128)
+		.set_channel_count(VOX_NETWORK_MAX_CHANNELS)
+		.set_listen_port(VOX_NETWORK_PORT)
+		.set_initialize_client_function(init_client_func));
 
 	eventLoopThread = new std::thread(networkEventLoop);
-#else
-	client = enet_host_create(NULL, 1, static_cast<size_t>(VOX_NETWORK_MAX_CHANNELS), 0, 0);
-
-	if (client == NULL) {
-		Msg("ENet initialization failed at client creation...\n");
-
-		return false;
-	}
 #endif
 
 	return true;
@@ -75,82 +66,12 @@ void network_shutdown() {
 	terminated = true;
 
 #ifdef VOXELATE_SERVER
-	enet_host_destroy(server);
+	server.stop_listening();
 #else
-	enet_peer_disconnect(peer, 0);
-
-	bool disconnected = false;
-
-	ENetEvent event;
-
-	time_t startTime, endTime;
-	
-	startTime = time(NULL);
-
-	do {
-		endTime = time(NULL);
-		if (enet_host_service(client, &event, 3000) > 0) {
-			if (event.type == ENET_EVENT_TYPE_RECEIVE) {
-				enet_packet_destroy(event.packet);
-			}
-			else if(event.type == ENET_EVENT_TYPE_DISCONNECT) {
-				Msg("Successfully disconnected from ENet.\n");
-				disconnected = true;
-
-				break;
-			}
-		}
-		else {
-			break;
-		}
-	} while (difftime(endTime, startTime) <= 3.0); // loop for 3 seconds max
-
-	if (!disconnected) {
-		Msg("Forcefully disconnected from ENet...\n");
-		enet_peer_reset(peer);
-	}
-
-	enet_host_destroy(client);
+	client.disconnect();
 #endif
 
-	enet_deinitialize();
-}
-
-// thank https://github.com/danielga/gm_enet/blob/master/source/main.cpp#L12
-// modified to disable port numbers and ENET_HOST_ANY
-static bool ParseAddress(lua_State *state, const char *addr, ENetAddress &outputAddress) {
-	std::string addr_str = addr, host_str;
-	size_t pos = addr_str.find(':');
-	if (pos != addr_str.npos)
-	{
-		LUA->PushNil();
-		LUA->PushString("port number not allowed");
-		return false;
-	}
-	else {
-		host_str = addr_str;
-	}
-
-	if (host_str.empty())
-	{
-		LUA->PushNil();
-		LUA->PushString("invalid host name");
-		return false;
-	}
-
-	if (host_str == "*") {
-		LUA->PushNil();
-		LUA->PushString("wildcard host name disabled");
-		return false;
-	}
-	else if (enet_address_set_host(&outputAddress, host_str.c_str()) != 0)
-	{
-		LUA->PushNil();
-		LUA->PushString("failed to resolve host name");
-		return false;
-	}
-
-	return true;
+	enetpp::global_state::get().deinitialize();
 }
 
 int lua_network_sendpacket(lua_State* state) {
@@ -222,74 +143,17 @@ int lua_network_connect(lua_State* state) {
 	ENetEvent event;
 
 	std::string addrStr = luaL_checkstring(state, 1);
-	if (!ParseAddress(state, addrStr.c_str(), address)) {
-		return 2;
-	}
 
-	address.port = VOX_NETWORK_PORT;
+	auto params = enetpp::client_connect_params();
 
-	enetMutex.lock();
+	params.set_channel_count(VOX_NETWORK_MAX_CHANNELS);
+	params.set_server_host_name_and_port(addrStr.c_str(), VOX_NETWORK_PORT);
+	params.set_incoming_bandwidth(0);
+	params.set_outgoing_bandwidth(0);
 
-	peer = enet_host_connect(client, &address, VOX_NETWORK_MAX_CHANNELS, 0);
-	if (peer == NULL) {
-		lua_pushnil(state);
-		lua_pushstring(state, "No available peers for initiating an ENet connection.\n");
-		return 2;
-	}
-
-	if (enet_host_service(client, &event, 15000) > 0 &&
-		event.type == ENET_EVENT_TYPE_CONNECT) {
-
-		auto peerData = new PeerData();
-
-		peerData->steamID = "STEAM:0:0";
-		peerData->peerID = 0;
-
-		peer->data = peerData;
-
-		enetMutex.unlock();
-
-		eventLoopThread = new std::thread(networkEventLoop);
-
-		eventLoopThread->detach();
-
-		lua_pushboolean(state, true);
-		return 1;
-	}
-	else {
-		enet_peer_reset(peer);
-		enetMutex.unlock();
-
-		lua_pushnil(state);
-		lua_pushstring(state, "Connection to server failed.");
-
-		return 2;
-	}
+	client.connect(params);
 }
 #endif
-
-std::vector<ENetEvent *> events;
-std::mutex eventMutex;
-
-void networkEventLoop() {
-	while (!terminated) {
-		enetMutex.lock();
-		auto event = new ENetEvent();
-
-		if (enet_host_service(VOX_ENET_HOST, event, 25) > 0) { // non blocking mode
-			eventMutex.lock();
-			events.push_back(event);
-			eventMutex.unlock();
-		}
-		else {
-			delete event;
-		}
-
-		enetMutex.unlock();
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(5));
-	}
-}
 
 #ifdef VOXELATE_SERVER
 int lua_network_disconnectPeer(lua_State* state) {

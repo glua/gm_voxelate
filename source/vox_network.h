@@ -5,7 +5,10 @@
 
 #define VOX_NETWORK_PORT 42069
 
-#include "enet/enet.h"
+// #include "enet/enet.h"
+#include "enetpp/client.h"
+#include "enetpp/server.h"
+
 #include "glua.h"
 
 // looks like we have a max of 255 chans

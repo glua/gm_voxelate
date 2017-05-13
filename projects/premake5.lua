@@ -120,7 +120,7 @@ CreateWorkspace({name = "voxelate"})
 			luaEntryPoint("init.lua")
 			includeLua("../lua/**")
 
-		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../gm_sourcenet","../gm_adv_vectors"})
+		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
 		links({"fastlz","reactphysics3d","enet","gm_sourcenet","gm_adv_vectors"})
 
 		IncludeSDKCommon()
@@ -149,7 +149,7 @@ CreateWorkspace({name = "voxelate"})
 			luaEntryPoint("init.lua")
 			includeLua("../lua/**")
 
-		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../gm_sourcenet","../gm_adv_vectors"})
+		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
 		links({"fastlz","reactphysics3d","enet","gm_sourcenet","gm_adv_vectors"})
 
 		IncludeSDKCommon()
