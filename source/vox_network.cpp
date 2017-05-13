@@ -97,8 +97,6 @@ int lua_network_sendpacket(lua_State* state) {
 
 #ifdef VOXELATE_CLIENT
 int lua_network_connect(lua_State* state) {
-	ENetEvent event;
-
 	std::string addrStr = luaL_checkstring(state, 1);
 
 	auto params = enetpp::client_connect_params();
@@ -202,10 +200,10 @@ int lua_network_pollForEvents(lua_State* state) {
 		}
 		else {
 
-			int channelID = channelID - VOX_NETWORK_CPP_CHANNEL_START;
+			int adjustedChannelID = channelID - VOX_NETWORK_CPP_CHANNEL_START;
 
-			if (cppChannelCallbacks.find(channelID) != cppChannelCallbacks.end()) {
-				cppChannelCallbacks[channelID](peerID, (char*)data, data_size);
+			if (cppChannelCallbacks.find(adjustedChannelID) != cppChannelCallbacks.end()) {
+				cppChannelCallbacks[adjustedChannelID](peerID, (char*)data, data_size);
 			}
 		}
 	};

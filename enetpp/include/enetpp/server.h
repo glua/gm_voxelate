@@ -185,6 +185,7 @@ namespace enetpp {
 					return it;
 				}
 			}
+			return nullptr;
 		}
 
 	private:
