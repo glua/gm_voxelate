@@ -331,7 +331,7 @@ int vox_lua_vector_index(lua_State* state) {
 
 		LUA->PushMetaTable(metatype);
 
-		lua_getfield(state, -2, idx);
+		lua_getfield(state, -1, idx);
 	}
 	else {
 		lua_pushnil(state);
