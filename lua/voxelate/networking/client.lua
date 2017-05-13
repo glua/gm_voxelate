@@ -52,7 +52,7 @@ function Router:StartENet()
 		self.ready = true
 
 		for i,data in ipairs(self.packetsToSendOnReady) do
-			self.voxelate.module.networkSendPacket(data.channel,data.data,#data.data,data.unreliable)
+			self.voxelate.module.networkSendPacket(data.channel,data.data,data.unreliable)
 		end
 
 		self.packetsToSendOnReady = {}
@@ -69,7 +69,7 @@ function Router:SendInChannel(channelName,payloadData,unreliable)
 	assert(self.channelsEx[channelName],"Unknown channel: "..channelName)
 
 	if self.ready then
-		self.voxelate.module.networkSendPacket(self.channelsEx[channelName],payloadData,#payloadData,unreliable)
+		self.voxelate.module.networkSendPacket(self.channelsEx[channelName],payloadData,unreliable)
 	else
 		self.packetsToSendOnReady[#self.packetsToSendOnReady + 1] = {
 			data = payloadData,

@@ -5,11 +5,12 @@
 
 #define VOX_NETWORK_PORT 42069
 
-#define VOX_NETWORK_CPP_CHANNEL_START 512
-#define VOX_NETWORK_MAX_CHANNELS 1024
-
 #include "enet/enet.h"
 #include "glua.h"
+
+// looks like we have a max of 255 chans
+#define VOX_NETWORK_CPP_CHANNEL_START 128
+static enet_uint8 VOX_NETWORK_MAX_CHANNELS = 255;
 
 #include <functional>
 #include <string>

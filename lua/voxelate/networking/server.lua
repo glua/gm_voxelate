@@ -142,7 +142,7 @@ function Router:SendInChannel(channelName,payloadData,peerID,unreliable)
 
 	local channelNum = self.channelsEx[channelName]
 
-	self.voxelate.module.networkSendPacket(channelNum,payloadData,#payloadData,unreliable,peerID)
+	self.voxelate.module.networkSendPacket(channelNum,payloadData,unreliable,peerID)
 end
 
 function Router:BroadcastInChannel(channelName,payloadData,unreliable)
@@ -151,6 +151,6 @@ function Router:BroadcastInChannel(channelName,payloadData,unreliable)
 	local channelNum = self.channelsEx[channelName]
 
 	for peerID,_ in pairs(self.PeerIDs) do
-		self.voxelate.module.networkSendPacket(channelNum,data,#data,unreliable,peerID)
+		self.voxelate.module.networkSendPacket(channelNum,payloadData,unreliable,peerID)
 	end
 end

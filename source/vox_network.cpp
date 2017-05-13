@@ -45,7 +45,7 @@ bool network_startup() {
 	address.port = VOX_NETWORK_PORT;
 
 #ifdef VOXELATE_SERVER
-	server = enet_host_create(&address, 128, VOX_NETWORK_MAX_CHANNELS, 0, 0);
+	server = enet_host_create(&address, 128, static_cast<size_t>(VOX_NETWORK_MAX_CHANNELS), 0, 0);
 
 	if (server == NULL) {
 		Msg("ENet initialization failed at server creation...\n");
@@ -55,7 +55,7 @@ bool network_startup() {
 
 	eventLoopThread = new std::thread(networkEventLoop);
 #else
-	client = enet_host_create(NULL, 1, VOX_NETWORK_MAX_CHANNELS, 0, 0);
+	client = enet_host_create(NULL, 1, static_cast<size_t>(VOX_NETWORK_MAX_CHANNELS), 0, 0);
 
 	if (client == NULL) {
 		Msg("ENet initialization failed at client creation...\n");
@@ -193,7 +193,13 @@ int lua_network_sendpacket(lua_State* state) {
 
 	ENetPacket* packet = enet_packet_create(data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 
-	enet_peer_send(peer, channel, packet);
+	if (enet_peer_send(peer, static_cast<enet_uint8>(channel), packet) != 0) {
+		enet_packet_destroy(packet);
+
+		lua_pushstring(state, "couldn't send packet");
+		lua_error(state);
+		return 0;
+	}
 
 	enet_host_flush(VOX_ENET_HOST);
 
@@ -213,7 +219,7 @@ int lua_network_connect(lua_State* state) {
 
 	address.port = VOX_NETWORK_PORT;
 
-	peer = enet_host_connect(client, &address, 2, 0);
+	peer = enet_host_connect(client, &address, VOX_NETWORK_MAX_CHANNELS, 0);
 	if (peer == NULL) {
 		lua_pushnil(state);
 		lua_pushstring(state, "No available peers for initiating an ENet connection.\n");
