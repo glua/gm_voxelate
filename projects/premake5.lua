@@ -79,7 +79,6 @@ CreateWorkspace({name = "voxelate"})
 		kind("StaticLib")
 		language("C++11")
 
-		warnings("Off")
 
 		includedirs({"../reactphysics3d/src"})
 		links({"reactphysics3d"})

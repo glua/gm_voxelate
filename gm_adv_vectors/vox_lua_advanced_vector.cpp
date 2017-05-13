@@ -20,7 +20,7 @@ typedef std::shared_ptr<reactphysics3d::Vector3> VectorPtr;
 VectorPtr* vox_lua_pushVector(lua_State* state, reactphysics3d::Vector3* vec) {
 	VectorPtr* udata = LUA->NewUserType<VectorPtr>(metatype);
 
-	udata = new VectorPtr(vec);
+	udata->reset(vec);
 
 	LUA->PushMetaTable(metatype);
 	LUA->SetMetaTable(-2);
@@ -106,7 +106,8 @@ int vox_lua_vector_lengthSquare(lua_State* state) {
 int vox_lua_vector_getUnit(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	vox_lua_pushVector(state, &vecptr->getUnit());
+	auto result = vecptr->getUnit();
+	vox_lua_pushVector(state, &result);
 
 	return 1;
 }
@@ -114,7 +115,8 @@ int vox_lua_vector_getUnit(lua_State* state) {
 int vox_lua_vector_getOneUnitOrthogonalVector(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	vox_lua_pushVector(state, &vecptr->getOneUnitOrthogonalVector());
+	auto result = vecptr->getOneUnitOrthogonalVector();
+	vox_lua_pushVector(state, &result);
 
 	return 1;
 }
@@ -148,7 +150,8 @@ int vox_lua_vector_cross(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 	auto vecptr2 = vox_lua_getVector(state, 2);
 
-	vox_lua_pushVector(state, &vecptr->cross(*vecptr2));
+	auto result = vecptr->cross(*vecptr2);
+	vox_lua_pushVector(state, &result);
 
 	return 1;
 }
@@ -164,7 +167,8 @@ int vox_lua_vector_normalize(lua_State* state) {
 int vox_lua_vector_getAbsoluteVector(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	vox_lua_pushVector(state, &vecptr->getAbsoluteVector());
+	auto result = vecptr->getAbsoluteVector();
+	vox_lua_pushVector(state, &result);
 
 	return 0;
 }
@@ -235,7 +239,8 @@ int vox_lua_vector_add(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 	auto vecptr2 = vox_lua_getVector(state, 2);
 
-	vox_lua_pushVector(state, &(*vecptr + *vecptr2));
+	auto result = *vecptr + *vecptr2;
+	vox_lua_pushVector(state, &result);
 
 	return 1;
 }
@@ -244,7 +249,8 @@ int vox_lua_vector_sub(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 	auto vecptr2 = vox_lua_getVector(state, 2);
 
-	vox_lua_pushVector(state, &(*vecptr - *vecptr2));
+	auto result = *vecptr - *vecptr2;
+	vox_lua_pushVector(state, &result);
 
 	return 1;
 }
@@ -255,12 +261,14 @@ int vox_lua_vector_mul(lua_State* state) {
 	if (lua_isnumber(state, 2)) {
 		double num = lua_tonumber(state, 2);
 
-		vox_lua_pushVector(state, &(*vecptr * num));
+		auto result = *vecptr * num;
+		vox_lua_pushVector(state, &result);
 	}
 	else {
 		auto vecptr2 = vox_lua_getVector(state, 2);
 
-		vox_lua_pushVector(state, &(*vecptr * *vecptr2));
+		auto result = *vecptr * *vecptr2;
+		vox_lua_pushVector(state, &result);
 	}
 
 	return 1;
@@ -272,12 +280,14 @@ int vox_lua_vector_div(lua_State* state) {
 	if (lua_isnumber(state, 2)) {
 		double num = lua_tonumber(state, 2);
 
-		vox_lua_pushVector(state, &(*vecptr / num));
+		auto result = *vecptr / num;
+		vox_lua_pushVector(state, &result);
 	}
 	else {
 		auto vecptr2 = vox_lua_getVector(state, 2);
 
-		vox_lua_pushVector(state, &(*vecptr / *vecptr2));
+		auto result = *vecptr / *vecptr2;
+		vox_lua_pushVector(state, &result);
 	}
 
 	return 1;
