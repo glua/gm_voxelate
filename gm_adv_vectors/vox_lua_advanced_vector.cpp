@@ -22,6 +22,9 @@ VectorPtr* vox_lua_pushVector(lua_State* state, reactphysics3d::Vector3* vec) {
 
 	udata = new VectorPtr(vec);
 
+	LUA->PushMetaTable(metatype);
+	LUA->SetMetaTable(-2);
+
 	return udata;
 }
 
