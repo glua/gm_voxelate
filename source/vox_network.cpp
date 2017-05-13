@@ -7,8 +7,6 @@
 
 ENetAddress address;
 
-const int VOX_NETWORK_CPP_CHANNEL_START = 128;
-
 #ifdef VOXELATE_SERVER
 ENetHost* server;
 int nextPeerID = 0;
@@ -47,7 +45,7 @@ bool network_startup() {
 	address.port = VOX_NETWORK_PORT;
 
 #ifdef VOXELATE_SERVER
-	server = enet_host_create(&address, 128, 2, 0, 0);
+	server = enet_host_create(&address, 128, VOX_NETWORK_MAX_CHANNELS, 0, 0);
 
 	if (server == NULL) {
 		Msg("ENet initialization failed at server creation...\n");
@@ -57,7 +55,7 @@ bool network_startup() {
 
 	eventLoopThread = new std::thread(networkEventLoop);
 #else
-	client = enet_host_create(NULL, 1, 2, 0, 0);
+	client = enet_host_create(NULL, 1, VOX_NETWORK_MAX_CHANNELS, 0, 0);
 
 	if (client == NULL) {
 		Msg("ENet initialization failed at client creation...\n");

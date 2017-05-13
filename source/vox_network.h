@@ -5,6 +5,9 @@
 
 #define VOX_NETWORK_PORT 42069
 
+#define VOX_NETWORK_CPP_CHANNEL_START 512
+#define VOX_NETWORK_MAX_CHANNELS 1024
+
 #include "enet/enet.h"
 #include "glua.h"
 
