@@ -231,7 +231,7 @@ void voxelworld_initialise_networking_static() {
 		reader.StartReading(data, data_len);
 
 		int worldID = reader.ReadUBitLong(8);
-		vox_print("hello? %i",worldID);
+		// vox_print("hello? %i",worldID);
 
 		auto world = getIndexedVoxelWorld(worldID);
 
@@ -245,7 +245,7 @@ void voxelworld_initialise_networking_static() {
 			reader.ReadSBitLong(32)
 		};
 
-		vox_print("Get chunk %i %i %i %i", worldID, pos[0], pos[1], pos[2]);
+		// vox_print("Get chunk %i %i %i %i", worldID, pos[0], pos[1], pos[2]);
 
 		auto dataSize = reader.GetNumBytesLeft();
 
@@ -311,7 +311,7 @@ bool VoxelWorld::sendChunk(int peerID, XYZCoordinate pos) {
 	if (compressed_size == 0)
 		return false;
 
-	vox_print("Send %i", writer.GetNumBytesWritten() + compressed_size);
+	// vox_print("Send %i", writer.GetNumBytesWritten() + compressed_size);
 
 	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, &msg, writer.GetNumBytesWritten() + compressed_size );
 }
