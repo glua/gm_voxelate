@@ -10,6 +10,8 @@ local bitbuf = runtime.require("../bitbuffer")
 
 function Router:__ctor(voxelate)
 	self.super:__ctor(voxelate)
+	self.ready = false
+	self.packetsToSendOnReady = {}
 
 	hook.Add("InitPostEntity","Voxelate.Networking.BeginSyncSequence",function()
 		net.Start("gmod_vox_sync")
@@ -47,6 +49,13 @@ function Router:StartENet()
 		self.voxelate.io:Print("Now connected to %s via ENet!",serverIP)
 
 		self:SendInChannel("AuthHandshake",self.clientPUID)
+		self.ready = true
+
+		for i,data in ipairs(self.packetsToSendOnReady) do
+			self.voxelate.module.networkSendPacket(data.data,#data.data,data.unreliable)
+		end
+
+		self.packetsToSendOnReady = {}
 	else
 		self.voxelate.io:PrintError("Couldn't connect to %s via ENet: %s",serverIP,tostring(err))
 	end
@@ -76,5 +85,12 @@ function Router:SendInChannel(channelName,payloadData,unreliable)
 
 	local data = buf:GetWrittenString()
 
-	self.voxelate.module.networkSendPacket(data,#data,unreliable)
+	if self.ready then
+		self.voxelate.module.networkSendPacket(data,#data,unreliable)
+	else
+		self.packetsToSendOnReady[#self.packetsToSendOnReady + 1] = {
+			data = data,
+			unreliable = unreliable,
+		}
+	end
 end
