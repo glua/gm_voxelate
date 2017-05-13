@@ -22,6 +22,19 @@ VectorPtr* vox_lua_pushVector(lua_State* state, reactphysics3d::Vector3* vec) {
 	return udata;
 }
 
+VectorPtr* vox_lua_pushVectorCopy(lua_State* state, reactphysics3d::Vector3 vecSrc) {
+	auto vec = new reactphysics3d::Vector3(vecSrc); // fuck RAII amirite
+
+	VectorPtr* udata = LUA->NewUserType<VectorPtr>(metatype);
+
+	udata->reset(vec);
+
+	LUA->PushMetaTable(metatype);
+	LUA->SetMetaTable(-2);
+
+	return udata;
+}
+
 VectorPtr* vox_lua_getVectorPtr(lua_State* state, int32_t index) {
 	if (!LUA->IsType(index, metatype)) {
 		luaL_typerror(LUA->GetLuaState(), index, metaname);
@@ -145,7 +158,8 @@ int vox_lua_vector_cross(lua_State* state) {
 	auto vecptr2 = vox_lua_getVector(state, 2);
 
 	auto result = vecptr->cross(*vecptr2);
-	vox_lua_pushVector(state, &result);
+
+	vox_lua_pushVectorCopy(state, result);
 
 	return 1;
 }
