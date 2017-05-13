@@ -65,7 +65,7 @@ end
 function VoxelWorldInitChannel:RequestVoxelStartupChunks(worldID,origin_x,origin_y,origin_z,radius)
 	assert(CLIENT,"clientside only")
 
-	self.voxelate.io:PrintDebug("Requesting voxel config for %d...",worldID)
+	self.voxelate.io:PrintDebug("Requesting voxel chunk startup pack for %d...",worldID)
 
 	local packet = self:NewPacket()
 
@@ -85,7 +85,7 @@ end
 function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 	assert(SERVER,"serverside only")
 
-	self.voxelate.io:PrintDebug("Sending voxel config for %d to %d...",worldID,peerID)
+	self.voxelate.io:PrintDebug("Sending voxel chunk startup pack for %d to %d...",worldID,peerID)
 
 	local origin_x = buffer:ReadUInt(32)
 	local origin_y = buffer:ReadUInt(32)
