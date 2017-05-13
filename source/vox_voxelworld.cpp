@@ -294,7 +294,7 @@ void voxelworld_initialise_networking_static() {
 #ifdef VOXELATE_SERVER
 
 bool VoxelWorld::sendChunk(int peerID, XYZCoordinate pos) {
-	static char msg[CHUNK_BUFFER_SIZE + 128];
+	auto data = new(std::nothrow) uint8_t[CHUNK_BUFFER_SIZE + 128];
 
 	bf_write writer;
 	writer.StartWriting(msg, CHUNK_BUFFER_SIZE + 128);
