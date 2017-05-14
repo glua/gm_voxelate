@@ -119,6 +119,13 @@ if SERVER then
 		--gm_voxelate.module.voxReInit(index)
 		--gm_voxelate.module.voxFlagAllChunksForUpdate(index)
 	end
+
+	function ENT:generateDefault()
+		local index = self:GetInternalIndex()
+		gm_voxelate.module.voxGenerateDefault(index)
+		--gm_voxelate.module.voxReInit(index)
+		--gm_voxelate.module.voxFlagAllChunksForUpdate(index)
+	end
 end
 
 

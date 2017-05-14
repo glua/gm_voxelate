@@ -13,6 +13,8 @@
 
 #include "vox_network.h"
 
+#include "vox_worldgen_basic.h"
+
 #include "GarrysMod\LuaHelpers.hpp"
 
 using namespace GarrysMod::Lua;
@@ -239,6 +241,27 @@ int luaf_voxDraw(lua_State* state) {
 	return 0;
 }
 
+int luaf_voxGenerateDefault(lua_State* state) {
+	int index = LUA->GetNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+	
+	if (v) {
+		int mx, my, mz;
+		v->getCellExtents(mx, my, mz);
+
+		for (int x = 0; x < mx; x++) {
+			for (int y = 0; y < my; y++) {
+				for (int z = 0; z < mz; z++) {
+					auto block = vox_worldgen_basic(x,y,z);
+					v->set(x, y, z, block, false);
+				}
+			}
+		}
+	}
+
+	return 0;
+}
 int luaf_voxGenerate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
@@ -484,6 +507,9 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushCFunction(luaf_voxGenerate);
 	LUA->SetField(-2, "voxGenerate");
+
+	LUA->PushCFunction(luaf_voxGenerateDefault);
+	LUA->SetField(-2, "voxGenerateDefault");
 
 	LUA->PushCFunction(luaf_voxGet);
 	LUA->SetField(-2, "voxGet");

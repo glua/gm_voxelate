@@ -431,7 +431,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 	int vy = startPos.y;
 	int vz = startPos.z;
 
-	uint16 vdata = get(vx, vy, vz);
+	BlockData vdata = get(vx, vy, vz);
 	VoxelType& vt = config.voxelTypes[vdata];
 	if (vt.form == VFORM_CUBE) {
 		VoxelTraceRes res;
@@ -518,7 +518,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
 		}
-		uint16 vdata = get(vx, vy, vz);
+		BlockData vdata = get(vx, vy, vz);
 		VoxelType& vt = config.voxelTypes[vdata];
 		if (vt.form == VFORM_CUBE) {
 			VoxelTraceRes res;
@@ -570,7 +570,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 	for (int ix = startPos.x - extents.x + epsilon; ix <= startPos.x + extents.x-epsilon; ix++) {
 		for (int iy = startPos.y - extents.y + epsilon; iy <= startPos.y + extents.y-epsilon; iy++) {
 			for (int iz = startPos.z + epsilon; iz <= startPos.z + extents.z * 2-epsilon; iz++) {
-				uint16 vdata = get(ix, iy, iz);
+				BlockData vdata = get(ix, iy, iz);
 				VoxelType& vt = config.voxelTypes[vdata];
 				if (vt.form == VFORM_CUBE) {
 					VoxelTraceRes res;
@@ -687,7 +687,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 			double baseZ = startPos.z + t*delta.z;
 			for (int iy = baseY - extents.y + epsilon; iy <= baseY + extents.y - epsilon; iy++) {
 				for (int iz = baseZ + epsilon; iz <= baseZ + extents.z * 2 - epsilon; iz++) {
-					uint16 vdata = get(vx, iy, iz);
+					BlockData vdata = get(vx, iy, iz);
 					VoxelType& vt = config.voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
@@ -714,7 +714,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 			double baseZ = startPos.z + t*delta.z;
 			for (int ix = baseX - extents.x + epsilon; ix <= baseX + extents.x - epsilon; ix++) {
 				for (int iz = baseZ + epsilon; iz <= baseZ + extents.z * 2 - epsilon; iz++) {
-					uint16 vdata = get(ix, vy, iz);
+					BlockData vdata = get(ix, vy, iz);
 					VoxelType& vt = config.voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
@@ -741,7 +741,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 			double baseY = startPos.y + t*delta.y;
 			for (int ix = baseX - extents.x + epsilon; ix <= baseX + extents.x - epsilon; ix++) {
 				for (int iy = baseY - extents.y + epsilon; iy <= baseY + extents.y - epsilon; iy++) {
-					uint16 vdata = get(ix, iy, vz);
+					BlockData vdata = get(ix, iy, vz);
 					VoxelType& vt = config.voxelTypes[vdata];
 					if (vt.form == VFORM_CUBE) {
 						VoxelTraceRes res;
@@ -801,7 +801,7 @@ int div_floor(int x, int y) {
 }
 
 // Gets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
-uint16 VoxelWorld::get(Coord x, Coord y, Coord z) {
+BlockData VoxelWorld::get(Coord x, Coord y, Coord z) {
 	int qx = x / VOXEL_CHUNK_SIZE;
 
 
@@ -813,7 +813,7 @@ uint16 VoxelWorld::get(Coord x, Coord y, Coord z) {
 }
 
 // Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
-bool VoxelWorld::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
+bool VoxelWorld::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr)
 		return false;
@@ -866,7 +866,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 		for (int y = lower_bound_y; y < VOXEL_CHUNK_SIZE; y++) {
 			for (int z = lower_bound_z; z < VOXEL_CHUNK_SIZE; z++) {
 
-				uint16 base;
+				BlockData base;
 
 				if (x == -1 || y == -1 || z == -1)
 					base = 0;
@@ -876,7 +876,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				VoxelType& base_type = blockTypes[base];
 
 				if ((buildExterior || (x != -1 && (x != VOXEL_CHUNK_SIZE - 1 || next_chunk_x != nullptr))) && y != -1 && z != -1) {
-					uint16 offset_x;
+					BlockData offset_x;
 					if (x == VOXEL_CHUNK_SIZE - 1)
 						if (next_chunk_x == nullptr)
 							offset_x = 0;
@@ -895,7 +895,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				}
 
 				if ((buildExterior || (y != -1 && (y != VOXEL_CHUNK_SIZE - 1 || next_chunk_y != nullptr))) && x != -1 && z != -1) {
-					uint16 offset_y;
+					BlockData offset_y;
 					if (y == VOXEL_CHUNK_SIZE - 1)
 						if (next_chunk_y == nullptr)
 							offset_y = 0;
@@ -914,7 +914,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				}
 
 				if ((buildExterior || (z != -1 && (z != VOXEL_CHUNK_SIZE - 1 || next_chunk_z != nullptr))) && x != -1 && y != -1) {
-					uint16 offset_z;
+					BlockData offset_z;
 					if (z == VOXEL_CHUNK_SIZE - 1)
 						if (next_chunk_z == nullptr)
 							offset_z = 0;
@@ -946,11 +946,11 @@ void VoxelChunk::draw(CMatRenderContextPtr& pRenderContext) {
 	}
 }
 
-uint16 VoxelChunk::get(Coord x, Coord y, Coord z) {
+BlockData VoxelChunk::get(Coord x, Coord y, Coord z) {
 	return voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE];
 }
 
-void VoxelChunk::set(Coord x, Coord y, Coord z, uint16 d, bool flagChunks) {
+void VoxelChunk::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = d;
 
 	if (!flagChunks)

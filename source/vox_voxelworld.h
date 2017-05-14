@@ -13,6 +13,7 @@
 
 #include "vox_util.h"
 
+typedef uint16 BlockData;
 typedef std::int32_t Coord;
 typedef std::array<Coord, 3> XYZCoordinate;
 
@@ -144,8 +145,8 @@ public:
 
 	void draw();
 
-	uint16 get(Coord x, Coord y, Coord z);
-	bool set(Coord x, Coord y, Coord z, uint16 d,bool flagChunks=true);
+	BlockData get(Coord x, Coord y, Coord z);
+	bool set(Coord x, Coord y, Coord z, BlockData d,bool flagChunks=true);
 private:
 	//bool initialised = false;
 
@@ -163,10 +164,10 @@ public:
 	void build(CBaseEntity* ent);
 	void draw(CMatRenderContextPtr& pRenderContext);
 
-	uint16 get(int x, int y, int z);
-	void set(int x, int y, int z, uint16 d, bool flagChunks);
+	BlockData get(int x, int y, int z);
+	void set(int x, int y, int z, BlockData d, bool flagChunks);
 
-	uint16 voxel_data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = {};
+	BlockData voxel_data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = {};
 private:
 	void meshClearAll();
 
