@@ -28,6 +28,11 @@ It requires a compiler/runtime that supports C++11, which can cause problems on 
 
 The test_install scripts are for quickly copying the binaries into directories on my systems, and are probably broken right now.
 
+## Technical details for using this in a gamemode
+
+We generally don't depend on garryFuncs:tm:
+You should be good to completely override `includes/init.lua`, as long as the stock luajit 5.1 funcs aren't modified, and a version of the `hook` library is available for use.
+
 ## Testing/Debugging
 
 ### Lua Hotloading
