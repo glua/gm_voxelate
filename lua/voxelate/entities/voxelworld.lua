@@ -25,6 +25,8 @@ function ENT:Initialize()
 
 		if config.generator then
 			self:generate(config.generator)
+		else
+			self:generateDefault()
 		end
 	else
 		local index = self:GetInternalIndex()

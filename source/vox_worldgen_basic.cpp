@@ -5,7 +5,7 @@ BlockData vox_worldgen_basic(Coord _x, Coord _y, Coord _z) {
 	auto y = static_cast<double>(_y);
 	auto z = static_cast<double>(_z);
 
-	z = z + 50 + floor(sin((x + 30) / 32) * 8 + cos((y - 20) / 32) * 8);
+	z = z - 50 + floor(sin((x + 30) / 32) * 8 + cos((y - 20) / 32) * 8);
 
 	if (z < 40) {
 		return 7;
