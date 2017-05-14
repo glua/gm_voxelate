@@ -103,7 +103,7 @@ function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 					self.voxelate.module.voxSendChunk(worldID,peerID,x,y,z)
 				end
 
-				timer.Simple(0.01,chunkSenderThread)
+				timer.Simple(0.0025,chunkSenderThread)
 				coroutine.yield()
 			end
 		end
