@@ -10,6 +10,8 @@ end
 
 function ENT:Initialize()
 	if SERVER then
+		self.state = gm_voxelate.EVoxelLoadState.LOADING_CHUNKS
+
 		local config = self.config
 		self.config = nil
 
@@ -28,11 +30,21 @@ function ENT:Initialize()
 		else
 			self:generateDefault()
 		end
+
+		self.state = gm_voxelate.EVoxelLoadState.READY
 	else
+		self.state = gm_voxelate.EVoxelLoadState.SYNCHRONISING
+
 		local index = self:GetInternalIndex()
 
 		gm_voxelate.channels.voxelWorldInit:RequestVoxelWorldConfig(index)
 	end
+
+	gm_voxelate:AddWorld(self:GetInternalIndex(),index)
+end
+
+function ENT:IsReady()
+	return self.state == gm_voxelate.EVoxelLoadState.READY
 end
 
 -- Called by module... We can probably just call it directly though.

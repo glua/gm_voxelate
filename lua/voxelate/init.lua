@@ -52,6 +52,10 @@ end
 --	self.voxelWorldConfigs[index] = config
 --end
 
+function Voxelate:GetWorldEntity(index)
+	return self:GetWorldConfig(index)._ent
+end
+
 function Voxelate:GetWorldConfig(index)
 	return self.voxelWorldConfigs[index]
 end
