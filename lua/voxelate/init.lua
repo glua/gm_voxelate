@@ -14,6 +14,7 @@ G_VOX_IMPORTS = nil
 exports.module = module
 
 Voxelate.EVoxelLoadState = {
+	STALE = 0,
 	SYNCHRONISING = 1,
 	LOADING_CHUNKS = 2,
 	READY = 3,
