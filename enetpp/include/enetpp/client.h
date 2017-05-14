@@ -12,6 +12,7 @@
 #include "client_statistics.h"
 #include "set_current_thread_name.h"
 #include "trace_handler.h"
+#include "make_unique_shim.hpp"
 
 namespace enetpp {
 
@@ -64,7 +65,7 @@ namespace enetpp {
 			trace("connecting to '" + params._server_host_name + ":" + std::to_string(params._server_port) + "'");
 
 			_should_exit_thread = false;
-			_thread = std::make_unique<std::thread>(&client::run_in_thread, this, params);
+			_thread = std::make_unique_shim<std::thread>(&client::run_in_thread, this, params);
 		}
 
 		void disconnect() {
