@@ -15,7 +15,7 @@
 
 #include "vox_worldgen_basic.h"
 
-#include "GarrysMod\LuaHelpers.hpp"
+#include "GarrysMod/LuaHelpers.hpp"
 
 using namespace GarrysMod::Lua;
 
@@ -245,7 +245,7 @@ int luaf_voxGenerateDefault(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
-	
+
 	if (v) {
 		auto oldUpdatesEnabled = v->trackUpdates;
 		v->trackUpdates = false;
