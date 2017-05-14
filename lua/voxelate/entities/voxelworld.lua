@@ -57,9 +57,7 @@ function ENT:Initialize()
 end
 
 function ENT:GetConfig()
-	self:SetInternalIndex(index)
-
-	return gm_voxelate:GetWorldConfig(index)
+	return gm_voxelate:GetWorldConfig(self:GetInternalIndex())
 end
 
 -- Called by module... We can probably just call it directly though.
