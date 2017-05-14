@@ -48,12 +48,14 @@ function Voxelate:__ctor()
 	hook.Add("VoxWorldBlockUpdate","Voxelate.TrackWorldUpdates",function(worldID,x,y,z)
 		local ent = self:GetWorldEntity(worldID)
 
-		if ent and ent.OnBlockUpdate then
+		if ent then
 			if SERVER then
 				self.channels.blockUpdate:SendBlockUpdate(worldID,x,y,z)
 			end
 
-			ent:OnBlockUpdate(x,y,z)
+			if ent.OnBlockUpdate then
+				ent:OnBlockUpdate(x,y,z)
+			end
 		end
 	end)
 
