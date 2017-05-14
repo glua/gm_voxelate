@@ -14,7 +14,7 @@
 
 #include "vox_network.h"
 
-#include "GarrysMod\LuaHelpers.hpp"
+#include "GarrysMod/LuaHelpers.hpp"
 
 #define STD_VERT_FMT VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2)
 

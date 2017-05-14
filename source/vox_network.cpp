@@ -26,7 +26,7 @@ enetpp::client client;
 #include <thread>
 #include <mutex>
 
-#include "GarrysMod\LuaHelpers.hpp"
+#include "GarrysMod/LuaHelpers.hpp"
 
 bool network_startup() {
 	enetpp::global_state::get().initialize();
