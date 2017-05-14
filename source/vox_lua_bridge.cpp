@@ -247,6 +247,9 @@ int luaf_voxGenerateDefault(lua_State* state) {
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	
 	if (v) {
+		auto oldUpdatesEnabled = v->trackUpdates;
+		v->trackUpdates = false;
+
 		int mx, my, mz;
 		v->getCellExtents(mx, my, mz);
 
@@ -258,6 +261,8 @@ int luaf_voxGenerateDefault(lua_State* state) {
 				}
 			}
 		}
+
+		v->trackUpdates = oldUpdatesEnabled;
 	}
 
 	return 0;
@@ -303,6 +308,9 @@ int luaf_voxGenerate(lua_State* state) {
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v) {
+		auto oldUpdatesEnabled = v->trackUpdates;
+		v->trackUpdates = false;
+
 		int mx, my, mz;
 		v->getCellExtents(mx, my, mz);
 		for (int x = 0; x < mx; x++) {
@@ -320,6 +328,8 @@ int luaf_voxGenerate(lua_State* state) {
 				}
 			}
 		}
+
+		v->trackUpdates = oldUpdatesEnabled;
 	}
 
 	return 0;
