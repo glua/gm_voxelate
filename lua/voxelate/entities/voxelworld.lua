@@ -35,7 +35,7 @@ end
 
 -- Called by module... We can probably just call it directly though.
 function ENT:SetupBounds(config)
-	print("misc init")
+
 	self:EnableCustomCollisions(true)
 	self:SetSolid(SOLID_BBOX)
 
