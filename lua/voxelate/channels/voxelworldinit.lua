@@ -103,7 +103,7 @@ function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 		self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("LOADING_CHUNKS",0)
 		self.voxelate.io:PrintDebug("Sending chunk initialisation data for %d to %d...",worldID,peerID)
 
-		local totalToSend = math.ceil(config.dimensions.x/16) * math.ceil(config.dimensions.origin_y/16) * math.ceil(config.dimensions.z/16)
+		local totalToSend = math.ceil(config.dimensions.x/16) * math.ceil(config.dimensions.y/16) * math.ceil(config.dimensions.z/16)
 		local sent = 0
 
 		for x=0,math.ceil(config.dimensions.x/16) do
