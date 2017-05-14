@@ -6,6 +6,7 @@
 #include <list>
 #include <array>
 #include <functional>
+#include <vector>
 
 #include "materialsystem/imesh.h"
 
