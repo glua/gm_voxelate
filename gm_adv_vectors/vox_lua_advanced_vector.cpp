@@ -37,7 +37,7 @@ VectorPtr* vox_lua_pushVectorCopy(lua_State* state, reactphysics3d::Vector3 vecS
 
 VectorPtr* vox_lua_getVectorPtr(lua_State* state, int32_t index) {
 	if (!LUA->IsType(index, metatype)) {
-		luaL_typerror(LUA->GetLuaState(), index, metaname);
+		luaL_typerror(LUA->GetState(), index, metaname);
 	}
 
 	return LUA->GetUserType<VectorPtr>(index, metatype);
@@ -45,7 +45,7 @@ VectorPtr* vox_lua_getVectorPtr(lua_State* state, int32_t index) {
 
 reactphysics3d::Vector3* vox_lua_getVector(lua_State* state, int32_t index) {
 	if (!LUA->IsType(index, metatype)) {
-		luaL_typerror(LUA->GetLuaState(), index, metaname);
+		luaL_typerror(LUA->GetState(), index, metaname);
 	}
 
 	auto vecPtr = LUA->GetUserType<VectorPtr>(index, metatype);

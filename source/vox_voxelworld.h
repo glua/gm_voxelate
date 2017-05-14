@@ -6,6 +6,7 @@
 #include <list>
 #include <array>
 #include <functional>
+#include <vector>
 
 #include "materialsystem/imesh.h"
 
@@ -147,6 +148,9 @@ public:
 
 	BlockData get(Coord x, Coord y, Coord z);
 	bool set(Coord x, Coord y, Coord z, BlockData d,bool flagChunks=true);
+
+	bool trackUpdates = false;
+	std::vector<XYZCoordinate> queued_block_updates;
 private:
 	//bool initialised = false;
 

@@ -56,6 +56,10 @@ function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)
 	self.voxelate.io:PrintDebug("Receiving voxel config for %d...",worldID)
 
 	local config = serialization.deserialize(buffer:ReadString())
+	if not IsValid(config.sourceEngineEntity) then
+		self.voxelate.io:PrintError("Voxel config for world %d has an invalid Source Engine Entity! Ignoring...",worldID)
+		return
+	end
 
 	self.voxelate:SetWorldConfig(worldID,config)
 
@@ -96,19 +100,30 @@ function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 	local config = self.voxelate:GetWorldConfig(worldID)
 
 	local function chunkSenderThread()
+		-- self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("LOADING_CHUNKS",0)
 		self.voxelate.io:PrintDebug("Sending chunk initialisation data for %d to %d...",worldID,peerID)
+
+		local totalToSend = math.ceil(config.dimensions.x/16) * math.ceil(config.dimensions.y/16) * math.ceil(config.dimensions.z/16)
+		local sent = 0
+
 		for x=0,math.ceil(config.dimensions.x/16) do
 			for y=0,math.ceil(config.dimensions.y/16) do
 				for z=0,math.ceil(config.dimensions.z/16) do
 					self.voxelate.module.voxSendChunk(worldID,peerID,x,y,z)
 				end
 
-				timer.Simple(0.01,chunkSenderThread)
-				coroutine.yield()
+				sent = sent + math.ceil(config.dimensions.z/16) -- update progress
+				-- self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("LOADING_CHUNKS",sent / totalToSend)
+
+				timer.Simple(0.0025,chunkSenderThread) -- queue for next tick
+				coroutine.yield() -- pause thread
 			end
 		end
+
 		self.voxelate.io:PrintDebug("Chunk initialisation data sent to %d...",peerID)
+		-- self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("READY")
 	end
+
 	chunkSenderThread = coroutine.wrap(chunkSenderThread) -- create thread
 	chunkSenderThread() -- launch thread
 end

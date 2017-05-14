@@ -4,6 +4,7 @@ local ClientRouter = runtime.require("./networking/client").Router
 local ServerRouter = runtime.require("./networking/server").Router
 
 local VoxelWorldInitChannel = runtime.require("./channels/voxelworldinit").VoxelWorldInitChannel
+local BlockUpdateChannel = runtime.require("./channels/blockupdate").BlockUpdateChannel
 
 local IO = runtime.require("./io").IO
 
@@ -12,6 +13,13 @@ local Voxelate = runtime.oop.create("Voxelate")
 local module = G_VOX_IMPORTS
 G_VOX_IMPORTS = nil
 exports.module = module
+
+Voxelate.EVoxelLoadState = {
+	STALE = 0,
+	SYNCHRONISING = 1,
+	LOADING_CHUNKS = 2,
+	READY = 3,
+}
 
 function Voxelate:__ctor()
 	self.module = module
@@ -31,7 +39,28 @@ function Voxelate:__ctor()
 		self.router = ServerRouter:__new(self)
 	end
 
+	hook.Add("Tick","Voxelate.TrackWorldUpdates",function()
+		for worldID,_ in pairs(self.voxelWorldConfigs) do
+			self.module.voxGetWorldUpdates(worldID)
+		end
+	end)
+
+	hook.Add("VoxWorldBlockUpdate","Voxelate.TrackWorldUpdates",function(worldID,x,y,z)
+		local ent = self:GetWorldEntity(worldID)
+
+		if ent then
+			if SERVER then
+				self.channels.blockUpdate:SendBlockUpdate(worldID,x,y,z)
+			end
+
+			if ent.OnBlockUpdate then
+				ent:OnBlockUpdate(x,y,z)
+			end
+		end
+	end)
+
 	self:AddChannel(VoxelWorldInitChannel,"voxelWorldInit",2)
+	self:AddChannel(BlockUpdateChannel,"blockUpdate",3)
 end
 
 function Voxelate:AddChannel(class,name,id)
@@ -44,6 +73,10 @@ end
 --	self.voxelWorldEnts[index] = ent
 --	self.voxelWorldConfigs[index] = config
 --end
+
+function Voxelate:GetWorldEntity(index)
+	return self:GetWorldConfig(index).sourceEngineEntity
+end
 
 function Voxelate:GetWorldConfig(index)
 	return self.voxelWorldConfigs[index]

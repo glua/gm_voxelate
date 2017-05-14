@@ -2,6 +2,7 @@
 #define ENETPP_SERVER_H_
 
 #include <functional>
+#include <algorithm>
 #include <memory>
 #include <thread>
 #include <unordered_map>
@@ -15,6 +16,7 @@
 #include "global_state.h"
 #include "set_current_thread_name.h"
 #include "trace_handler.h"
+#include "make_unique_shim.hpp"
 
 namespace enetpp {
 
@@ -47,7 +49,7 @@ namespace enetpp {
 		std::mutex _event_queue_mutex;
 
 	public:
-		server() 
+		server()
 			: _should_exit_thread(false) {
 		}
 
@@ -81,7 +83,7 @@ namespace enetpp {
 			trace("listening on port " + std::to_string(params._listen_port));
 
 			_should_exit_thread = false;
-			_thread = std::make_unique<std::thread>(&server::run_in_thread, this, params);
+			_thread = std::make_unique_shim<std::thread>(&server::run_in_thread, this, params);
 		}
 
 		void stop_listening() {
@@ -314,7 +316,7 @@ namespace enetpp {
 			enet_address_get_host_ip(&e.peer->address, peer_ip, 256);
 
 			//!IMPORTANT! PeerData and it's UID must be created immediately in this worker thread. Otherwise
-			//there is a chance the first few packets are received on the worker thread when the peer is not 
+			//there is a chance the first few packets are received on the worker thread when the peer is not
 			//initialized with data causing them to be discarded.
 
 			auto client = new ClientT();

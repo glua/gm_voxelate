@@ -14,6 +14,8 @@
 
 #include "vox_network.h"
 
+#include "GarrysMod/LuaHelpers.hpp"
+
 #define STD_VERT_FMT VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2)
 
 #define BUILD_MAX_VERTS 8*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE
@@ -26,21 +28,26 @@
 #define DIR_Y_NEG 16
 #define DIR_Z_NEG 32
 
-std::vector<VoxelWorld*> indexedVoxelWorldRegistry;
+std::unordered_map<int,VoxelWorld*> indexedVoxelWorldRegistry;
 
 int newIndexedVoxelWorld(int index, VoxelConfig& config) {
 	if (index == -1) {
 		auto idx = indexedVoxelWorldRegistry.size();
+
+		while (indexedVoxelWorldRegistry[idx] != nullptr) {
+			idx++;
+		}
+
 		auto world = new VoxelWorld(config);
 
 		world->worldID = idx;
 
-		indexedVoxelWorldRegistry.push_back(world);
+		indexedVoxelWorldRegistry[idx] = world;
 
 		return idx;
 	}
 	else {
-		indexedVoxelWorldRegistry.insert(indexedVoxelWorldRegistry.begin() + index, new VoxelWorld(config));
+		indexedVoxelWorldRegistry[index] = new VoxelWorld(config);
 		return index;
 	}
 }
@@ -55,7 +62,6 @@ VoxelWorld* getIndexedVoxelWorld(int index) {
 }
 
 void deleteIndexedVoxelWorld(int index) {
-
 	try {
 		VoxelWorld*& ptr = indexedVoxelWorldRegistry.at(index);
 		if (ptr != nullptr) {
@@ -68,10 +74,13 @@ void deleteIndexedVoxelWorld(int index) {
 
 void checkAllVoxelWorldsDeleted() {
 	for (VoxelWorld* v : indexedVoxelWorldRegistry) {
-		if (v != nullptr) {
+	for (auto it : indexedVoxelWorldRegistry) {
+		if (it.second != nullptr) {
 			vox_print("LEEK: VOXELWORLD EXISTS AT MODULE UNLOAD!");
 		}
 	}
+
+	indexedVoxelWorldRegistry.clear();
 }
 
 VoxelWorld::VoxelWorld(VoxelConfig& config) {
@@ -956,6 +965,10 @@ BlockData VoxelChunk::get(Coord x, Coord y, Coord z) {
 
 void VoxelChunk::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = d;
+
+	if (system->trackUpdates) {
+		system->queued_block_updates.push_back({ x + posX*VOXEL_CHUNK_SIZE, y + posY*VOXEL_CHUNK_SIZE, z + posZ*VOXEL_CHUNK_SIZE });
+	}
 
 	if (!flagChunks)
 		return;

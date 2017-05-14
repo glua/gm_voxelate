@@ -8,12 +8,28 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"InternalIndex")
 end
 
+-- Internal; Do not call
+function ENT:UpdateVoxelLoadState(state,progress)
+	assert(gm_voxelate.EVoxelLoadState[state],"Unknown index passed into ENT:UpdateVoxelLoadState()")
+
+	self.state = {
+		enum = gm_voxelate.EVoxelLoadState[state],
+		progress = progress or 1,
+	}
+end
+
+function ENT:IsReady()
+	return self.state and (self.state.enum == gm_voxelate.EVoxelLoadState.READY)
+end
+
 function ENT:Initialize()
 	if SERVER then
+		self:UpdateVoxelLoadState("LOADING_CHUNKS")
+
 		local config = self.config
 		self.config = nil
 
-		config._ent = self
+		config.sourceEngineEntity = self
 
 		local index = gm_voxelate.module.voxNewWorld(config)
 
@@ -28,7 +44,12 @@ function ENT:Initialize()
 		else
 			self:generateDefault()
 		end
+
+		gm_voxelate.module.voxSetWorldUpdatesEnabled(index,true)
+		self:UpdateVoxelLoadState("READY")
 	else
+		self:UpdateVoxelLoadState("SYNCHRONISING")
+
 		local index = self:GetInternalIndex()
 
 		gm_voxelate.channels.voxelWorldInit:RequestVoxelWorldConfig(index)
@@ -41,6 +62,11 @@ function ENT:OnRemove()
 	gm_voxelate.module.voxDeleteWorld(index)
 end
 
+function ENT:GetConfig()
+	return gm_voxelate:GetWorldConfig(self:GetInternalIndex())
+end
+
+-- Called by module... We can probably just call it directly though.
 function ENT:SetupBounds(config)
 
 	self:EnableCustomCollisions(true)
@@ -133,7 +159,105 @@ if SERVER then
 		--gm_voxelate.module.voxReInit(index)
 		--gm_voxelate.module.voxFlagAllChunksForUpdate(index)
 	end
+
+	function ENT:getBlock(x,y,z)
+		local index = self:GetInternalIndex()
+		return gm_voxelate.module.voxGet(index,x,y,z)
+	end
+
+	function ENT:setBlock(x,y,z,d)
+		local index = self:GetInternalIndex()
+		return gm_voxelate.module.voxSet(index,x,y,z,d)
+	end
+
+	function ENT:getAt(pos)
+		local scale = self:GetConfig().scale or 1
+
+		local rel_pos = self:WorldToLocal(pos)/scale
+		return self:getBlock(rel_pos.x,rel_pos.y,rel_pos.z)
+	end
+
+	function ENT:setAt(pos,d)
+		local scale = self:GetConfig().scale or 1
+
+		local rel_pos = self:WorldToLocal(pos)/scale
+		self:setBlock(rel_pos.x,rel_pos.y,rel_pos.z,d)
+	end
+
+	-- TODO: implement voxSetRegion in C++ so we can network it separately/faster/efficiently
+	function ENT:setRegion(x,y,z,sx,sy,sz,d) --allow d to be string data
+		local index = self:GetInternalIndex()
+		local set = gm_voxelate.module.voxSet
+
+		local fix = math.floor
+
+		x = fix(x)
+		y = fix(y)
+		z = fix(z)
+		sx = fix(sx)
+		sy = fix(sy)
+		sz = fix(sz)
+
+		for ix=x,x+sx do
+			for iy=y,y+sy do
+				for iz=z,z+sz do
+					set(index,ix,iy,iz,d)
+				end
+			end
+		end
+	end
+
+	function ENT:setRegionAt(v1,v2,d)
+		local scale = self:GetConfig().scale or 1
+
+		local lower=self:WorldToLocal(v1)/scale
+		local upper=self:WorldToLocal(v2)/scale
+
+		OrderVectors(lower,upper)
+
+		local fix = math.floor
+
+		self:setRegion(lower.x,lower.y,lower.z,fix(upper.x)-fix(lower.x),fix(upper.y)-fix(lower.y),fix(upper.z)-fix(lower.z),d)
+	end
+
+	function ENT:setSphere(x,y,z,r,d)
+		local index = self:GetInternalIndex()
+		local set = gm_voxelate.module.voxSet
+
+		local fix = math.floor
+
+		x = fix(x)
+		y = fix(y)
+		z = fix(z)
+		r = fix(r)
+
+		local rsqr = r*r
+		for ix=x-r,x+r do
+			local xsqr = (ix-x)*(ix-x)
+			for iy=y-r,y+r do
+				local xysqr = xsqr+(iy-y)*(iy-y)
+				for iz=z-r,z+r do
+					local xyzsqr = xysqr+(iz-z)*(iz-z)
+					if xyzsqr<=rsqr then
+						set(index,ix,iy,iz,d)
+					end
+				end
+			end
+		end
+	end
+
+	function ENT:setSphereAt(pos,r,d)
+		local scale = self:GetConfig().scale or 1
+
+		pos=self:WorldToLocal(pos)/scale
+		r=r/scale
+
+		self:setSphere(pos.x,pos.y,pos.z,r,d)
+	end
 end
 
+function ENT:UpdateTransmitState()
+	return TRANSMIT_ALWAYS
+end
 
 scripted_ents.Register(ENT,"voxel_world")

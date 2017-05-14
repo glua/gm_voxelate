@@ -201,7 +201,7 @@ function luaProjectEx(name,rootDir,headerPath)
 	end
 
 	prebuildcommands {
-		"cd "..os.realpath("."),
+		"cd "..os.realpath(".").." && "..
 		_PREMAKE_COMMAND.." "..args.."__premake_lua_exec_pre_"..p.luaProjectID
 	}
 end

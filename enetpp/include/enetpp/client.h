@@ -12,6 +12,7 @@
 #include "client_statistics.h"
 #include "set_current_thread_name.h"
 #include "trace_handler.h"
+#include "make_unique_shim.hpp"
 
 namespace enetpp {
 
@@ -32,11 +33,11 @@ namespace enetpp {
 		client_statistics _statistics;
 
 	public:
-		client::client()
+		client()
 			: _should_exit_thread(false) {
 		}
 
-		client::~client() {
+		~client() {
 			//responsibility of owners to make sure disconnect is always called. not calling disconnect() in destructor due to
 			//trace_handler side effects.
 			assert(_thread == nullptr);
@@ -50,11 +51,11 @@ namespace enetpp {
 			_trace_handler = handler;
 		}
 
-		bool client::is_connecting_or_connected() const {
+		bool is_connecting_or_connected() const {
 			return _thread != nullptr;
 		}
 
-		void client::connect(const client_connect_params& params) {
+		void connect(const client_connect_params& params) {
 			assert(global_state::get().is_initialized());
 			assert(!is_connecting_or_connected());
 			assert(params._channel_count > 0);
@@ -64,10 +65,10 @@ namespace enetpp {
 			trace("connecting to '" + params._server_host_name + ":" + std::to_string(params._server_port) + "'");
 
 			_should_exit_thread = false;
-			_thread = std::make_unique<std::thread>(&client::run_in_thread, this, params);
+			_thread = std::make_unique_shim<std::thread>(&client::run_in_thread, this, params);
 		}
 
-		void client::disconnect() {
+		void disconnect() {
 			if (_thread != nullptr) {
 				_should_exit_thread = true;
 				_thread->join();
@@ -78,7 +79,7 @@ namespace enetpp {
 			destroy_all_queued_events();
 		}
 
-		void client::send_packet(enet_uint8 channel_id, const enet_uint8* data, size_t data_size, enet_uint32 flags) {
+		void send_packet(enet_uint8 channel_id, const enet_uint8* data, size_t data_size, enet_uint32 flags) {
 			assert(is_connecting_or_connected());
 			if (_thread != nullptr) {
 				std::lock_guard<std::mutex> lock(_packet_queue_mutex);
@@ -87,7 +88,7 @@ namespace enetpp {
 			}
 		}
 
-		void client::consume_events(
+		void consume_events(
 			std::function<void()> on_connected,
 			std::function<void()> on_disconnected,
 			std::function<void(enet_uint8 channel_id, const enet_uint8* data, size_t data_size)> on_data_received) {
@@ -148,7 +149,7 @@ namespace enetpp {
 		}
 
 	private:
-		void client::destroy_all_queued_packets() {
+		void destroy_all_queued_packets() {
 			std::lock_guard<std::mutex> lock(_packet_queue_mutex);
 			while (!_packet_queue.empty()) {
 				enet_packet_destroy(_packet_queue.front()._packet);
@@ -156,7 +157,7 @@ namespace enetpp {
 			}
 		}
 
-		void client::destroy_all_queued_events() {
+		void destroy_all_queued_events() {
 			std::lock_guard<std::mutex> lock(_event_queue_mutex);
 			while (!_event_queue.empty()) {
 				destroy_unhandled_event_data(_event_queue.front());
@@ -164,13 +165,13 @@ namespace enetpp {
 			}
 		}
 
-		void client::destroy_unhandled_event_data(ENetEvent& e) {
+		void destroy_unhandled_event_data(ENetEvent& e) {
 			if (e.type == ENET_EVENT_TYPE_RECEIVE) {
 				enet_packet_destroy(e.packet);
 			}
 		}
 
-		void client::run_in_thread(const client_connect_params& params) {
+		void run_in_thread(const client_connect_params& params) {
 			set_current_thread_name("enetpp::client");
 
 			ENetHost* host = enet_host_create(nullptr, 1, params._channel_count, params._incoming_bandwidth, params._outgoing_bandwidth);
@@ -240,7 +241,7 @@ namespace enetpp {
 			enet_host_destroy(host);
 		}
 
-		void client::send_queued_packets_in_thread(ENetPeer* peer) {
+		void send_queued_packets_in_thread(ENetPeer* peer) {
 			if (!_packet_queue.empty()) {
 				std::lock_guard<std::mutex> lock(_packet_queue_mutex);
 				while (!_packet_queue.empty()) {
@@ -258,7 +259,7 @@ namespace enetpp {
 			}
 		}
 
-		void client::trace(const std::string& s) {
+		void trace(const std::string& s) {
 			if (_trace_handler != nullptr) {
 				_trace_handler(s);
 			}
