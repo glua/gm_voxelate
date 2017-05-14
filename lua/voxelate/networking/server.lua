@@ -115,7 +115,7 @@ function Router:__ctor(voxelate)
 				self.voxelate.io:PrintError("PUID [%s] has already been allocated to a Peer ID!",data)
 			else
 				self.PeerIDs[peerID] = self.PUIDs[data]
-				self.PeerIDs[self.PUIDs[data]] = peerID
+				self.PeerIDsEx[self.PUIDs[data]] = peerID
 
 				self.voxelate.io:PrintDebug("PUID [%s] has been allocated to Peer ID [%d]",data,peerID)
 			end
