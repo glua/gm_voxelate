@@ -2,6 +2,7 @@
 #define ENETPP_SERVER_H_
 
 #include <functional>
+#include <algorithm>
 #include <memory>
 #include <thread>
 #include <unordered_map>
