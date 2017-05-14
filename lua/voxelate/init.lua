@@ -53,7 +53,7 @@ end
 --end
 
 function Voxelate:GetWorldEntity(index)
-	return self:GetWorldConfig(index)._ent
+	return self:GetWorldConfig(index).sourceEngineEntity
 end
 
 function Voxelate:GetWorldConfig(index)

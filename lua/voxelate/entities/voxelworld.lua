@@ -8,14 +8,28 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"InternalIndex")
 end
 
+-- Internal; Do not call
+function ENT:UpdateVoxelLoadState(state,progress)
+	assert(gm_voxelate.EVoxelLoadState[state],"Unknown index passed into ENT:UpdateVoxelLoadState()")
+
+	self.state = {
+		enum = gm_voxelate.EVoxelLoadState[state],
+		progress = progress or 1,
+	}
+end
+
+function ENT:IsReady()
+	return self.state and (self.state.enum == gm_voxelate.EVoxelLoadState.READY)
+end
+
 function ENT:Initialize()
 	if SERVER then
-		self.state = gm_voxelate.EVoxelLoadState.LOADING_CHUNKS
+		self:UpdateVoxelLoadState("LOADING_CHUNKS")
 
 		local config = self.config
 		self.config = nil
 
-		config._ent = self
+		config.sourceEngineEntity = self
 
 		local index = gm_voxelate.module.voxNewWorld(config)
 
@@ -31,9 +45,9 @@ function ENT:Initialize()
 			self:generateDefault()
 		end
 
-		self.state = gm_voxelate.EVoxelLoadState.READY
+		self:UpdateVoxelLoadState("READY")
 	else
-		self.state = gm_voxelate.EVoxelLoadState.SYNCHRONISING
+		self:UpdateVoxelLoadState("SYNCHRONISING")
 
 		local index = self:GetInternalIndex()
 
@@ -41,10 +55,6 @@ function ENT:Initialize()
 	end
 
 	gm_voxelate:AddWorld(self:GetInternalIndex(),index)
-end
-
-function ENT:IsReady()
-	return self.state == gm_voxelate.EVoxelLoadState.READY
 end
 
 -- Called by module... We can probably just call it directly though.
