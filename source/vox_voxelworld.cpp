@@ -106,20 +106,24 @@ VoxelChunk* VoxelWorld::initChunk(Coord x, Coord y, Coord z) {
 
 	chunks_flagged_for_update.insert(chunk);
 
-	// TODO UPDATE FLAGGING
-	// ALSO FLAG NEIGHBORS (BUT ONLY THE THREE THAT SHARE FACES WITH US... (SHIT'S COMPLICATED!))
-	/*if (y == 0) {
-	VoxelChunk* c = system->getChunk(posX, posY - 1, posZ);
-	if (c)
-	system->chunks_flagged_for_update.insert(c);
+	// Flag our three neighbors that share faces
+
+	VoxelChunk* neighbor;
+
+	neighbor = getChunk(x - 1, y, z);
+	if (neighbor) {
+		chunks_flagged_for_update.insert(neighbor);
 	}
 
-	if (z == 0) {
-	VoxelChunk* c = system->getChunk(posX, posY, posZ - 1);
-	if (c)
-	system->chunks_flagged_for_update.insert(c);*/
+	neighbor = getChunk(x, y - 1, z);
+	if (neighbor) {
+		chunks_flagged_for_update.insert(neighbor);
+	}
 
-	//chunks_flagged_for_update.insert(chunks_new[{x, y, z}]);
+	neighbor = getChunk(x, y, z - 1);
+	if (neighbor) {
+		chunks_flagged_for_update.insert(neighbor);
+	}
 
 	return chunk;
 }
