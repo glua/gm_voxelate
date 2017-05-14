@@ -39,7 +39,7 @@ bool network_startup() {
 	};
 
 	server.set_trace_handler([&](std::string err) {
-		Msg("[ENetPP-SV] [ERR] %s\n", err);
+		Msg("[ENetPP-SV] [ERR] %s\n", err.c_str());
 	});
 
 	server.start_listening(enetpp::server_listen_params<server_client>()
@@ -49,7 +49,7 @@ bool network_startup() {
 		.set_initialize_client_function(init_client_func));
 #else
 	client.set_trace_handler([&](std::string err) {
-		Msg("[ENetPP-CL] [ERR] %s\n", err);
+		Msg("[ENetPP-CL] [ERR] %s\n", err.c_str());
 	});
 #endif
 
