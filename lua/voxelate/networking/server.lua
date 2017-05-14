@@ -39,7 +39,12 @@ function Router:__ctor(voxelate)
 		if ply then
 			self.PUIDsEx[ply] = nil
 			self.PeerIDsEx[ply] = nil
-			self.voxelate.io:PrintDebug("An ENet Peer [%d] has disconnected (%s [%s])",peerID,ply:Nick(),ply:SteamID())
+
+			if IsValid(ply) then
+				self.voxelate.io:PrintDebug("An ENet Peer [%d] has disconnected (%s [%s])",peerID,ply:Nick(),ply:SteamID())
+			else
+				self.voxelate.io:PrintDebug("An ENet Peer [%d] has disconnected (Invalid player)",peerID)
+			end
 		else
 			self.voxelate.io:PrintDebug("An unauthenticated ENet Peer [%d] has disconnected",peerID)
 		end
