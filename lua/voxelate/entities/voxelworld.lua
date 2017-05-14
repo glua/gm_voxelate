@@ -53,8 +53,6 @@ function ENT:Initialize()
 
 		gm_voxelate.channels.voxelWorldInit:RequestVoxelWorldConfig(index)
 	end
-
-	gm_voxelate:AddWorld(self:GetInternalIndex(),index)
 end
 
 -- Called by module... We can probably just call it directly though.
