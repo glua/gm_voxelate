@@ -4,6 +4,7 @@ local ClientRouter = runtime.require("./networking/client").Router
 local ServerRouter = runtime.require("./networking/server").Router
 
 local VoxelWorldInitChannel = runtime.require("./channels/voxelworldinit").VoxelWorldInitChannel
+local BlockUpdateChannel = runtime.require("./channels/blockupdate").BlockUpdateChannel
 
 local IO = runtime.require("./io").IO
 
@@ -38,7 +39,26 @@ function Voxelate:__ctor()
 		self.router = ServerRouter:__new(self)
 	end
 
+	hook.Add("Tick","Voxelate.TrackWorldUpdates",function()
+		for worldID,_ in pairs(self.voxelWorldConfigs) do
+			self.module.voxGetWorldUpdates(worldID)
+		end
+	end)
+
+	hook.Add("VoxWorldBlockUpdate","Voxelate.TrackWorldUpdates",function(worldID,x,y,z)
+		local ent = self:GetWorldEntity(worldID)
+
+		if ent and ent.OnBlockUpdate then
+			if SERVER then
+				self.channels.blockUpdate:SendBlockUpdate(worldID,x,y,z)
+			end
+
+			ent:OnBlockUpdate(x,y,z)
+		end
+	end)
+
 	self:AddChannel(VoxelWorldInitChannel,"voxelWorldInit",2)
+	self:AddChannel(BlockUpdateChannel,"blockUpdate",3)
 end
 
 function Voxelate:AddChannel(class,name,id)

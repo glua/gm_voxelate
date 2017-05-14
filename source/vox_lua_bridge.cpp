@@ -262,6 +262,42 @@ int luaf_voxGenerateDefault(lua_State* state) {
 
 	return 0;
 }
+
+int luaf_voxGetWorldUpdates(lua_State* state) {
+	int index = LUA->GetNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+	if (v) {
+		for (auto pos : v->queued_block_updates) {
+			LuaHelpers::PushHookRun(state->luabase, "VoxWorldBlockUpdate");
+
+			lua_pushnumber(state, index);
+			lua_pushnumber(state, pos[0]);
+			lua_pushnumber(state, pos[1]);
+			lua_pushnumber(state, pos[2]);
+
+			LuaHelpers::CallHookRun(state->luabase, 4, 0);
+		}
+
+		v->queued_block_updates.empty();
+	}
+
+	return 0;
+}
+
+int luaf_voxSetWorldUpdatesEnabled(lua_State* state) {
+	int index = LUA->GetNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+	if (v) {
+		bool enabled = LUA->GetBool(2);
+
+		v->trackUpdates = enabled;
+	}
+
+	return 0;
+}
+
 int luaf_voxGenerate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
@@ -516,6 +552,12 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushCFunction(luaf_voxSet);
 	LUA->SetField(-2, "voxSet");
+
+	LUA->PushCFunction(luaf_voxGetWorldUpdates);
+	LUA->SetField(-2, "voxGetWorldUpdates");
+
+	LUA->PushCFunction(luaf_voxSetWorldUpdatesEnabled);
+	LUA->SetField(-2, "voxSetWorldUpdatesEnabled");
 
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");

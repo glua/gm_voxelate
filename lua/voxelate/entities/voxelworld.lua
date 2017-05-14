@@ -45,6 +45,7 @@ function ENT:Initialize()
 			self:generateDefault()
 		end
 
+		gm_voxelate.module.voxSetWorldUpdatesEnabled(index,true)
 		self:UpdateVoxelLoadState("READY")
 	else
 		self:UpdateVoxelLoadState("SYNCHRONISING")

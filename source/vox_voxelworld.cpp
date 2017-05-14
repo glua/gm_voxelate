@@ -14,6 +14,8 @@
 
 #include "vox_network.h"
 
+#include "GarrysMod\LuaHelpers.hpp"
+
 #define STD_VERT_FMT VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2)
 
 #define BUILD_MAX_VERTS 8*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE
@@ -952,6 +954,10 @@ BlockData VoxelChunk::get(Coord x, Coord y, Coord z) {
 
 void VoxelChunk::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = d;
+
+	if (system->trackUpdates) {
+		system->queued_block_updates.push_back({ x + posX*VOXEL_CHUNK_SIZE, y + posY*VOXEL_CHUNK_SIZE, z + posZ*VOXEL_CHUNK_SIZE });
+	}
 
 	if (!flagChunks)
 		return;
