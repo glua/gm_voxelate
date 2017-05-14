@@ -97,9 +97,9 @@ function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 
 	local function chunkSenderThread()
 		self.voxelate.io:PrintDebug("Sending chunk initialisation data for %d to %d...",worldID,peerID)
-		for x=1,math.ceil(config.dimensions.x/16) do
-			for y=1,math.ceil(config.dimensions.y/16) do
-				for z=1,math.ceil(config.dimensions.z/16) do
+		for x=0,math.ceil(config.dimensions.x/16) do
+			for y=0,math.ceil(config.dimensions.y/16) do
+				for z=0,math.ceil(config.dimensions.z/16) do
 					self.voxelate.module.voxSendChunk(worldID,peerID,x,y,z)
 				end
 
