@@ -284,7 +284,7 @@ int luaf_voxGetWorldUpdates(lua_State* state) {
 			LuaHelpers::CallHookRun(state->luabase, 4, 0);
 		}
 
-		v->queued_block_updates.empty();
+		v->queued_block_updates.clear();
 	}
 
 	return 0;
