@@ -35,7 +35,12 @@ function ENT:Initialize()
 	end
 end
 
--- Called by module... We can probably just call it directly though.
+function ENT:OnRemove()
+	local index = self:GetInternalIndex()
+
+	gm_voxelate.module.voxDeleteWorld(index)
+end
+
 function ENT:SetupBounds(config)
 
 	self:EnableCustomCollisions(true)
