@@ -278,7 +278,6 @@ int luaf_voxInitChunk(lua_State* state) {
 }
 
 int luaf_voxGenerateDefault(lua_State* state) {
-
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
