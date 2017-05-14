@@ -100,7 +100,7 @@ function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 	local config = self.voxelate:GetWorldConfig(worldID)
 
 	local function chunkSenderThread()
-		self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("LOADING_CHUNKS",0)
+		-- self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("LOADING_CHUNKS",0)
 		self.voxelate.io:PrintDebug("Sending chunk initialisation data for %d to %d...",worldID,peerID)
 
 		local totalToSend = math.ceil(config.dimensions.x/16) * math.ceil(config.dimensions.y/16) * math.ceil(config.dimensions.z/16)
@@ -113,7 +113,7 @@ function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 				end
 
 				sent = sent + math.ceil(config.dimensions.z/16) -- update progress
-				self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("LOADING_CHUNKS",sent / totalToSend)
+				-- self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("LOADING_CHUNKS",sent / totalToSend)
 
 				timer.Simple(0.0025,chunkSenderThread) -- queue for next tick
 				coroutine.yield() -- pause thread
@@ -121,7 +121,7 @@ function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 		end
 
 		self.voxelate.io:PrintDebug("Chunk initialisation data sent to %d...",peerID)
-		self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("READY")
+		-- self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("READY")
 	end
 
 	chunkSenderThread = coroutine.wrap(chunkSenderThread) -- create thread
