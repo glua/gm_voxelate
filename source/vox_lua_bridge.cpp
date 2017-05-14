@@ -247,8 +247,8 @@ int luaf_voxGenerateDefault(lua_State* state) {
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v) {
-		auto oldUpdatesEnabled = v->trackUpdates;
-		v->trackUpdates = false;
+		//auto oldUpdatesEnabled = v->trackUpdates; wtf this doesnt even do anything
+		//v->trackUpdates = false;
 
 		int mx, my, mz;
 		v->getCellExtents(mx, my, mz);
@@ -262,13 +262,13 @@ int luaf_voxGenerateDefault(lua_State* state) {
 			}
 		}
 
-		v->trackUpdates = oldUpdatesEnabled;
+		//v->trackUpdates = oldUpdatesEnabled;
 	}
 
 	return 0;
 }
 
-int luaf_voxGetWorldUpdates(lua_State* state) {
+/*int luaf_voxGetWorldUpdates(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
@@ -301,15 +301,15 @@ int luaf_voxSetWorldUpdatesEnabled(lua_State* state) {
 	}
 
 	return 0;
-}
+}*/
 
 int luaf_voxGenerate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v) {
-		auto oldUpdatesEnabled = v->trackUpdates;
-		v->trackUpdates = false;
+		//auto oldUpdatesEnabled = v->trackUpdates;
+		//v->trackUpdates = false;
 
 		int mx, my, mz;
 		v->getCellExtents(mx, my, mz);
@@ -329,7 +329,7 @@ int luaf_voxGenerate(lua_State* state) {
 			}
 		}
 
-		v->trackUpdates = oldUpdatesEnabled;
+		//v->trackUpdates = oldUpdatesEnabled;
 	}
 
 	return 0;
@@ -563,11 +563,11 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushCFunction(luaf_voxSet);
 	LUA->SetField(-2, "voxSet");
 
-	LUA->PushCFunction(luaf_voxGetWorldUpdates);
+	/*LUA->PushCFunction(luaf_voxGetWorldUpdates); for real? fuck off
 	LUA->SetField(-2, "voxGetWorldUpdates");
 
 	LUA->PushCFunction(luaf_voxSetWorldUpdatesEnabled);
-	LUA->SetField(-2, "voxSetWorldUpdatesEnabled");
+	LUA->SetField(-2, "voxSetWorldUpdatesEnabled");*/
 
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");

@@ -8,8 +8,8 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"InternalIndex")
 end
 
--- Internal; Do not call
-function ENT:UpdateVoxelLoadState(state,progress)
+-- Internal; Do not call (how about never call, not even internally?)
+--[[function ENT:UpdateVoxelLoadState(state,progress)
 	assert(gm_voxelate.EVoxelLoadState[state],"Unknown index passed into ENT:UpdateVoxelLoadState()")
 
 	self.state = {
@@ -18,13 +18,13 @@ function ENT:UpdateVoxelLoadState(state,progress)
 	}
 end
 
-function ENT:IsReady()
+function ENT:IsReady() -- its exactly this kind of shit i was trying to avoid when i removed like half of the api
 	return self.state and (self.state.enum == gm_voxelate.EVoxelLoadState.READY)
-end
+end]]
 
 function ENT:Initialize()
 	if SERVER then
-		self:UpdateVoxelLoadState("LOADING_CHUNKS")
+		--self:UpdateVoxelLoadState("LOADING_CHUNKS")
 
 		local config = self.config
 		self.config = nil
@@ -46,9 +46,9 @@ function ENT:Initialize()
 		end
 
 		gm_voxelate.module.voxSetWorldUpdatesEnabled(index,true)
-		self:UpdateVoxelLoadState("READY")
+		--self:UpdateVoxelLoadState("READY")
 	else
-		self:UpdateVoxelLoadState("SYNCHRONISING")
+		--self:UpdateVoxelLoadState("SYNCHRONISING")
 
 		local index = self:GetInternalIndex()
 
@@ -171,14 +171,14 @@ if SERVER then
 	end
 
 	function ENT:getAt(pos)
-		local scale = self:GetConfig().scale or 1
+		local scale = self:GetConfig().scale or 32
 
 		local rel_pos = self:WorldToLocal(pos)/scale
 		return self:getBlock(rel_pos.x,rel_pos.y,rel_pos.z)
 	end
 
 	function ENT:setAt(pos,d)
-		local scale = self:GetConfig().scale or 1
+		local scale = self:GetConfig().scale or 32
 
 		local rel_pos = self:WorldToLocal(pos)/scale
 		self:setBlock(rel_pos.x,rel_pos.y,rel_pos.z,d)
@@ -208,7 +208,7 @@ if SERVER then
 	end
 
 	function ENT:setRegionAt(v1,v2,d)
-		local scale = self:GetConfig().scale or 1
+		local scale = self:GetConfig().scale or 32
 
 		local lower=self:WorldToLocal(v1)/scale
 		local upper=self:WorldToLocal(v2)/scale
@@ -247,7 +247,7 @@ if SERVER then
 	end
 
 	function ENT:setSphereAt(pos,r,d)
-		local scale = self:GetConfig().scale or 1
+		local scale = self:GetConfig().scale or 32
 
 		pos=self:WorldToLocal(pos)/scale
 		r=r/scale

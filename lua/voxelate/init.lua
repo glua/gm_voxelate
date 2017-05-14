@@ -14,12 +14,12 @@ local module = G_VOX_IMPORTS
 G_VOX_IMPORTS = nil
 exports.module = module
 
-Voxelate.EVoxelLoadState = {
+--[[Voxelate.EVoxelLoadState = { how about no?
 	STALE = 0,
 	SYNCHRONISING = 1,
 	LOADING_CHUNKS = 2,
 	READY = 3,
-}
+}]]
 
 function Voxelate:__ctor()
 	self.module = module

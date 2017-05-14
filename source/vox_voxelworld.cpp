@@ -965,9 +965,9 @@ BlockData VoxelChunk::get(Coord x, Coord y, Coord z) {
 void VoxelChunk::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = d;
 
-	if (system->trackUpdates) {
+	/*if (system->trackUpdates) {
 		system->queued_block_updates.push_back({ x + posX*VOXEL_CHUNK_SIZE, y + posY*VOXEL_CHUNK_SIZE, z + posZ*VOXEL_CHUNK_SIZE });
-	}
+	}*/
 
 	if (!flagChunks)
 		return;
