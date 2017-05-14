@@ -66,10 +66,10 @@ void deleteIndexedVoxelWorld(int index) {
 	catch (...) {}
 }
 
-void deleteAllIndexedVoxelWorlds() {
+void checkAllVoxelWorldsDeleted() {
 	for (VoxelWorld* v : indexedVoxelWorldRegistry) {
 		if (v != nullptr) {
-			vox_print("POSSIBLE LEAK: VOXELWORLD EXISTS AT MODULE UNLOAD!");
+			vox_print("LEEK: VOXELWORLD EXISTS AT MODULE UNLOAD!");
 		}
 	}
 }
