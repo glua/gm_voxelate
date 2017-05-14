@@ -28,6 +28,7 @@ function BlockUpdateChannel:SendBlockUpdate(worldID,x,y,z)
 end
 
 function BlockUpdateChannel:OnIncomingPacket(packet)
+	if SERVER then return end
 	local buffer = packet:GetBuffer()
 
 	local worldID = buffer:ReadUInt(8)
