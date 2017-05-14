@@ -27,7 +27,7 @@ function BlockUpdateChannel:SendBlockUpdate(worldID,x,y,z)
 	return buffer:Broadcast()
 end
 
-function VoxelWorldInitChannel:OnIncomingPacket(packet)
+function BlockUpdateChannel:OnIncomingPacket(packet)
 	local buffer = packet:GetBuffer()
 
 	local worldID = buffer:ReadUInt(8)
