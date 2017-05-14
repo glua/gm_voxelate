@@ -18,6 +18,21 @@ function Router:__ctor(voxelate)
 		net.SendToServer()
 	end)
 
+	hook.Add("VoxNetworkConnect","Voxelate.Networking",function()
+
+		self.voxelate.io:PrintDebug("Now connected to server.")
+
+		self:SendInChannel("AuthHandshake",self.clientPUID)
+		self.ready = true
+
+		for i,data in ipairs(self.packetsToSendOnReady) do
+			self.voxelate.module.networkSendPacket(data.channel,data.data,data.unreliable)
+		end
+
+		self.packetsToSendOnReady = {}
+
+	end)
+
 	hook.Add("VoxNetworkDisconnect","Voxelate.Networking",function()
 		self.voxelate.io:PrintDebug("We have disconnected from the server...")
 	end)
@@ -43,22 +58,7 @@ function Router:StartENet()
 
 	self.voxelate.io:PrintDebug("Connecting to %s...",serverIP)
 
-	local suc,err = self.voxelate.module.networkConnect(serverIP)
-
-	if suc then
-		self.voxelate.io:Print("Now connected to %s via ENet!",serverIP)
-
-		self:SendInChannel("AuthHandshake",self.clientPUID)
-		self.ready = true
-
-		for i,data in ipairs(self.packetsToSendOnReady) do
-			self.voxelate.module.networkSendPacket(data.channel,data.data,data.unreliable)
-		end
-
-		self.packetsToSendOnReady = {}
-	else
-		self.voxelate.io:PrintError("Couldn't connect to %s via ENet: %s",serverIP,tostring(err))
-	end
+	self.voxelate.module.networkConnect(serverIP)
 end
 
 function Router:IncomingPacket(data,channelID)
