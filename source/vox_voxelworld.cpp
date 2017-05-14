@@ -73,7 +73,6 @@ void deleteIndexedVoxelWorld(int index) {
 }
 
 void checkAllVoxelWorldsDeleted() {
-	for (VoxelWorld* v : indexedVoxelWorldRegistry) {
 	for (auto it : indexedVoxelWorldRegistry) {
 		if (it.second != nullptr) {
 			vox_print("LEEK: VOXELWORLD EXISTS AT MODULE UNLOAD!");
