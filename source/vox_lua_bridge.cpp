@@ -239,44 +239,6 @@ int luaf_voxDraw(lua_State* state) {
 	return 0;
 }
 
-int luaf_voxData(lua_State* state) {
-	int index = LUA->GetNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-
-	if (v == nullptr) {
-		return 0;
-	}
-
-	int x = LUA->GetNumber(2);
-	int y = LUA->GetNumber(3);
-	int z = LUA->GetNumber(4);
-
-	char data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2];
-
-	int out_len = v->getChunkData(x, y, z, data);
-	if (out_len == 0) {
-		return 0;
-	}
-
-	LUA->PushString(data,out_len);
-	return 1;
-}
-
-int luaf_voxInitChunk(lua_State* state) {
-	int index = LUA->GetNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-
-	if (v != nullptr) {
-		unsigned int len;
-		const char* data = LUA->GetString(5, &len);
-
-		v->setChunkData(LUA->GetNumber(2), LUA->GetNumber(3), LUA->GetNumber(4), data, len);
-	}
-	return 0;
-}
-
 int luaf_voxGenerate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
@@ -513,12 +475,6 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushCFunction(luaf_voxDraw);
 	LUA->SetField(-2, "voxDraw");
-
-	LUA->PushCFunction(luaf_voxData);
-	LUA->SetField(-2, "voxData");
-
-	LUA->PushCFunction(luaf_voxInitChunk);
-	LUA->SetField(-2, "voxInitChunk");
 
 	LUA->PushCFunction(luaf_voxUpdate);
 	LUA->SetField(-2, "voxUpdate");
