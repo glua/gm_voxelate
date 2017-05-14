@@ -106,7 +106,7 @@ int newIndexedVoxelWorld(int index, VoxelConfig& config);
 VoxelWorld* getIndexedVoxelWorld(int index);
 
 void deleteIndexedVoxelWorld(int index);
-void deleteAllIndexedVoxelWorlds();
+void checkAllVoxelWorldsDeleted();
 
 void voxelworld_initialise_networking_static();
 

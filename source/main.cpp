@@ -40,8 +40,7 @@ GMOD_MODULE_OPEN() {
 
 GMOD_MODULE_CLOSE() {
 
-	if (!IS_SERVERSIDE)
-		deleteAllIndexedVoxelWorlds();
+	checkAllVoxelWorldsDeleted();
 
 	network_shutdown();
 

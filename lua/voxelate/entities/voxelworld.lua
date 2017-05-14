@@ -56,6 +56,12 @@ function ENT:Initialize()
 	end
 end
 
+function ENT:OnRemove()
+	local index = self:GetInternalIndex()
+
+	gm_voxelate.module.voxDeleteWorld(index)
+end
+
 function ENT:GetConfig()
 	return gm_voxelate:GetWorldConfig(self:GetInternalIndex())
 end

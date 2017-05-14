@@ -62,17 +62,21 @@ VoxelWorld* getIndexedVoxelWorld(int index) {
 }
 
 void deleteIndexedVoxelWorld(int index) {
-	delete indexedVoxelWorldRegistry[index];
 	try {
-		indexedVoxelWorldRegistry[index] = nullptr;
+		VoxelWorld*& ptr = indexedVoxelWorldRegistry.at(index);
+		if (ptr != nullptr) {
+			delete ptr;
+			ptr = nullptr;
+		}
 	}
 	catch (...) {}
 }
 
-void deleteAllIndexedVoxelWorlds() {
+void checkAllVoxelWorldsDeleted() {
+	for (VoxelWorld* v : indexedVoxelWorldRegistry) {
 	for (auto it : indexedVoxelWorldRegistry) {
 		if (it.second != nullptr) {
-			delete it.second;
+			vox_print("LEEK: VOXELWORLD EXISTS AT MODULE UNLOAD!");
 		}
 	}
 
