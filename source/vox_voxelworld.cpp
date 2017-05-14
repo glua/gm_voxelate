@@ -231,7 +231,7 @@ void voxelworld_initialise_networking_static() {
 		reader.StartReading(data, data_len);
 
 		int worldID = reader.ReadUBitLong(8);
-		// vox_print("hello? %i",worldID);
+		//vox_print("hello? %i",worldID);
 
 		auto world = getIndexedVoxelWorld(worldID);
 
@@ -245,7 +245,7 @@ void voxelworld_initialise_networking_static() {
 			reader.ReadSBitLong(32)
 		};
 
-		// vox_print("Get chunk %i %i %i %i", worldID, pos[0], pos[1], pos[2]);
+		//vox_print("Get chunk %i %i %i %i", worldID, pos[0], pos[1], pos[2]);
 
 		auto dataSize = reader.GetNumBytesLeft();
 
@@ -294,10 +294,10 @@ void voxelworld_initialise_networking_static() {
 #ifdef VOXELATE_SERVER
 
 bool VoxelWorld::sendChunk(int peerID, XYZCoordinate pos) {
-	auto msg = new(std::nothrow) char[CHUNK_BUFFER_SIZE + 128];
+	static char msg[CHUNK_BUFFER_SIZE + 13];
 
 	bf_write writer;
-	writer.StartWriting(msg, CHUNK_BUFFER_SIZE + 128);
+	writer.StartWriting(msg, CHUNK_BUFFER_SIZE + 13);
 
 	writer.WriteUBitLong(worldID, 8);
 
@@ -307,13 +307,10 @@ bool VoxelWorld::sendChunk(int peerID, XYZCoordinate pos) {
 
 	int compressed_size = getChunkData(pos[0], pos[1], pos[2], msg + writer.GetNumBytesWritten());
 
-
 	if (compressed_size == 0)
 		return false;
 
-	// vox_print("Send %i", writer.GetNumBytesWritten() + compressed_size);
-
-	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, &msg, writer.GetNumBytesWritten() + compressed_size );
+	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, msg, writer.GetNumBytesWritten() + compressed_size );
 }
 
 
