@@ -124,6 +124,8 @@ int luaf_voxNewWorld(lua_State* state) {
 		}
 	}
 
+	config.scale = config_num(state, "scale", 32);
+
 	// Atlas crap
 	if (!IS_SERVERSIDE) {
 		const char* temp_mat_name = config_string(state, "atlasMaterial", "models/debug/debugwhite");

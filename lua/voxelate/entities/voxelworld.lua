@@ -57,11 +57,20 @@ function ENT:Think()
 	local index = self:GetInternalIndex()
 	gm_voxelate.module.voxUpdate(index,10,self)
 
-	if CLIENT and self.correct_maxs then
-		local _,maxs = self:GetRenderBounds()
-		if maxs~=self.correct_maxs then
-			self:SetRenderBounds(Vector(),self.correct_maxs)
-			print("Corrected render bounds on Voxel System #"..index..".")
+	if CLIENT then
+		if not self.correct_maxs then
+			-- bounds not setup, try setting them up.
+			local config = gm_voxelate:GetWorldConfig(index)
+			if config then
+				self:SetupBounds(config)
+			end
+		else
+			-- bounds are set up, see if they need fixed.
+			local _,maxs = self:GetRenderBounds()
+			if maxs~=self.correct_maxs then
+				self:SetRenderBounds(Vector(),self.correct_maxs)
+				print("Corrected render bounds on Voxel System #"..index..".")
+			end
 		end
 	end
 
