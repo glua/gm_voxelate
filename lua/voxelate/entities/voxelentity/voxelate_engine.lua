@@ -5,8 +5,12 @@ exports.VoxelEntity = VoxelEntity
 
 -- todo: network worldID, and set up basic networking
 
-function exports.CreateEntity(voxelWorld,idx)
-	return VoxelEntity:__new(voxelWorld,idx)
+function exports.CreateEntity(voxelWorld,idx,classObj)
+	classObj = classObj or VoxelEntity
+
+	assert(runtime.oop.inherits(classObj,VoxelEntity),"Attempted to create a non-voxelate entity")
+
+	return classObj:__new(voxelWorld,idx)
 end
 
 function VoxelEntity:__ctor(voxelWorld,idx)

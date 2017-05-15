@@ -278,6 +278,17 @@ function runtime.oop.checkCircular(meta,deps)
 	runtime.oop.checkCircular(meta.__parent,deps)
 end
 
+function runtime.oop.inherits(meta,source)
+	if meta == source then return true end
+	if meta.__parent == source then return true end
+
+	if meta.__parent then
+		if runtime.oop.inherits(meta.__parent,source) then return true end
+	end
+
+	return false
+end
+
 function runtime.oop.extend(meta,source)
 	meta.__parent = source
 	if meta.__parent then

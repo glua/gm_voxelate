@@ -7,6 +7,8 @@ local VoxelWorldInitChannel = runtime.require("./channels/voxelworldinit").Voxel
 local BlockUpdateChannel = runtime.require("./channels/blockupdate").BlockUpdateChannel
 --local BulkUpdateChannel = runtime.require("./channels/bulkupdate").BulkUpdateChannel
 
+local VoxelEntity = runtime.require("./voxelentity/voxelate_engine").VoxelEntity
+
 local IO = runtime.require("./io").IO
 
 local Voxelate = runtime.oop.create("Voxelate")
@@ -39,6 +41,10 @@ function Voxelate:__ctor()
 
 		self.router = ServerRouter:__new(self)
 	end
+
+	self.registeredSubEntityClasses = {
+		voxel_entity = VoxelEntity,
+	}
 
 	--[[hook.Add("Tick","Voxelate.TrackWorldUpdates",function()
 		for worldID,_ in pairs(self.voxelWorldConfigs) do
@@ -87,6 +93,19 @@ end
 -- warning - this might get called without a valid ent in the future - is this an issue?
 function Voxelate:SetWorldConfig(index,config)
 	self.voxelWorldConfigs[index] = config
+end
+
+function Voxelate:RegisterSubEntity(className,classObj)
+	assert(some_condition_to_be_decided,"For voxelate-engine based VoxelWorld entities only")
+
+	runtime.oop.extend(classObj,VoxelEntity)
+
+	self.registeredSubEntityClasses[className] = classObj
+end
+
+function Voxelate:ResolveSubEntityClassName(className)
+	assert(self.registeredSubEntityClasses[className],"Unknown voxel entity class name")
+	return self.registeredSubEntityClasses[className]
 end
 
 exports.Voxelate = Voxelate:__new()

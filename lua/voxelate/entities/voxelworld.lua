@@ -151,7 +151,7 @@ function ENT:TestCollision(start,delta,isbox,extents)
 	end
 end
 
-function ENT:CreateSubEntity()
+function ENT:CreateSubEntity(className)
 	-- negative indexes are clientside-created ents
 	-- positive indexes are serverside-created ents
 
@@ -163,11 +163,11 @@ function ENT:CreateSubEntity()
 
 	local index = self.incrementingSubEntityIndex
 
-	-- if some_condition then
-		return CreateSourceEngineSubEntity(self,index)
-	-- else
-	-- 	return CreateVoxelateEngineSubEntity(self,index)
-	-- end
+	if some_condition_to_be_decided then
+		return CreateVoxelateEngineSubEntity(self,index,gm_voxelate:ResolveSubEntityClassName(className)) -- object used
+	else
+		return CreateSourceEngineSubEntity(self,index,className) -- name used
+	end
 end
 
 if SERVER then

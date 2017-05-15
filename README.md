@@ -30,8 +30,22 @@ The test_install scripts are for quickly copying the binaries into directories o
 
 ## Technical details for using this in a gamemode
 
+### Required libraries/dependencies
+
 We generally don't depend on garryFuncs:tm:
-You should be good to completely override `includes/init.lua`, as long as the stock luajit 5.1 funcs aren't modified, and a version of the `hook` library is available for use.
+You should be good to completely override `includes/init.lua`, as long as the stock luajit 5.1 funcs aren't modified, and a version of the `hook` and `timer` libraries is available for use.
+
+### Sub entities
+
+#### Voxelate engine based
+
+use `gm_voxelate:RegisterSubEntity(className,classObj)` and it will internally extend the VoxelEntity class
+
+#### Source engine based
+
+extend `voxel_entity`
+
+note: both the voxelate engine and source engine entities are mutually exclusive: you may only use one type at a time.
 
 ## Testing/Debugging
 

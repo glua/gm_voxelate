@@ -1,7 +1,12 @@
 local runtime,exports = ...
 
-function exports.CreateEntity(voxelWorld,idx)
-	local ent = ents.Create("voxel_entity")
+function exports.CreateEntity(voxelWorld,idx,className)
+	local ent = ents.Create(className or "voxel_entity")
+
+	if not ent.__VOXELATE__ then
+		ent:Remove()
+		assert("Attempted to create a non-voxelate entity")
+	end
 
 	ent:SetInternalWorldIndex(voxelWorld:GetInternalIndex())
 	ent:SetInternalSubEntityIndex(idx)
@@ -11,6 +16,7 @@ end
 
 local ENT = {}
 
+ENT.__VOXELATE__ = true -- simple var to check if an ent is a voxel entity
 ENT.Type = "anim"
 
 function ENT:SetupDataTables()
