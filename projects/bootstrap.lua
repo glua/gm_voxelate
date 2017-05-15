@@ -106,6 +106,7 @@ function sandbox.loadfile(_path)
 			debug.setfenv(fn,sandbox)
 			return fn
 		else
+			print("Error compiling voxelate Lua file "..path..":\n"..fn)
 			return false,fn
 		end
 	else
