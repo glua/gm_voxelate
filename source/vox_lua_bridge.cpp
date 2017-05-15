@@ -447,7 +447,11 @@ int luaf_voxLoadFromString1(lua_State* state) { // save with format 1
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
-		std::string data = luaL_checkstring(state, 2);
+		size_t size;
+
+		auto Ldata = luaL_checklstring(state, 2, &size);
+
+		std::string data(Ldata, size);
 
 		auto success = v->loadFromString(data);
 

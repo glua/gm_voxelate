@@ -267,6 +267,27 @@ if SERVER then
 
 		self:setSphere(pos.x,pos.y,pos.z,r,d)
 	end
+
+	function ENT:save(file_name)
+		local serialized = gm_voxelate.module.voxSaveToString1(self:GetInternalIndex())
+
+		if serialized then
+			file.Write(file_name,serialized)
+			return true
+		end
+	end
+
+	function ENT:load(file_name)
+		local f = file.Open(file_name,"rb","DATA")
+		if not f then return false end
+
+		local serialized = f:Read(f:Size())
+		f:Close()
+
+		if not serialized then return false end
+
+		return gm_voxelate.module.voxLoadFromString1(self:GetInternalIndex(),serialized)
+	end
 end
 
 function ENT:UpdateTransmitState()
