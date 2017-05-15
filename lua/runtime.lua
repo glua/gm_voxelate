@@ -190,8 +190,8 @@ function runtime.oop.superBind(origSelf,inputSelf,fn)
 	})
 end
 
-function runtime.oop.construct(meta,...)
-	local instance = setmetatable({},meta)
+function runtime.oop.constructFrom(inst,meta,...)
+	local instance = setmetatable(inst,meta)
 
 	instance.__uuid = runtime.oop.uuid()
 
@@ -221,6 +221,10 @@ function runtime.oop.construct(meta,...)
 	instance:__ctor(...)
 
 	return instance
+end
+
+function runtime.oop.construct(meta,...)
+	return runtime.oop.constructFrom({},meta,...)
 end
 
 function runtime.oop.create(name,secure)
@@ -257,6 +261,10 @@ function runtime.oop.create(name,secure)
 
 	function meta:__new(...)
 		return runtime.oop.construct(meta,...)
+	end
+
+	function meta:__newFrom(src,...)
+		return runtime.oop.constructFrom(src,meta,...)
 	end
 
 	return meta
