@@ -226,7 +226,7 @@ bool VoxelWorld::loadFromString(std::string contents) {
 			return false;
 		}
 
-		toLoad[{chunkX, chunkY, chunkZ}] = {dataSize, chunkData};
+		toLoad[{chunkX, chunkY, chunkZ}] = std::make_tuple(dataSize, chunkData);
 	}
 
 	// if we're here, the chunk read was successful
@@ -271,7 +271,7 @@ std::tuple<char*,size_t> VoxelWorld::writeToString() {
 		writer.WriteBytes(buffer, compressed_size);
 	}
 
-	return{ worldData,writer.GetNumBytesWritten() };
+	return std::make_tuple( worldData,writer.GetNumBytesWritten() );
 }
 
 // used to be called by some stupid shit
