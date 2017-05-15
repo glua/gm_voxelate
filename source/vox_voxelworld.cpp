@@ -185,6 +185,7 @@ bool VoxelWorld::setChunkData(Coord x, Coord y, Coord z, const char* data_compre
 	return true;
 }
 
+// DON'T USE THIS
 bool VoxelWorld::loadFromString(std::string contents) {
 	if (contents.size() == 0) {
 		return 0;
@@ -242,7 +243,8 @@ bool VoxelWorld::loadFromString(std::string contents) {
 	}
 
 	for (auto it : toLoad) {
-		delete[std::get<0>(it.second)] std::get<1>(it.second);
+		// delete[std::get<0>(it.second)] std::get<1>(it.second);
+		// TODO: ^ fucks up in linux builds
 	}
 
 	toLoad.clear();
@@ -250,6 +252,7 @@ bool VoxelWorld::loadFromString(std::string contents) {
 	return success;
 }
 
+// DON'T USE THIS EITHER
 std::tuple<char*,size_t> VoxelWorld::writeToString() {
 	auto chunksToWrite = chunks_map.size();
 	auto worldData = new(std::nothrow) char[CHUNK_BUFFER_SIZE * chunksToWrite + 32];
