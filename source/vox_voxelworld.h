@@ -141,7 +141,8 @@ public:
 	bool sendChunksAround(int peerID, XYZCoordinate pos, Coord radius = 10);
 #endif
 
-	void doUpdates(int count, CBaseEntity* ent);
+	void sortUpdatesByDistance(Vector * origin);
+	void doUpdates(int count, CBaseEntity * ent);
 
 	VoxelTraceRes doTrace(Vector startPos, Vector delta);
 	VoxelTraceRes doTraceHull(Vector startPos, Vector delta, Vector extents);
@@ -160,7 +161,7 @@ private:
 	//bool initialised = false;
 
 	std::unordered_map<XYZCoordinate, VoxelChunk*> chunks_map; // ok zerf lmao
-	std::set<VoxelChunk*> chunks_flagged_for_update;
+	std::vector<VoxelChunk*> chunks_flagged_for_update;
 
 	VoxelConfig config;
 };
@@ -173,8 +174,12 @@ public:
 	void build(CBaseEntity* ent);
 	void draw(CMatRenderContextPtr& pRenderContext);
 
+	XYZCoordinate getWorldCoords();
+
 	BlockData get(int x, int y, int z);
 	void set(int x, int y, int z, BlockData d, bool flagChunks);
+
+	int posX, posY, posZ;
 
 	BlockData voxel_data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = {};
 private:
@@ -184,8 +189,6 @@ private:
 	void meshStop(CBaseEntity* ent);
 
 	void addFullVoxelFace(int x,int y,int z,int tx, int ty, byte dir);
-
-	int posX, posY, posZ;
 
 	VoxelWorld* system;
 	CMeshBuilder meshBuilder;

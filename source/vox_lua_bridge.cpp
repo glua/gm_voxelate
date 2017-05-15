@@ -380,7 +380,21 @@ int luaf_voxUpdate(lua_State* state) {
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v != nullptr) {
-		v->doUpdates(10, ent);
+		v->doUpdates(chunk_count, ent);
+	}
+
+	return 0;
+}
+
+int luaf_voxSortUpdatesByDistance(lua_State* state) {
+	int index = LUA->GetNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+
+	auto origin = LUA->GetVector(2);
+
+	if (v != nullptr) {
+		v->sortUpdatesByDistance(&origin);
 	}
 
 	return 0;
@@ -589,6 +603,9 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushCFunction(luaf_voxUpdate);
 	LUA->SetField(-2, "voxUpdate");
+
+	LUA->PushCFunction(luaf_voxSortUpdatesByDistance);
+	LUA->SetField(-2, "voxSortUpdatesByDistance");
 
 	LUA->PushCFunction(luaf_voxTrace);
 	LUA->SetField(-2, "voxTrace");

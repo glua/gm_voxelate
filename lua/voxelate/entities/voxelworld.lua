@@ -94,7 +94,8 @@ end
 
 function ENT:Think()
 	local index = self:GetInternalIndex()
-	gm_voxelate.module.voxUpdate(index,10,self)
+
+	gm_voxelate.module.voxUpdate(index,CLIENT and 100 or 25,self)
 
 	if CLIENT then
 		if not self.correct_maxs then
