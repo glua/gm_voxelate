@@ -248,7 +248,7 @@ bool VoxelWorld::loadFromString(std::string contents) {
 	return success;
 }
 
-std::string VoxelWorld::writeToString() {
+std::tuple<char*,size_t> VoxelWorld::writeToString() {
 	auto chunksToWrite = chunks_map.size();
 	auto worldData = new(std::nothrow) char[CHUNK_BUFFER_SIZE * chunksToWrite + 32];
 
@@ -266,10 +266,7 @@ std::string VoxelWorld::writeToString() {
 		writer.WriteBytes(buffer, compressed_size);
 	}
 
-
-	std::string out(worldData, writer.GetNumBytesWritten());
-
-	return out;
+	return{ worldData,writer.GetNumBytesWritten() };
 }
 
 // used to be called by some stupid shit

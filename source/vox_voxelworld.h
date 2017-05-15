@@ -127,7 +127,7 @@ public:
 
 	bool loadFromString(std::string contents);
 
-	std::string writeToString();
+	std::tuple<char*, size_t> writeToString();
 
 	void initialize();
 

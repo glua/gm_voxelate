@@ -17,6 +17,8 @@
 
 #include "GarrysMod/LuaHelpers.hpp"
 
+#include <tuple>
+
 using namespace GarrysMod::Lua;
 
 //Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
@@ -430,9 +432,13 @@ int luaf_voxSaveToString1(lua_State* state) { // save with format 1
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
-		auto data = v->writeToString();
+		auto ret = v->writeToString();
+		auto data = std::get<0>(ret);
+		auto size = std::get<1>(ret);
 
-		lua_pushlstring(state, data.c_str(), data.size());
+		lua_pushlstring(state, data, size);
+
+		delete[size] data;
 
 		return 1;
 	}
