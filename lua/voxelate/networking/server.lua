@@ -65,9 +65,9 @@ function Router:__ctor(voxelate)
 
 	hook.Add("PlayerInitialSpawn","Voxelate.PlayerConnectTimeout",function(ply)
 		if not self.PUIDsEx[ply] then
-			-- player hasn't synced up yet: give them 15 seconds to do so, or we boot them
+			-- player hasn't synced up yet: give them 25 seconds to do so, or we boot them
 
-			addPlayerTimeout(ply,"Voxelate.PlayerConnectTimeout",15,function()
+			addPlayerTimeout(ply,"Voxelate.PlayerConnectTimeout",25,function()
 				if not self.PeerIDsEx[ply] then
 					ply:Kick("Failed to connect and authenticate with ENet (timed out)")
 				end
