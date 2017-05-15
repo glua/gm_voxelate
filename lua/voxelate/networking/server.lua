@@ -69,12 +69,13 @@ function Router:__ctor(voxelate)
 
 			addPlayerTimeout(ply,"Voxelate.PlayerConnectTimeout",25,function()
 				if not self.PeerIDsEx[ply] then
-					ply:Kick("Failed to connect and authenticate with ENet (timed out)")
+					ply:Kick("Voxelate failed to establish a connection. If you do not have Voxelate, you need to install it to play on this server. You may also have an old verison of Voxelate, or it may have failed to load.")
 				end
 			end)
 		end
 	end)
 
+	-- TODO do we really have to go through the trouble of a graceful disconnect here? The client has already disconnectd through the game, and their module has probably already been killed.
 	gameevent.Listen("player_disconnect")
 	hook.Add("player_disconnect","Voxelate.ManualPlayerDisconnect",function(data)
 		local name = data.name
