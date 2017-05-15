@@ -239,6 +239,8 @@ if SERVER then
 		z = fix(z)
 		r = fix(r)
 
+		local success = false
+
 		local rsqr = r*r
 		for ix=x-r,x+r do
 			local xsqr = (ix-x)*(ix-x)
@@ -247,11 +249,14 @@ if SERVER then
 				for iz=z-r,z+r do
 					local xyzsqr = xysqr+(iz-z)*(iz-z)
 					if xyzsqr<=rsqr then
-						set(index,ix,iy,iz,d)
+						success = set(index,ix,iy,iz,d) or success
 					end
 				end
 			end
 		end
+
+		if success then gm_voxelate.channels.blockUpdate:SendBulkSphereUpdate(index,x,y,z,r,d) end
+		return success
 	end
 
 	function ENT:setSphereAt(pos,r,d)
