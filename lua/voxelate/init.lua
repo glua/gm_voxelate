@@ -7,6 +7,7 @@ local VoxelWorldInitChannel = runtime.require("./channels/voxelworldinit").Voxel
 local BlockUpdateChannel = runtime.require("./channels/blockupdate").BlockUpdateChannel
 --local BulkUpdateChannel = runtime.require("./channels/bulkupdate").BulkUpdateChannel
 
+runtime.require("./voxelate/entities/voxelworld")
 local VoxelEntity = runtime.require("./voxelentity/voxelate_engine").VoxelEntity
 
 local IO = runtime.require("./io").IO
