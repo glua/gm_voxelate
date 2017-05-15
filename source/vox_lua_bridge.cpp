@@ -425,6 +425,40 @@ int luaf_voxSendChunks(lua_State* state) {
 }
 #endif
 
+int luaf_voxSaveToString1(lua_State* state) { // save with format 1
+	int index = LUA->GetNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+	if (v != nullptr) {
+		std::string data;
+
+		v->writeToString(data);
+
+		lua_pushlstring(state, data.c_str(), data.size());
+
+		return 1;
+	}
+
+	return 0;
+}
+
+int luaf_voxLoadFromString1(lua_State* state) { // save with format 1
+	int index = LUA->GetNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+	if (v != nullptr) {
+		std::string data = luaL_checkstring(state, 2);
+
+		auto success = v->loadFromString(data);
+
+		lua_pushboolean(state, success);
+
+		return 1;
+	}
+
+	return 0;
+}
+
 int luaf_voxTrace(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
@@ -568,6 +602,12 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushCFunction(luaf_voxSetWorldUpdatesEnabled);
 	LUA->SetField(-2, "voxSetWorldUpdatesEnabled");
+
+	LUA->PushCFunction(luaf_voxLoadFromString1);
+	LUA->SetField(-2, "voxLoadFromString1");
+
+	LUA->PushCFunction(luaf_voxSaveToString1);
+	LUA->SetField(-2, "voxSaveToString1");
 
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");
