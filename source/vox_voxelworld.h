@@ -125,7 +125,9 @@ public:
 	const int getChunkData(Coord x, Coord y, Coord z, char * out);
 	bool setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len);
 
-	bool loadFromFile(std::string fname);
+	bool loadFromString(std::string contents);
+
+	void writeToString(std::string & out);
 
 	void initialize();
 
