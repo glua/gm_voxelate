@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include <vector>
+#include <tuple>
 
 #include "collisionutils.h"
 
@@ -164,10 +165,10 @@ const int VoxelWorld::getChunkData(Coord x, Coord y, Coord z,char* out) {
 	return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
 }
 
-void VoxelWorld::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len) {
+bool VoxelWorld::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len) {
 	if (data_compressed == nullptr) {
 		vox_print("NULL DATA %i", data_len);
-		return;
+		return false;
 	}
 
 	VoxelChunk* chunk = initChunk(x, y, z);
@@ -176,7 +177,96 @@ void VoxelWorld::setChunkData(Coord x, Coord y, Coord z, const char* data_compre
 
 	if (res == 0) {
 		vox_print("VoxelWorld::setChunkData -> FastLZ decompression failed! [%i, %i, %i]", x, y, z);
+		return false;
 	}
+
+	return true;
+}
+
+bool VoxelWorld::loadFromString(std::string contents) {
+	if (contents.size() == 0) {
+		return 0;
+	}
+
+	bf_read reader;
+	reader.StartReading(contents.c_str(), contents.size());
+
+	auto magic = reader.ReadUBitLong(32);
+	if (magic != 0xB00B1351) { // boobies v1
+		// bad header
+		return false;
+	}
+
+	auto totalChunks = reader.ReadUBitLong(32);
+
+	if (reader.IsOverflowed()) {
+		return false;
+	}
+
+	std::unordered_map<XYZCoordinate, std::tuple<size_t, char*>> toLoad;
+
+	for (unsigned int i = 0; i < totalChunks; i++) {
+		Coord chunkX = reader.ReadUBitLong(32);
+		Coord chunkY = reader.ReadUBitLong(32);
+		Coord chunkZ = reader.ReadUBitLong(32);
+
+		auto dataSize = reader.ReadUBitLong(14);
+
+		if (reader.IsOverflowed()) {
+			return false;
+		}
+
+		auto chunkData = new(std::nothrow) char[CHUNK_BUFFER_SIZE];
+		reader.ReadBytes(chunkData, dataSize);
+
+		if (reader.IsOverflowed()) {
+			return false;
+		}
+
+		toLoad[{chunkX, chunkY, chunkZ}] = {dataSize, chunkData};
+	}
+
+	// if we're here, the chunk read was successful
+
+	auto success = true;
+
+	for (auto it : toLoad) {
+		if (!setChunkData(it.first[0], it.first[1], it.first[2], std::get<1>(it.second), std::get<0>(it.second))) {
+			// well we're fucked
+
+			success = false;
+			break;
+		}
+	}
+
+	for (auto it : toLoad) {
+		delete[std::get<0>(it.second)] std::get<1>(it.second);
+	}
+
+	toLoad.clear();
+
+	return success;
+}
+
+void VoxelWorld::writeToString(std::string& out) {
+	auto chunksToWrite = chunks_map.size();
+	auto worldData = new(std::nothrow) char[CHUNK_BUFFER_SIZE * chunksToWrite + 32];
+
+	bf_write writer;
+	writer.StartWriting(worldData, CHUNK_BUFFER_SIZE * chunksToWrite + 32);
+
+	writer.WriteUBitLong(0xB00B1351, 32);
+	writer.WriteUBitLong(chunksToWrite, 32);
+
+	for (auto it : chunks_map) {
+		char buffer[CHUNK_BUFFER_SIZE];
+		int compressed_size = getChunkData(it.first[0], it.first[1], it.first[2], buffer);
+
+		writer.WriteUBitLong(compressed_size, 32);
+		writer.WriteBytes(buffer, compressed_size);
+	}
+
+	out.assign(worldData, writer.GetNumBytesWritten());
 }
 
 // used to be called by some stupid shit

@@ -7,6 +7,7 @@
 #include <array>
 #include <functional>
 #include <vector>
+#include <string>
 
 #include "materialsystem/imesh.h"
 
@@ -122,7 +123,11 @@ public:
 	VoxelChunk* getChunk(Coord x, Coord y, Coord z);
 
 	const int getChunkData(Coord x, Coord y, Coord z, char * out);
-	void setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len);
+	bool setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len);
+
+	bool loadFromString(std::string contents);
+
+	void writeToString(std::string & out);
 
 	void initialize();
 
