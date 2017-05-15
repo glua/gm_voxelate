@@ -164,7 +164,7 @@ function Router:__ctor(voxelate)
 		local serverModuleVersion = self.voxelate.module.VERSION
 		local clientModuleVersion = net.ReadString()
 
-		if not assertCompatibility(ply,serverModuleVersion,clientModuleVersion,"gm_voxelate module version mismatch [SV (%s) != CL (%s) (%s)]") then
+		if not assertCompatibility(serverModuleVersion,clientModuleVersion) then
 			self.voxelate.io:Print("Client %s [%s] failed module version check (SV %s / CL %s)",ply:Nick(),ply:SteamID(),serverModuleVersion,clientModuleVersion)
 			ply:Kick(string.format("Failed Voxelate version check. Server has V%s. You have V%s. Visit the Voxelate Github page for more information on version compatability.",serverModuleVersion,clientModuleVersion))
 			
