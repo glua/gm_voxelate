@@ -27,7 +27,8 @@ GMOD_MODULE_OPEN() {
 	}
 
 	if (!network_startup()) {
-		return 0;
+		vox_print("Fatal! Failed to setup networking!");
+		return 1;
 	}
 
 	voxelworld_initialise_networking_static();
