@@ -95,7 +95,9 @@ end
 function ENT:Think()
 	local index = self:GetInternalIndex()
 
-	gm_voxelate.module.voxUpdate(index,CLIENT and 100 or 25,self)
+	-- 100 updates per frame is -SERIOUSLY- excessive
+	-- the entire point of queueing updates is so we dont lag balls
+	gm_voxelate.module.voxUpdate(index,20,self)
 
 	if CLIENT then
 		if not self.correct_maxs then
