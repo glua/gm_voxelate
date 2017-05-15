@@ -190,8 +190,8 @@ function runtime.oop.superBind(origSelf,inputSelf,fn)
 	})
 end
 
-function runtime.oop.construct(meta,...)
-	local instance = setmetatable({},meta)
+function runtime.oop.constructFrom(inst,meta,...)
+	local instance = setmetatable(inst,meta)
 
 	instance.__uuid = runtime.oop.uuid()
 
@@ -221,6 +221,10 @@ function runtime.oop.construct(meta,...)
 	instance:__ctor(...)
 
 	return instance
+end
+
+function runtime.oop.construct(meta,...)
+	return runtime.oop.constructFrom({},meta,...)
 end
 
 function runtime.oop.create(name,secure)
@@ -259,6 +263,10 @@ function runtime.oop.create(name,secure)
 		return runtime.oop.construct(meta,...)
 	end
 
+	function meta:__newFrom(src,...)
+		return runtime.oop.constructFrom(src,meta,...)
+	end
+
 	return meta
 end
 
@@ -268,6 +276,17 @@ function runtime.oop.checkCircular(meta,deps)
 	deps[meta] = true
 	if deps[meta.__parent] then error("Class "..meta.__name.." has a circular dependency!") end
 	runtime.oop.checkCircular(meta.__parent,deps)
+end
+
+function runtime.oop.inherits(meta,source)
+	if meta == source then return true end
+	if meta.__parent == source then return true end
+
+	if meta.__parent then
+		if runtime.oop.inherits(meta.__parent,source) then return true end
+	end
+
+	return false
 end
 
 function runtime.oop.extend(meta,source)

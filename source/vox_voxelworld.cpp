@@ -6,6 +6,8 @@
 
 #include <cmath>
 
+#include <functional>
+#include <algorithm>
 #include <vector>
 #include <tuple>
 
@@ -117,7 +119,7 @@ VoxelChunk* VoxelWorld::initChunk(Coord x, Coord y, Coord z) {
 
 	chunks_map.insert({ { x, y, z }, chunk });
 
-	chunks_flagged_for_update.insert(chunk);
+	chunks_flagged_for_update.push_back(chunk);
 
 	// Flag our three neighbors that share faces
 
@@ -125,17 +127,17 @@ VoxelChunk* VoxelWorld::initChunk(Coord x, Coord y, Coord z) {
 
 	neighbor = getChunk(x - 1, y, z);
 	if (neighbor) {
-		chunks_flagged_for_update.insert(neighbor);
+		chunks_flagged_for_update.push_back(neighbor);
 	}
 
 	neighbor = getChunk(x, y - 1, z);
 	if (neighbor) {
-		chunks_flagged_for_update.insert(neighbor);
+		chunks_flagged_for_update.push_back(neighbor);
 	}
 
 	neighbor = getChunk(x, y, z - 1);
 	if (neighbor) {
-		chunks_flagged_for_update.insert(neighbor);
+		chunks_flagged_for_update.push_back(neighbor);
 	}
 
 	return chunk;
@@ -248,7 +250,7 @@ bool VoxelWorld::loadFromString(std::string contents) {
 	return success;
 }
 
-void VoxelWorld::writeToString(std::string& out) {
+std::tuple<char*,size_t> VoxelWorld::writeToString() {
 	auto chunksToWrite = chunks_map.size();
 	auto worldData = new(std::nothrow) char[CHUNK_BUFFER_SIZE * chunksToWrite + 32];
 
@@ -266,7 +268,7 @@ void VoxelWorld::writeToString(std::string& out) {
 		writer.WriteBytes(buffer, compressed_size);
 	}
 
-	out.assign(worldData, writer.GetNumBytesWritten());
+	return{ worldData,writer.GetNumBytesWritten() };
 }
 
 // used to be called by some stupid shit
@@ -465,12 +467,40 @@ bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 }
 #endif
 
+void VoxelWorld::sortUpdatesByDistance(Vector* origin) {
+	// std::function<bool(VoxelChunk*,VoxelChunk*)>
+
+	if (origin != NULL) {
+		auto sorter = [&](VoxelChunk* c1, VoxelChunk* c2) {
+			auto c1pos = c1->getWorldCoords();
+			auto c2pos = c2->getWorldCoords();
+
+			if (c1pos[0] == c2pos[0]) {
+				if (c1pos[1] == c2pos[1]) {
+					auto Zdist1 = std::pow(c1pos[2] - origin->z, 2);
+					auto Zdist2 = std::pow(c2pos[2] - origin->z, 2);
+
+					return Zdist1 < Zdist2;
+				}
+			}
+
+			auto dist1 = std::pow(c1pos[0] - origin->x, 2) + std::pow(c1pos[1] - origin->y, 2);
+			auto dist2 = std::pow(c2pos[0] - origin->x, 2) + std::pow(c2pos[1] - origin->y, 2);
+
+			return dist1 < dist2;
+		};
+
+		std::sort(chunks_flagged_for_update.begin(), chunks_flagged_for_update.end(), sorter);
+	}
+}
+
 // Updates up to n chunks
 // Logic probably okay for huge worlds, although we may have to double check that the chunk still exists,
 // or clean out chunks_flagged_for_update when we unload chunks
+// TODO: convert Vector to AdvancedVector
 void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 	// On the server, we -NEED- the entity. Not so important on the client
-	if (!IS_SERVERSIDE || (ent != nullptr && config.buildPhysicsMesh) ) {
+	if (!IS_SERVERSIDE || (ent != nullptr && config.buildPhysicsMesh)) {
 		for (int i = 0; i < count; i++) {
 			auto iter = chunks_flagged_for_update.begin();
 			if (iter == chunks_flagged_for_update.end()) return;
@@ -1048,6 +1078,10 @@ void VoxelChunk::draw(CMatRenderContextPtr& pRenderContext) {
 	}
 }
 
+XYZCoordinate VoxelChunk::getWorldCoords() {
+	return{ posX*VOXEL_CHUNK_SIZE, posY*VOXEL_CHUNK_SIZE, posZ*VOXEL_CHUNK_SIZE };
+}
+
 BlockData VoxelChunk::get(Coord x, Coord y, Coord z) {
 	return voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE];
 }
@@ -1062,24 +1096,24 @@ void VoxelChunk::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	if (!flagChunks)
 		return;
 
-	system->chunks_flagged_for_update.insert(this);
+	system->chunks_flagged_for_update.push_back(this);
 
 	if (x == 0) {
 		VoxelChunk* c = system->getChunk(posX - 1, posY, posZ);
 		if (c)
-			system->chunks_flagged_for_update.insert(c);
+			system->chunks_flagged_for_update.push_back(c);
 	}
 
 	if (y == 0) {
 		VoxelChunk* c = system->getChunk(posX, posY - 1, posZ);
 		if (c)
-			system->chunks_flagged_for_update.insert(c);
+			system->chunks_flagged_for_update.push_back(c);
 	}
 
 	if (z == 0) {
 		VoxelChunk* c = system->getChunk(posX, posY, posZ - 1);
 		if (c)
-			system->chunks_flagged_for_update.insert(c);
+			system->chunks_flagged_for_update.push_back(c);
 	}
 }
 /*

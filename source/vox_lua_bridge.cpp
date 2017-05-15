@@ -17,6 +17,8 @@
 
 #include "GarrysMod/LuaHelpers.hpp"
 
+#include <tuple>
+
 using namespace GarrysMod::Lua;
 
 //Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
@@ -378,7 +380,21 @@ int luaf_voxUpdate(lua_State* state) {
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v != nullptr) {
-		v->doUpdates(10, ent);
+		v->doUpdates(chunk_count, ent);
+	}
+
+	return 0;
+}
+
+int luaf_voxSortUpdatesByDistance(lua_State* state) {
+	int index = LUA->GetNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+
+	auto origin = LUA->GetVector(2);
+
+	if (v != nullptr) {
+		v->sortUpdatesByDistance(&origin);
 	}
 
 	return 0;
@@ -430,11 +446,13 @@ int luaf_voxSaveToString1(lua_State* state) { // save with format 1
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
-		std::string data;
+		auto ret = v->writeToString();
+		auto data = std::get<0>(ret);
+		auto size = std::get<1>(ret);
 
-		v->writeToString(data);
+		lua_pushlstring(state, data, size);
 
-		lua_pushlstring(state, data.c_str(), data.size());
+		delete[size] data;
 
 		return 1;
 	}
@@ -585,6 +603,9 @@ void init_lua(lua_State* state, const char* version_string) {
 
 	LUA->PushCFunction(luaf_voxUpdate);
 	LUA->SetField(-2, "voxUpdate");
+
+	LUA->PushCFunction(luaf_voxSortUpdatesByDistance);
+	LUA->SetField(-2, "voxSortUpdatesByDistance");
 
 	LUA->PushCFunction(luaf_voxTrace);
 	LUA->SetField(-2, "voxTrace");

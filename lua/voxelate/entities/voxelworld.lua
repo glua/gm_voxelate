@@ -1,5 +1,8 @@
 local runtime,exports = ...
 
+local CreateSourceEngineSubEntity = runtime.require("./voxelentity/source_engine").CreateEntity
+local CreateVoxelateEngineSubEntity = runtime.require("./voxelentity/voxelate_engine").CreateEntity
+
 local ENT = {}
 
 ENT.Type = "anim"
@@ -23,6 +26,9 @@ function ENT:IsReady() -- its exactly this kind of shit i was trying to avoid wh
 end]]
 
 function ENT:Initialize()
+	self.subEntities = {}
+	self.incrementingSubEntityIndex = 0
+
 	if SERVER then
 		--self:UpdateVoxelLoadState("LOADING_CHUNKS")
 
@@ -88,7 +94,8 @@ end
 
 function ENT:Think()
 	local index = self:GetInternalIndex()
-	gm_voxelate.module.voxUpdate(index,10,self)
+
+	gm_voxelate.module.voxUpdate(index,CLIENT and 100 or 25,self)
 
 	if CLIENT then
 		if not self.correct_maxs then
@@ -142,6 +149,25 @@ function ENT:TestCollision(start,delta,isbox,extents)
 			HitPos=hitpos,
 			Normal=normal
 		}
+	end
+end
+
+function ENT:CreateSubEntity(className)
+	-- negative indexes are clientside-created ents
+	-- positive indexes are serverside-created ents
+
+	if CLIENT then
+		self.incrementingSubEntityIndex = self.incrementingSubEntityIndex - 1
+	else
+		self.incrementingSubEntityIndex = self.incrementingSubEntityIndex + 1
+	end
+
+	local index = self.incrementingSubEntityIndex
+
+	if some_condition_to_be_decided then
+		return CreateVoxelateEngineSubEntity(self,index,gm_voxelate:ResolveSubEntityClassName(className)) -- object used
+	else
+		return CreateSourceEngineSubEntity(self,index,className) -- name used
 	end
 end
 

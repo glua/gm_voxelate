@@ -7,6 +7,9 @@ local VoxelWorldInitChannel = runtime.require("./channels/voxelworldinit").Voxel
 local BlockUpdateChannel = runtime.require("./channels/blockupdate").BlockUpdateChannel
 --local BulkUpdateChannel = runtime.require("./channels/bulkupdate").BulkUpdateChannel
 
+runtime.require("./entities/voxelworld")
+local VoxelEntity = runtime.require("./entities/voxelentity/voxelate_engine").VoxelEntity
+
 local IO = runtime.require("./io").IO
 
 local Voxelate = runtime.oop.create("Voxelate")
@@ -38,6 +41,23 @@ function Voxelate:__ctor()
 		self.io = IO:__new("Voxelate.SV",{r=0,g=155,b=255},{r=155,g=155,b=255})
 
 		self.router = ServerRouter:__new(self)
+	end
+
+	self.registeredSubEntityClasses = {
+		voxel_entity = VoxelEntity,
+	}
+
+	if CLIENT then
+		timer.Create("Voxelate.SortUpdatesOrigin",2.5,0,function()
+			for index,config in pairs(self.voxelWorldConfigs) do
+				if config and IsValid(config.sourceEngineEntity) then
+					local scale = config.scale or 32
+					local relativePos = config.sourceEngineEntity:WorldToLocal(LocalPlayer():GetPos()) / scale
+
+					self.module.voxSortUpdatesByDistance(index,relativePos)
+				end
+			end
+		end)
 	end
 
 	--[[hook.Add("Tick","Voxelate.TrackWorldUpdates",function()
@@ -87,6 +107,19 @@ end
 -- warning - this might get called without a valid ent in the future - is this an issue?
 function Voxelate:SetWorldConfig(index,config)
 	self.voxelWorldConfigs[index] = config
+end
+
+function Voxelate:RegisterSubEntity(className,classObj)
+	assert(some_condition_to_be_decided,"For voxelate-engine based VoxelWorld entities only")
+
+	runtime.oop.extend(classObj,VoxelEntity)
+
+	self.registeredSubEntityClasses[className] = classObj
+end
+
+function Voxelate:ResolveSubEntityClassName(className)
+	assert(self.registeredSubEntityClasses[className],"Unknown voxel entity class name")
+	return self.registeredSubEntityClasses[className]
 end
 
 exports.Voxelate = Voxelate:__new()
