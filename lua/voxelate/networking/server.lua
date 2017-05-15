@@ -94,10 +94,55 @@ function Router:__ctor(voxelate)
 		end
 	end)
 
+	local function assertCompatibility(ply,serverVer,clientVer,disconnectMessage)
+		local serverMajor,serverMinor,serverPatch = string.match(serverVer,"(%d+)%.(%d+)%.(%d+)")
+		if not serverMajor then
+			-- couldn't parse server version... what do now?
+			self.voxelate.io:PrintError("Invalid server version (%s)",serverVer)
+			return true
+		end
+
+		serverMajor,serverMinor,serverPatch = tonumber(serverMajor),tonumber(serverMinor),tonumber(serverPatch)
+
+		local clientMajor,clientMinor,clientPatch = string.match(clientVer,"(%d+)%.(%d+)%.(%d+)")
+		if not clientMajor then
+			ply:Kick(string.format(disconnectMessage,serverVer,clientVer,"invalid version"))
+			return false
+		end
+
+		clientMajor,clientMinor,clientPatch = tonumber(clientMajor),tonumber(clientMinor),tonumber(clientPatch)
+
+		if serverMajor ~= clientMajor then
+			ply:Kick(string.format(disconnectMessage,serverVer,clientVer,"major ver. mismatch"))
+			return false
+		end
+
+		if serverMajor ~= clientMajor then
+			ply:Kick(string.format(disconnectMessage,serverVer,clientVer,"minor ver. mismatch"))
+			return false
+		end
+
+		-- good to go
+		return true
+	end
+
 	util.AddNetworkString("gmod_vox_sync")
 
 	net.Receive("gmod_vox_sync",function(len,ply)
 		self.voxelate.io:PrintDebug("Network synchronisation sequence starting for %s [%s]",ply:Nick(),ply:SteamID())
+
+		local clientModuleVersion = net.ReadString()
+		local clientLuaVersion = net.ReadString()
+
+		if not assertCompatibility(ply,self.voxelate.module.VERSION,clientModuleVersion,"gm_voxelate module version mismatch [SV (%s) != CL (%s) (%s)]") then
+			self.voxelate.io:PrintDebug("Client has failed module version check (%s [%s])",ply:Nick(),ply:SteamID())
+			return
+		end
+
+		if not assertCompatibility(ply,self.voxelate.LuaVersion,clientLuaVersion,"gm_voxelate Lua version mismatch [SV (%s) != CL (%s) (%s)]") then
+			self.voxelate.io:PrintDebug("Client has failed Lua version check (%s [%s])",ply:Nick(),ply:SteamID())
+			return
+		end
 
 		local allocatedPUID
 		repeat

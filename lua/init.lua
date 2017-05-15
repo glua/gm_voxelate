@@ -2,7 +2,7 @@ local runtime = dofile("runtime.lua")
 
 gm_voxelate = runtime.require("./voxelate").Voxelate
 
-gm_voxelate.LuaVersion = "V0.2.0"
+gm_voxelate.LuaVersion = "V0.3.0"
 
 gm_voxelate.io:SetDebug(true)
 
