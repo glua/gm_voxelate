@@ -16,7 +16,6 @@ function Router:__ctor(voxelate)
 	hook.Add("InitPostEntity","Voxelate.Networking.BeginSyncSequence",function()
 		net.Start("gmod_vox_sync")
 			net.WriteString(self.voxelate.module.VERSION)
-			net.WriteString(self.voxelate.LuaVersion)
 		net.SendToServer()
 	end)
 

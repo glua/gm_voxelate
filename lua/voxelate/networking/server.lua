@@ -115,33 +115,41 @@ function Router:__ctor(voxelate)
 		end
 	end)
 
-	local function assertCompatibility(ply,serverVer,clientVer,disconnectMessage)
+	local function assertCompatibility(serverVer,clientVer)
+		
+		-- Parse server version.
 		local serverMajor,serverMinor,serverPatch = string.match(serverVer,"(%d+)%.(%d+)%.(%d+)")
 		if not serverMajor then
-			-- couldn't parse server version... what do now?
-			self.voxelate.io:PrintError("Invalid server version (%s)",serverVer)
-			return true
+			error("Invalid Voxelate server version (%s)",serverVer)
 		end
-
 		serverMajor,serverMinor,serverPatch = tonumber(serverMajor),tonumber(serverMinor),tonumber(serverPatch)
 
-		local clientMajor,clientMinor,clientPatch = string.match(clientVer,"(%d+)%.(%d+)%.(%d+)")
+
+		-- Parse client version.
+		local clientMajor,clientMinor,clientPatch = string.match(clientVer,"(%d+)%.(%d+)%.(%d+)") 
 		if not clientMajor then
-			ply:Kick(string.format(disconnectMessage,serverVer,clientVer,"invalid version"))
 			return false
 		end
-
 		clientMajor,clientMinor,clientPatch = tonumber(clientMajor),tonumber(clientMinor),tonumber(clientPatch)
 
+		-- Major versions must always match
 		if serverMajor ~= clientMajor then
-			ply:Kick(string.format(disconnectMessage,serverVer,clientVer,"major ver. mismatch"))
 			return false
 		end
 
-		if serverMajor ~= clientMajor then
-			ply:Kick(string.format(disconnectMessage,serverVer,clientVer,"minor ver. mismatch"))
-			return false
+		if serverMajor == 0 then
+			-- Minor versions must match if we are in alpha.
+			if serverMinor ~= clientMinor then
+				return false
+			end
+		else
+			-- Minor versions must match or be greater.
+			if serverMinor > clientMinor then
+				return false
+			end
 		end
+
+		-- We don't really care about the patch.
 
 		-- good to go
 		return true
@@ -152,19 +160,18 @@ function Router:__ctor(voxelate)
 	net.Receive("gmod_vox_sync",function(len,ply)
 		self.voxelate.io:PrintDebug("Network synchronisation sequence starting for %s [%s]",ply:Nick(),ply:SteamID())
 
+		-- Perform version check.
+		local serverModuleVersion = self.voxelate.module.VERSION
 		local clientModuleVersion = net.ReadString()
-		local clientLuaVersion = net.ReadString()
 
-		if not assertCompatibility(ply,self.voxelate.module.VERSION,clientModuleVersion,"gm_voxelate module version mismatch [SV (%s) != CL (%s) (%s)]") then
-			self.voxelate.io:PrintDebug("Client has failed module version check (%s [%s])",ply:Nick(),ply:SteamID())
+		if not assertCompatibility(ply,serverModuleVersion,clientModuleVersion,"gm_voxelate module version mismatch [SV (%s) != CL (%s) (%s)]") then
+			self.voxelate.io:Print("Client %s [%s] failed module version check (SV %s / CL %s)",ply:Nick(),ply:SteamID(),serverModuleVersion,clientModuleVersion)
+			ply:Kick(string.format("Failed Voxelate version check. Server has V%s. You have V%s. Visit the Voxelate Github page for more information on version compatability.",serverModuleVersion,clientModuleVersion))
+			
 			return
 		end
 
-		if not assertCompatibility(ply,self.voxelate.LuaVersion,clientLuaVersion,"gm_voxelate Lua version mismatch [SV (%s) != CL (%s) (%s)]") then
-			self.voxelate.io:PrintDebug("Client has failed Lua version check (%s [%s])",ply:Nick(),ply:SteamID())
-			return
-		end
-
+		-- Allocate a PUID and sent it back to the client.
 		local allocatedPUID
 		repeat
 			allocatedPUID = self:GeneratePUID()

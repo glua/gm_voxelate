@@ -12,7 +12,12 @@
 #include "sn_bf_write.hpp"
 #include "sn_ucharptr.hpp"
 
-const char* VERSION = "0.3.2+";
+// Bump version on releases, not at random.
+// Major: Increase on major protocol or API changes. Try to avoid this.
+// Minor: Increase on added features.
+// Patch: Increase on any other release (Bug fixes, performance improvements...)
+
+const char* VERSION = "0.3.0";
 
 GMOD_MODULE_OPEN() {
 
