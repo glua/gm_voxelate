@@ -45,7 +45,7 @@ function ENT:Initialize()
 			self:generateDefault()
 		end
 
-		gm_voxelate.module.voxSetWorldUpdatesEnabled(index,true)
+		--gm_voxelate.module.voxSetWorldUpdatesEnabled(index,true)
 		--self:UpdateVoxelLoadState("READY")
 	else
 		--self:UpdateVoxelLoadState("SYNCHRONISING")
@@ -167,7 +167,10 @@ if SERVER then
 
 	function ENT:setBlock(x,y,z,d)
 		local index = self:GetInternalIndex()
-		return gm_voxelate.module.voxSet(index,x,y,z,d)
+
+		local success = gm_voxelate.module.voxSet(index,x,y,z,d)
+		if success then gm_voxelate.channels.blockUpdate:SendBlockUpdate(index,x,y,z,d) end
+		return success
 	end
 
 	function ENT:getAt(pos)
@@ -198,13 +201,18 @@ if SERVER then
 		sy = fix(sy)
 		sz = fix(sz)
 
+		local success = false
+
 		for ix=x,x+sx do
 			for iy=y,y+sy do
 				for iz=z,z+sz do
-					set(index,ix,iy,iz,d)
+					success = set(index,ix,iy,iz,d) or success
 				end
 			end
 		end
+
+		if success then gm_voxelate.channels.blockUpdate:SendBulkCuboidUpdate(index,x,y,z,sx,sy,sz,d) end
+		return success
 	end
 
 	function ENT:setRegionAt(v1,v2,d)
