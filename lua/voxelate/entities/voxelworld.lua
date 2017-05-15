@@ -1,5 +1,8 @@
 local runtime,exports = ...
 
+local CreateSourceEngineSubEntity = runtime.require("./voxelentity/source_engine").CreateEntity
+local CreateVoxelateEngineSubEntity = runtime.require("./voxelentity/voxelate_engine").CreateEntity
+
 local ENT = {}
 
 ENT.Type = "anim"
@@ -23,6 +26,9 @@ function ENT:IsReady() -- its exactly this kind of shit i was trying to avoid wh
 end]]
 
 function ENT:Initialize()
+	self.subEntities = {}
+	self.incrementingSubEntityIndex = 0
+
 	if SERVER then
 		--self:UpdateVoxelLoadState("LOADING_CHUNKS")
 
@@ -143,6 +149,25 @@ function ENT:TestCollision(start,delta,isbox,extents)
 			Normal=normal
 		}
 	end
+end
+
+function ENT:CreateSubEntity()
+	-- negative indexes are clientside-created ents
+	-- positive indexes are serverside-created ents
+
+	if CLIENT then
+		self.incrementingSubEntityIndex = self.incrementingSubEntityIndex - 1
+	else
+		self.incrementingSubEntityIndex = self.incrementingSubEntityIndex + 1
+	end
+
+	local index = self.incrementingSubEntityIndex
+
+	-- if some_condition then
+		return CreateSourceEngineSubEntity(self,index)
+	-- else
+	-- 	return CreateVoxelateEngineSubEntity(self,index)
+	-- end
 end
 
 if SERVER then
