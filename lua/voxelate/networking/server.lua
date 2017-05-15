@@ -18,6 +18,15 @@ function Router:__ctor(voxelate)
 
 	self.PeerAddress = {} -- {[PeerID] = IPAddress}
 
+	-- timeout helpers
+	local function addPlayerTimeout(ply,timeoutID,time,callback)
+		timer.Create(string.format("timeout_%s_%s",ply:SteamID(),timeoutID),time,1,callback)
+	end
+
+	local function removePlayerTimeout(ply,timeoutID)
+		timer.Remove(string.format("timeout_%s_%s",ply:SteamID(),timeoutID))
+	end
+
 	hook.Add("VoxNetworkConnect","Voxelate.Networking",function(peerID,address)
 
 		self.voxelate.io:PrintDebug("A new ENet Peer [%d] has connected from %s",peerID,address)
@@ -52,6 +61,18 @@ function Router:__ctor(voxelate)
 
 	hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,channelID,data)
 		self:IncomingPacket(peerID,data,channelID)
+	end)
+
+	hook.Add("PlayerInitialSpawn","Voxelate.PlayerConnectTimeout",function(ply)
+		if not self.PUIDsEx[ply] then
+			-- player hasn't synced up yet: give them 15 seconds to do so, or we boot them
+
+			addPlayerTimeout(ply,"Voxelate.PlayerConnectTimeout",15,function()
+				if not self.PeerIDsEx[ply] then
+					ply:Kick("Failed to connect and authenticate with ENet (timed out)")
+				end
+			end)
+		end
 	end)
 
 	gameevent.Listen("player_disconnect")
@@ -168,6 +189,8 @@ function Router:__ctor(voxelate)
 				self.PeerIDsEx[self.PUIDs[data]] = peerID
 
 				self.voxelate.io:PrintDebug("PUID [%s] has been allocated to Peer ID [%d]",data,peerID)
+
+				removePlayerTimeout(self.PUIDs[data],"Voxelate.PlayerConnectTimeout")
 			end
 		else
 			self.voxelate.io:PrintError("Unknown PUID [%s] cannot be allocated to Peer ID [%d]!",data,peerID)
