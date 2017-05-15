@@ -127,7 +127,7 @@ public:
 
 	bool loadFromString(std::string contents);
 
-	void writeToString(std::string & out);
+	std::string writeToString();
 
 	void initialize();
 

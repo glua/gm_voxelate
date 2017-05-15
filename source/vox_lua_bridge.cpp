@@ -430,9 +430,7 @@ int luaf_voxSaveToString1(lua_State* state) { // save with format 1
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
-		std::string data;
-
-		v->writeToString(data);
+		auto data = v->writeToString();
 
 		lua_pushlstring(state, data.c_str(), data.size());
 
