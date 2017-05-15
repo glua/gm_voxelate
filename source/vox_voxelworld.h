@@ -8,6 +8,7 @@
 #include <functional>
 #include <vector>
 #include <string>
+#include <deque>
 
 #include "materialsystem/imesh.h"
 
@@ -161,7 +162,11 @@ private:
 	//bool initialised = false;
 
 	std::unordered_map<XYZCoordinate, VoxelChunk*> chunks_map; // ok zerf lmao
-	std::vector<VoxelChunk*> chunks_flagged_for_update;
+
+	void flagChunk(XYZCoordinate chunk_pos, bool high_priority);
+
+	std::deque<XYZCoordinate> dirty_chunk_queue;
+	std::set<XYZCoordinate> dirty_chunk_set;
 
 	VoxelConfig config;
 };

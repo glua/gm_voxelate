@@ -119,26 +119,15 @@ VoxelChunk* VoxelWorld::initChunk(Coord x, Coord y, Coord z) {
 
 	chunks_map.insert({ { x, y, z }, chunk });
 
-	chunks_flagged_for_update.push_back(chunk);
+	flagChunk({ x,y,z }, false);
 
 	// Flag our three neighbors that share faces
 
 	VoxelChunk* neighbor;
 
-	neighbor = getChunk(x - 1, y, z);
-	if (neighbor) {
-		chunks_flagged_for_update.push_back(neighbor);
-	}
-
-	neighbor = getChunk(x, y - 1, z);
-	if (neighbor) {
-		chunks_flagged_for_update.push_back(neighbor);
-	}
-
-	neighbor = getChunk(x, y, z - 1);
-	if (neighbor) {
-		chunks_flagged_for_update.push_back(neighbor);
-	}
+	flagChunk({ x - 1, y, z }, false);
+	flagChunk({ x, y - 1, z }, false);
+	flagChunk({ x, y, z - 1 }, false);
 
 	return chunk;
 }
@@ -493,7 +482,8 @@ void VoxelWorld::sortUpdatesByDistance(Vector* origin) {
 			return dist1 < dist2;
 		};
 
-		std::sort(chunks_flagged_for_update.begin(), chunks_flagged_for_update.end(), sorter);
+		vox_print("no sorting allowed.");
+		//std::sort(chunks_flagged_for_update.begin(), chunks_flagged_for_update.end(), sorter);
 	}
 }
 
@@ -504,11 +494,16 @@ void VoxelWorld::sortUpdatesByDistance(Vector* origin) {
 void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 	// On the server, we -NEED- the entity. Not so important on the client
 	if (!IS_SERVERSIDE || (ent != nullptr && config.buildPhysicsMesh)) {
-		for (int i = 0; i < count; i++) {
-			auto iter = chunks_flagged_for_update.begin();
-			if (iter == chunks_flagged_for_update.end()) return;
-			(*iter)->build(ent);
-			chunks_flagged_for_update.erase(iter);
+		for (int i = 0; i < count && !dirty_chunk_queue.empty(); i++) {
+			XYZCoordinate pos = dirty_chunk_queue.front();
+			dirty_chunk_queue.pop_front();
+			dirty_chunk_set.erase(pos);
+
+			VoxelChunk* chunk = getChunk(pos[0], pos[1], pos[2]);
+
+			if (chunk != nullptr) {
+				chunk->build(ent);
+			}
 		}
 	}
 }
@@ -957,6 +952,19 @@ bool VoxelWorld::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	return true;
 }
 
+void VoxelWorld::flagChunk(XYZCoordinate chunk_pos, bool high_priority)
+{
+	if (!dirty_chunk_set.count(chunk_pos)) {
+		dirty_chunk_set.insert(chunk_pos);
+		if (high_priority) {
+			dirty_chunk_queue.push_front(chunk_pos);
+		}
+		else {
+			dirty_chunk_queue.push_back(chunk_pos);
+		}
+	}
+}
+
 // Most shit inside chunks should just work with huge maps
 // The one thing that comes to mind is mesh generation, which always builds the chunk offset into the mesh
 // I beleive I did this so I wouldn't need to push a matrix for every single chunk (lots of chunks, could be expensive?)
@@ -1092,32 +1100,23 @@ BlockData VoxelChunk::get(Coord x, Coord y, Coord z) {
 void VoxelChunk::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = d;
 
-	/*if (system->trackUpdates) {
-		system->queued_block_updates.push_back({ x + posX*VOXEL_CHUNK_SIZE, y + posY*VOXEL_CHUNK_SIZE, z + posZ*VOXEL_CHUNK_SIZE });
-	}*/
-
 	if (!flagChunks)
 		return;
 
-	system->chunks_flagged_for_update.push_back(this);
+	system->flagChunk({posX,posY,posZ}, true);
 
 	if (x == 0) {
-		VoxelChunk* c = system->getChunk(posX - 1, posY, posZ);
-		if (c)
-			system->chunks_flagged_for_update.push_back(c);
+		system->flagChunk({ posX - 1,posY,posZ }, true);
 	}
 
 	if (y == 0) {
-		VoxelChunk* c = system->getChunk(posX, posY - 1, posZ);
-		if (c)
-			system->chunks_flagged_for_update.push_back(c);
+		system->flagChunk({ posX,posY - 1,posZ }, true);
 	}
 
 	if (z == 0) {
-		VoxelChunk* c = system->getChunk(posX, posY, posZ - 1);
-		if (c)
-			system->chunks_flagged_for_update.push_back(c);
+		system->flagChunk({ posX,posY,posZ-1 }, true);
 	}
+
 }
 /*
 void VoxelChunk::send(int sys_index, int ply_id, bool init, int chunk_num) {
