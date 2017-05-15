@@ -12,7 +12,7 @@
 #include "sn_bf_write.hpp"
 #include "sn_ucharptr.hpp"
 
-const char* VERSION = "0.2.0+";
+const char* VERSION = "0.3.0+";
 
 GMOD_MODULE_OPEN() {
 
