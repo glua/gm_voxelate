@@ -15,6 +15,8 @@
 
 #include "fastlz.h"
 
+#include "vox_worldgen_basic.h"
+
 #include "vox_network.h"
 
 #include "GarrysMod/LuaHelpers.hpp"
@@ -278,12 +280,12 @@ void VoxelWorld::initialize() {
 			Coord max_chunk_z = (config.dims_z - 1) / VOXEL_CHUNK_SIZE;
 
 
-			vox_print("---> %i %i %i",max_chunk_x,max_chunk_y,max_chunk_z);
+			//vox_print("---> %i %i %i",max_chunk_x,max_chunk_y,max_chunk_z);
 
 			for (Coord x = 0; x <= max_chunk_x; x++) {
 				for (Coord y = 0; y <= max_chunk_y; y++) {
 					for (Coord z = 0; z <= max_chunk_z; z++) {
-						initChunk(x, y, z);
+						initChunk(x, y, z)->generate();
 					}
 				}
 			}
@@ -1006,6 +1008,22 @@ VoxelChunk::VoxelChunk(VoxelWorld* sys,int cx, int cy, int cz) {
 
 VoxelChunk::~VoxelChunk() {
 	meshClearAll();
+}
+
+// todo allow any function to be used for generation, based on config
+void VoxelChunk::generate() {
+	int offset_x = posX*VOXEL_CHUNK_SIZE;
+	int offset_y = posY*VOXEL_CHUNK_SIZE;
+	int offset_z = posZ*VOXEL_CHUNK_SIZE;
+
+	for (int x = 0; x < VOXEL_CHUNK_SIZE; x++) {
+		for (int y = 0; y < VOXEL_CHUNK_SIZE; y++) {
+			for (int z = 0; z < VOXEL_CHUNK_SIZE; z++) {
+				auto block = vox_worldgen_basic(offset_x+x, offset_y+y, offset_z+z);
+				set(x, y, z, block, false);
+			}
+		}
+	}
 }
 
 void VoxelChunk::build(CBaseEntity* ent) {

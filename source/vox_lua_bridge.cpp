@@ -13,8 +13,6 @@
 
 #include "vox_network.h"
 
-#include "vox_worldgen_basic.h"
-
 #include "GarrysMod/LuaHelpers.hpp"
 
 #include <tuple>
@@ -243,7 +241,7 @@ int luaf_voxDraw(lua_State* state) {
 	return 0;
 }
 
-int luaf_voxGenerateDefault(lua_State* state) {
+/*int luaf_voxGenerateDefault(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
@@ -268,7 +266,7 @@ int luaf_voxGenerateDefault(lua_State* state) {
 	}
 
 	return 0;
-}
+}*/
 
 /*int luaf_voxGetWorldUpdates(lua_State* state) {
 	int index = LUA->GetNumber(1);
@@ -305,7 +303,7 @@ int luaf_voxSetWorldUpdatesEnabled(lua_State* state) {
 	return 0;
 }*/
 
-int luaf_voxGenerate(lua_State* state) {
+/*int luaf_voxGenerate(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
@@ -335,7 +333,7 @@ int luaf_voxGenerate(lua_State* state) {
 	}
 
 	return 0;
-}
+}*/
 
 int luaf_voxGet(lua_State* state) {
 	int index = LUA->GetNumber(1);
@@ -634,11 +632,11 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushCFunction(luaf_voxTrace);
 	LUA->SetField(-2, "voxTrace");
 
-	LUA->PushCFunction(luaf_voxGenerate);
+	/*LUA->PushCFunction(luaf_voxGenerate);
 	LUA->SetField(-2, "voxGenerate");
 
 	LUA->PushCFunction(luaf_voxGenerateDefault);
-	LUA->SetField(-2, "voxGenerateDefault");
+	LUA->SetField(-2, "voxGenerateDefault");*/
 
 	LUA->PushCFunction(luaf_voxGet);
 	LUA->SetField(-2, "voxGet");

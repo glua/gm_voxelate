@@ -45,11 +45,11 @@ function ENT:Initialize()
 
 		self:SetupBounds(config)
 
-		if config.generator then
+		--[[if config.generator then
 			self:generate(config.generator)
 		else
 			self:generateDefault()
-		end
+		end]]
 
 		--gm_voxelate.module.voxSetWorldUpdatesEnabled(index,true)
 		--self:UpdateVoxelLoadState("READY")
@@ -174,7 +174,7 @@ function ENT:CreateSubEntity(className)
 end
 
 if SERVER then
-	function ENT:generate(f)
+	--[[function ENT:generate(f)
 		local index = self:GetInternalIndex()
 		gm_voxelate.module.voxGenerate(index,f)
 		--gm_voxelate.module.voxReInit(index)
@@ -186,7 +186,7 @@ if SERVER then
 		gm_voxelate.module.voxGenerateDefault(index)
 		--gm_voxelate.module.voxReInit(index)
 		--gm_voxelate.module.voxFlagAllChunksForUpdate(index)
-	end
+	end]]
 
 	function ENT:getBlock(x,y,z)
 		local index = self:GetInternalIndex()

@@ -176,6 +176,9 @@ class VoxelChunk {
 public:
 	VoxelChunk(VoxelWorld* sys, int x, int y, int z);
 	~VoxelChunk();
+
+	void generate();
+
 	void build(CBaseEntity* ent);
 	void draw(CMatRenderContextPtr& pRenderContext);
 
