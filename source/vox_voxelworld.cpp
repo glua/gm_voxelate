@@ -975,7 +975,7 @@ BlockData VoxelWorld::get(Coord x, Coord y, Coord z) {
 // Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
 bool VoxelWorld::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
-	if (chunk == nullptr)
+	if (chunk == nullptr || (!config.huge && (x>= config.dims_x || y>= config.dims_y || z >= config.dims_z)))
 		return false;
 
 	chunk->set(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE, d, flagChunks);
@@ -1042,22 +1042,26 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 	//bool buildExterior; TODO see if this broke anything
 	//if (STATE_CLIENT)
+	bool huge = system->config.huge;
 	bool buildExterior = system->config.buildExterior;
 
-	int lower_bound_x = (buildExterior && posX == 0) ? -1 : 0;
-	int lower_bound_y = (buildExterior && posY == 0) ? -1 : 0;
-	int lower_bound_z = (buildExterior && posZ == 0) ? -1 : 0;
-	//int upper_bound_def = tmp_drawExterior ? VOXEL_CHUNK_SIZE : VOXEL_CHUNK_SIZE-1;
+	int lower_bound_x = (!huge && buildExterior && posX == 0) ? -1 : 0;
+	int lower_bound_y = (!huge && buildExterior && posY == 0) ? -1 : 0;
+	int lower_bound_z = (!huge && buildExterior && posZ == 0) ? -1 : 0;
 
-	//int upper_bound_x = next_chunk_x != nullptr ? VOXEL_CHUNK_SIZE : upper_bound_def;
-	//int upper_bound_y = next_chunk_y != nullptr ? VOXEL_CHUNK_SIZE : upper_bound_def;
-	//int upper_bound_z = next_chunk_z != nullptr ? VOXEL_CHUNK_SIZE : upper_bound_def;
+	int hard_upper_bound_x = (system->config.dims_x - posX*VOXEL_CHUNK_SIZE);
+	int hard_upper_bound_y = (system->config.dims_y - posY*VOXEL_CHUNK_SIZE);
+	int hard_upper_bound_z = (system->config.dims_z - posZ*VOXEL_CHUNK_SIZE);
+
+	int upper_bound_x = !huge && hard_upper_bound_x < VOXEL_CHUNK_SIZE ? hard_upper_bound_x : VOXEL_CHUNK_SIZE;
+	int upper_bound_y = !huge && hard_upper_bound_y < VOXEL_CHUNK_SIZE ? hard_upper_bound_y : VOXEL_CHUNK_SIZE;
+	int upper_bound_z = !huge && hard_upper_bound_z < VOXEL_CHUNK_SIZE ? hard_upper_bound_z : VOXEL_CHUNK_SIZE;
 
 	VoxelType* blockTypes = system->config.voxelTypes;
 
-	for (int x = lower_bound_x; x < VOXEL_CHUNK_SIZE; x++) {
-		for (int y = lower_bound_y; y < VOXEL_CHUNK_SIZE; y++) {
-			for (int z = lower_bound_z; z < VOXEL_CHUNK_SIZE; z++) {
+	for (int x = lower_bound_x; x < upper_bound_x; x++) {
+		for (int y = lower_bound_y; y < upper_bound_y; y++) {
+			for (int z = lower_bound_z; z < upper_bound_z; z++) {
 
 				BlockData base;
 
@@ -1068,7 +1072,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 				VoxelType& base_type = blockTypes[base];
 
-				if ((buildExterior || (x != -1 && (x != VOXEL_CHUNK_SIZE - 1 || next_chunk_x != nullptr))) && y != -1 && z != -1) {
+				if ((huge || buildExterior || x < hard_upper_bound_x - 1) && y != -1 && z != -1) {
 					BlockData offset_x;
 					if (x == VOXEL_CHUNK_SIZE - 1)
 						if (next_chunk_x == nullptr)
@@ -1087,7 +1091,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 						addFullVoxelFace(x, y, z, offset_x_type.side_xNeg.x, offset_x_type.side_xNeg.y, DIR_X_NEG);
 				}
 
-				if ((buildExterior || (y != -1 && (y != VOXEL_CHUNK_SIZE - 1 || next_chunk_y != nullptr))) && x != -1 && z != -1) {
+				if ((huge || buildExterior || y < hard_upper_bound_y - 1) && x != -1 && z != -1) {
 					BlockData offset_y;
 					if (y == VOXEL_CHUNK_SIZE - 1)
 						if (next_chunk_y == nullptr)
@@ -1106,7 +1110,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 						addFullVoxelFace(x, y, z, offset_y_type.side_yNeg.x, offset_y_type.side_yNeg.y, DIR_Y_NEG);
 				}
 
-				if ((buildExterior || (z != -1 && (z != VOXEL_CHUNK_SIZE - 1 || next_chunk_z != nullptr))) && x != -1 && y != -1) {
+				if ((huge || buildExterior || z < hard_upper_bound_z - 1) && x != -1 && y != -1) {
 					BlockData offset_z;
 					if (z == VOXEL_CHUNK_SIZE - 1)
 						if (next_chunk_z == nullptr)
