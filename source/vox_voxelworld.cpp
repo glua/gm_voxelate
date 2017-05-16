@@ -1016,9 +1016,13 @@ void VoxelChunk::generate() {
 	int offset_y = posY*VOXEL_CHUNK_SIZE;
 	int offset_z = posZ*VOXEL_CHUNK_SIZE;
 
-	for (int x = 0; x < VOXEL_CHUNK_SIZE; x++) {
-		for (int y = 0; y < VOXEL_CHUNK_SIZE; y++) {
-			for (int z = 0; z < VOXEL_CHUNK_SIZE; z++) {
+	int max_x = system->config.huge ? VOXEL_CHUNK_SIZE : MIN(system->config.dims_x - offset_x, VOXEL_CHUNK_SIZE);
+	int max_y = system->config.huge ? VOXEL_CHUNK_SIZE : MIN(system->config.dims_y - offset_y, VOXEL_CHUNK_SIZE);
+	int max_z = system->config.huge ? VOXEL_CHUNK_SIZE : MIN(system->config.dims_z - offset_z, VOXEL_CHUNK_SIZE);
+
+	for (int x = 0; x < max_x; x++) {
+		for (int y = 0; y < max_y; y++) {
+			for (int z = 0; z < max_z; z++) {
 				auto block = vox_worldgen_basic(offset_x+x, offset_y+y, offset_z+z);
 				set(x, y, z, block, false);
 			}
