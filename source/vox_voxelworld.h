@@ -135,7 +135,7 @@ public:
 	Vector getExtents();
 	void getCellExtents(Coord& x, Coord &y, Coord &z);
 
-	std::vector<Vector> getAllChunkPositions();
+	std::vector<XYZCoordinate> getAllChunkPositions(Vector origin);
 
 #ifdef VOXELATE_SERVER
 	bool sendChunk(int peerID, XYZCoordinate pos);

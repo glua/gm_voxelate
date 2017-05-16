@@ -312,14 +312,41 @@ void VoxelWorld::getCellExtents(Coord& x, Coord& y, Coord& z) {
 	z = config.dims_z;
 }
 
-// This was added for my dumbass lua networking. A modified version that dont use source vectors
-// may be useful for non-lua networking
-std::vector<Vector> VoxelWorld::getAllChunkPositions() {
-	std::vector<Vector> positions;
+// Get all chunk positions
+// order by distance to localized origin
+// Can use something similar to get NEARBY chunks later...
+std::vector<XYZCoordinate> VoxelWorld::getAllChunkPositions(Vector origin) {
+	
+	// get them chunks
+	std::vector<XYZCoordinate> positions;
 
 	for (auto pair : chunks_map) {
-		positions.push_back( Vector(pair.first[0], pair.first[1], pair.first[2]) );
+		positions.push_back( pair.first );
 	}
+
+	// translate origin to a chunk coordinate
+	origin /= (VOXEL_CHUNK_SIZE * config.scale);
+
+
+	XYZCoordinate origin_coord = { origin.x, origin.y, origin.z };
+
+	// sort them chunks
+	auto sorter = [&](XYZCoordinate c1, XYZCoordinate c2) {
+		int d1x = origin_coord[0] - c1[0];
+		int d1y = origin_coord[1] - c1[1];
+		int d1z = origin_coord[2] - c1[2];
+
+		int d2x = origin_coord[0] - c2[0];
+		int d2y = origin_coord[1] - c2[1];
+		int d2z = origin_coord[2] - c2[2];
+
+		int dist1 = d1x*d1x + d1y*d1y + d1z*d1z;
+		int dist2 = d2x*d2x + d2y*d2y + d2z*d2z;
+
+		return dist1 < dist2;
+	};
+
+	std::sort(positions.begin(), positions.end(), sorter);
 
 	return positions;
 }
@@ -458,7 +485,7 @@ bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, data, writer.GetNumBytesWritten());
 }
 #endif
-
+/*
 void VoxelWorld::sortUpdatesByDistance(Vector* origin) {
 	// std::function<bool(VoxelChunk*,VoxelChunk*)>
 
@@ -486,6 +513,7 @@ void VoxelWorld::sortUpdatesByDistance(Vector* origin) {
 		//std::sort(chunks_flagged_for_update.begin(), chunks_flagged_for_update.end(), sorter);
 	}
 }
+*/
 
 // Updates up to n chunks
 // Logic probably okay for huge worlds, although we may have to double check that the chunk still exists,

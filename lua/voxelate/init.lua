@@ -48,7 +48,7 @@ function Voxelate:__ctor()
 	}
 
 	if CLIENT then
-		timer.Create("Voxelate.SortUpdatesOrigin",2.5,0,function()
+		--[[timer.Create("Voxelate.SortUpdatesOrigin",2.5,0,function()
 			for index,config in pairs(self.voxelWorldConfigs) do
 				if config and IsValid(config.sourceEngineEntity) then
 					local scale = config.scale or 32
@@ -57,7 +57,7 @@ function Voxelate:__ctor()
 					self.module.voxSortUpdatesByDistance(index,relativePos)
 				end
 			end
-		end)
+		end)]]
 	end
 
 	--[[hook.Add("Tick","Voxelate.TrackWorldUpdates",function()

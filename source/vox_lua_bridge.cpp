@@ -386,7 +386,7 @@ int luaf_voxUpdate(lua_State* state) {
 	return 0;
 }
 
-int luaf_voxSortUpdatesByDistance(lua_State* state) {
+/*int luaf_voxSortUpdatesByDistance(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
@@ -398,6 +398,30 @@ int luaf_voxSortUpdatesByDistance(lua_State* state) {
 	}
 
 	return 0;
+}*/
+
+int luaf_voxGetAllChunks(lua_State* state) {
+	int index = LUA->GetNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+
+	Vector origin = LUA->GetVector(2);
+
+	if (v == nullptr) {
+		return 0;
+	}
+
+	auto chunk_positions = v->getAllChunkPositions(origin);
+	LUA->CreateTable();
+	int i = 1;
+	for (auto v : chunk_positions) {
+		LUA->PushNumber(i);
+		elua_pushVector(state, Vector(v[0],v[1],v[2])); // vectors may not be able to represent all chunks, but they do good enough job for now
+		LUA->SetTable(-3);
+		i++;
+	}
+
+	return 1;
 }
 
 #ifdef VOXELATE_SERVER
@@ -604,8 +628,8 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushCFunction(luaf_voxUpdate);
 	LUA->SetField(-2, "voxUpdate");
 
-	LUA->PushCFunction(luaf_voxSortUpdatesByDistance);
-	LUA->SetField(-2, "voxSortUpdatesByDistance");
+	LUA->PushCFunction(luaf_voxGetAllChunks);
+	LUA->SetField(-2, "voxGetAllChunks");
 
 	LUA->PushCFunction(luaf_voxTrace);
 	LUA->SetField(-2, "voxTrace");

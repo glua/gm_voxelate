@@ -99,29 +99,25 @@ function VoxelWorldInitChannel:SendVoxelStartupChunks(peerID,worldID,buffer)
 
 	local config = self.voxelate:GetWorldConfig(worldID)
 
+	local ply = self.voxelate.router.PeerIDs[peerID] -- god i hate these tables
+
+	if not IsValid(ply) then return end
+
 	local function chunkSenderThread()
-		-- self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("LOADING_CHUNKS",0)
 		self.voxelate.io:PrintDebug("Sending chunk initialisation data for %d to %d...",worldID,peerID)
 
-		local totalToSend = math.ceil(config.dimensions.x/16) * math.ceil(config.dimensions.y/16) * math.ceil(config.dimensions.z/16)
-		local sent = 0
+		local chunk_positions = self.voxelate.module.voxGetAllChunks(worldID, config.sourceEngineEntity:WorldToLocal(ply:GetPos()))
+		while #chunk_positions>0 do
+			local p = chunk_positions[1]
+			table.remove(chunk_positions, 1) -- yes i know this is bad
 
-		for x=0,math.ceil(config.dimensions.x/16) do
-			for y=0,math.ceil(config.dimensions.y/16) do
-				for z=0,math.ceil(config.dimensions.z/16) do
-					self.voxelate.module.voxSendChunk(worldID,peerID,x,y,z)
-				end
+			self.voxelate.module.voxSendChunk(worldID,peerID,p.x,p.y,p.z)
 
-				sent = sent + math.ceil(config.dimensions.z/16) -- update progress
-				-- self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("LOADING_CHUNKS",sent / totalToSend)
-
-				timer.Simple(0.0025,chunkSenderThread) -- queue for next tick
-				coroutine.yield() -- pause thread
-			end
+			timer.Simple(0,chunkSenderThread)
+			coroutine.yield()
 		end
 
 		self.voxelate.io:PrintDebug("Chunk initialisation data sent to %d...",peerID)
-		-- self.voxelate:GetWorldEntity(worldID):UpdateVoxelLoadState("READY")
 	end
 
 	chunkSenderThread = coroutine.wrap(chunkSenderThread) -- create thread

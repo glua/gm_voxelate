@@ -72,7 +72,7 @@ function ENT:GetConfig()
 	return gm_voxelate:GetWorldConfig(self:GetInternalIndex())
 end
 
--- Called by module... We can probably just call it directly though.
+
 function ENT:SetupBounds(config)
 
 	self:EnableCustomCollisions(true)
