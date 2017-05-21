@@ -7,6 +7,7 @@
 #include "vox_lua_bridge.h"
 #include "vox_voxelworld.h"
 #include "vox_network.h"
+#include "vox_shaders.h"
 
 #include "sn_bf_read.hpp"
 #include "sn_bf_write.hpp"
@@ -31,6 +32,11 @@ GMOD_MODULE_OPEN() {
 		return 1;
 	}
 
+	if (!installShaders()) {
+		vox_print("Fatal! Failed to setup shaders!");
+		return 1;
+	}
+
 	voxelworld_initialise_networking_static();
 
 	UCHARPTR::Initialize(LUA);
@@ -47,6 +53,8 @@ GMOD_MODULE_OPEN() {
 GMOD_MODULE_CLOSE() {
 
 	checkAllVoxelWorldsDeleted();
+
+	uninstallShaders();
 
 	network_shutdown();
 

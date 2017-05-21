@@ -1,0 +1,4 @@
+
+bool installShaders();
+
+void uninstallShaders();
