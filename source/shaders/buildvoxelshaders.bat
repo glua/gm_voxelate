@@ -1,0 +1,1 @@
+buildshaders.bat VoxelShaders -game "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod" -source .
