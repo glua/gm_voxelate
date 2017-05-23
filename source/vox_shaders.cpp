@@ -5,14 +5,19 @@
 #include <symbolfinder.hpp>
 #include <detours.h>
 
+#include <shader_voxels.h>
+
 typedef IShader* (__thiscall *FindShader_t)(void *_this, const char* name);
 
 FindShader_t FindShader_base;
 
 IShader* __fastcall FindShader_hook(IShader* _this, void* _edx, const char* name) {
-	IShader* shader = FindShader_base(_this, name);
 
-	vox_print("find shader! %s %x", name, shader);
+	if (strcmp(name, "Voxels") == 0) {
+		return &Voxel_Shader::s_ShaderInstance;
+	}
+	
+	IShader* shader = FindShader_base(_this, name);
 	return shader;
 }
 

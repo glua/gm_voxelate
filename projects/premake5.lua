@@ -149,6 +149,7 @@ CreateWorkspace({name = "voxelate"})
 			luaEntryPoint("init.lua")
 			includeLua("../lua/**")
 
+		links({"shaderlib"})
 		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
 		links({"fastlz","reactphysics3d","enet","gm_sourcenet","gm_adv_vectors"})
 
