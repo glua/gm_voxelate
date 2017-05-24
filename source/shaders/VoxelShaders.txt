@@ -1,1 +1,2 @@
-voxels.fxc
+voxels_vs20.fxc
+voxels_ps20.fxc

@@ -1,1 +1,2 @@
-fxctmp9_tmp\voxels.inc
+fxctmp9_tmp\voxels_vs20.inc
+fxctmp9_tmp\voxels_ps20.inc

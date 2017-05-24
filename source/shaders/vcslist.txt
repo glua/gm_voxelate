@@ -1,1 +1,2 @@
-..\..\..\game\hl2\shaders\fxc\voxels.vcs
+..\..\..\game\hl2\shaders\fxc\voxels_vs20.vcs
+..\..\..\game\hl2\shaders\fxc\voxels_ps20.vcs

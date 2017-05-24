@@ -3,3 +3,4 @@
 	- You may need to install some additional modules using the commands below...
 		> cpan String::CRC32
 
+100. Run buildvoxelshaders.bat from a VS command prompt.
