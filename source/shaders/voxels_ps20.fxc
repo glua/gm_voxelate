@@ -1,1 +1,10 @@
-adasdadasdadasdasdsadsd
+struct INPUT {
+	float4 pos : POSITION0;
+};
+
+float4 main( INPUT input ) : COLOR
+{
+  float4 blue = float4(0, 0, 1, 1);
+
+  return blue;
+}

@@ -1,1 +1,15 @@
-adasdadasdadasdasdsadsd
+struct INPUT {
+	float4 pos : POSITION0;
+};
+
+struct OUTPUT {
+	float4 pos : POSITION0;
+};
+
+OUTPUT main( INPUT input ) {
+	OUTPUT output;
+
+	output.pos = input.pos;
+
+	return output;
+}
