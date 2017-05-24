@@ -1,3 +1,5 @@
-The shader compiler needs a dependency_info_shadercompile.txt in the GarrysMod/bin directory in order to work.
+?? 1. Copy dependency_info_shadercompile.txt to GarrysMod/bin.
+2. Install http://strawberryperl.com/
+	- You may need to install some additional modules using the commands below...
+		> cpan String::CRC32
 
-So far as I can tell it doesn't actually need to contain anything, but it needs to be there.

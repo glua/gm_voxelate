@@ -1,0 +1,6 @@
+default:  fxctmp9_tmp\voxels.inc shaders\fxc\voxels.vcs
+
+fxctmp9_tmp\voxels.inc shaders\fxc\voxels.vcs: voxels.fxc 
+	perl .\devtools\bin\fxc_prep.pl   -source "." voxels.fxc-----voxels
+	echo voxels.fxc>> filestocopy.txt
+

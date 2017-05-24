@@ -28,6 +28,7 @@ set shaderDir=shaders
 set SDKArgs=
 set SHADERINCPATH=vshtmp9/... fxctmp9/...
 
+set SDKBINDIR=C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\bin
 
 if "%1" == "" goto usage
 set inputbase=%1
@@ -128,7 +129,7 @@ if exist vcslist.txt del /f /q vcslist.txt
 REM ****************
 REM Generate a makefile for the shader project
 REM ****************
-perl "%SrcDirBase%\devtools\bin\updateshaders.pl" -source "%SrcDirBase%" %inputbase%
+perl "perl\updateshaders.pl" -source "%SrcDirBase%" %inputbase%
 
 
 REM ****************
