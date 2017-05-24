@@ -1,0 +1,7 @@
+dx_proxy.dll 
+shadercompile.exe 
+shadercompile_dll.dll 
+tier0.dll 
+voxels_ps20.fxc
+voxels_vs20.fxc
+vstdlib.dll 

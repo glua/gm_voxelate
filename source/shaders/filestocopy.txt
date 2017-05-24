@@ -1,9 +1,7 @@
 voxels_vs20.fxc
-voxels_vs20.fxc
 voxels_ps20.fxc
-voxels_ps20.fxc
-.\dx9sdk\utilities\dx_proxy.dll 
-C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\bin\shadercompile.exe 
-C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\bin\shadercompile_dll.dll 
-C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\bin\vstdlib.dll 
-C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\bin\tier0.dll 
+dx_proxy.dll 
+shadercompile.exe 
+shadercompile_dll.dll 
+vstdlib.dll 
+tier0.dll 

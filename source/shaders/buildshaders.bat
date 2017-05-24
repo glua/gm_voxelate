@@ -144,7 +144,7 @@ REM Copy the inc files to their target
 REM ****************
 if exist "inclist.txt" (
 	echo Publishing shader inc files to target...
-	perl %SrcDirBase%\devtools\bin\copyshaderincfiles.pl inclist.txt
+	perl perl\copyshaderincfiles.pl inclist.txt
 )
 
 REM ****************
@@ -157,17 +157,17 @@ if /i "%DIRECTX_SDK_VER%" == "pc09.30" (
 	echo %SrcDirBase%\devtools\bin\d3dx9_33.dll >> filestocopy.txt
 )
 
-echo %SrcDirBase%\%DIRECTX_SDK_BIN_DIR%\dx_proxy.dll >> filestocopy.txt
+echo dx_proxy.dll >> filestocopy.txt
 
-echo %SDKBINDIR%\shadercompile.exe >> filestocopy.txt
-echo %SDKBINDIR%\shadercompile_dll.dll >> filestocopy.txt
-echo %SDKBINDIR%\vstdlib.dll >> filestocopy.txt
-echo %SDKBINDIR%\tier0.dll >> filestocopy.txt
+echo shadercompile.exe >> filestocopy.txt
+echo shadercompile_dll.dll >> filestocopy.txt
+echo vstdlib.dll >> filestocopy.txt
+echo tier0.dll >> filestocopy.txt
 
 REM ****************
 REM Cull duplicate entries in work/build list
 REM ****************
-if exist filestocopy.txt type filestocopy.txt | perl "%SrcDirBase%\devtools\bin\uniqifylist.pl" > uniquefilestocopy.txt
+if exist filestocopy.txt type filestocopy.txt | perl "perl\uniqifylist.pl" > uniquefilestocopy.txt
 if exist filelistgen.txt if not "%dynamic_shaders%" == "1" (
     echo Generating action list...
     copy filelistgen.txt filelist.txt >nul
@@ -180,12 +180,13 @@ REM ****************
 set shader_path_cd=%cd%
 if exist "filelist.txt" if exist "uniquefilestocopy.txt" if not "%dynamic_shaders%" == "1" (
 	echo Running distributed shader compilation...
-
-	cd /D %ChangeToDir%
+	cd /D %ChangeToDir:)=^)%
 	echo %shadercompilecommand% %SDKArgs% -shaderpath "%shader_path_cd:/=\%" -allowdebug
 	%shadercompilecommand% %SDKArgs% -shaderpath "%shader_path_cd:/=\%" -allowdebug
 	cd /D %shader_path_cd%
 )
+
+REM 
 
 REM ****************
 REM PC Shader copy
