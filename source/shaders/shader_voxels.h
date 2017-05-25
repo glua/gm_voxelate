@@ -22,10 +22,6 @@ SHADER_DRAW
 {
 	SHADOW_STATE
 	{
-		//SetInitialShadowState();
-		//pShaderShadow->EnableColorWrites(true);
-		//pShaderShadow->EnableDepthWrites(false);
-
 		pShaderShadow->VertexShaderVertexFormat(VERTEX_POSITION | VERTEX_NORMAL, 1, 0, 0);
 
 		DECLARE_STATIC_VERTEX_SHADER(voxels_vs20);
@@ -37,7 +33,8 @@ SHADER_DRAW
 	
 	DYNAMIC_STATE
 	{
-		//pShaderAPI->SetDefaultState();
+		pShaderAPI->SetVertexShaderStateAmbientLightCube();
+		//WpShaderAPI->SetPixelShaderStateAmbientLightCube(4);
 		
 		DECLARE_DYNAMIC_VERTEX_SHADER(voxels_vs20);
 		SET_DYNAMIC_VERTEX_SHADER(voxels_vs20);
