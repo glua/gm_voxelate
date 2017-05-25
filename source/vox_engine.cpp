@@ -20,24 +20,17 @@ IPhysicsCollision* IFACE_SV_COLLISION;
 // Clientside interfaces
 IMaterialSystem* IFACE_CL_MATERIALS;
 
-//-----------------------------------------------------------------------------
-// The Shader interface versions
-//-----------------------------------------------------------------------------
+// Internal shader dll
 abstract_class IShaderDLLInternal
 {
 public:
-	// Here's where the app systems get to learn about each other 
 	virtual bool Connect(CreateInterfaceFn factory, bool bIsMaterialSystem) = 0;
-	virtual void Disconnect(bool bIsMaterialSystem) = 0;
-
-	// Returns the number of shaders defined in this DLL
-	virtual int ShaderCount() const = 0;
-
-	// Returns information about each shader defined in this DLL
-	virtual IShader *GetShader(int nShader) = 0;
 };
 
 IShaderDLLInternal *GetShaderDLLInternal();
+
+#include "vox_util.h"
+
 // Sets up interfaces
 bool init_interfaces() {
 
@@ -54,6 +47,8 @@ bool init_interfaces() {
 			return false;
 		IShaderDLLInternal* shader_dll = GetShaderDLLInternal();
 		CreateInterfaceFn factory = Sys_GetFactory("materialsystem");
+		if (shader_dll->Connect(factory, false)) // todo bool value?
+			vox_print("shader dll good!");
 	}
 
 	return true;

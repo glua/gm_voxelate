@@ -5,7 +5,7 @@
 #include <symbolfinder.hpp>
 #include <detours.h>
 
-#include <shader_voxels.h>
+#include <shaders/shader_voxels.h>
 
 typedef IShader* (__thiscall *FindShader_t)(void *_this, const char* name);
 

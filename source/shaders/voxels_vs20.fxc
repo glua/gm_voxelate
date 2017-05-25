@@ -1,15 +1,25 @@
-struct INPUT {
-	float4 pos : POSITION0;
+#include "common_vs_fxc.h"
+
+struct VS_INPUT {
+	float4 pos			: POSITION;
+	float4 _1			: BLENDWEIGHT;
+	float4 _2			: BLENDINDICES;
+	float4 normal		: NORMAL;
 };
 
-struct OUTPUT {
-	float4 pos : POSITION0;
+struct VS_OUTPUT {
+	float4 pos : POSITION;
+	float3 normal : TEXCOORD0;
 };
 
-OUTPUT main( INPUT input ) {
-	OUTPUT output;
+VS_OUTPUT main( VS_INPUT v ) {
+	VS_OUTPUT output;
 
-	output.pos = input.pos;
+	float4 worldPos = float4( mul( v.pos, cModel[0] ), 1);
+	float3 worldNormal = normalize( mul( (float3) v.normal, (float3x3) cModel[0] ));
+
+	output.pos = mul( worldPos, cViewProj );
+	output.normal = worldNormal;
 
 	return output;
 }

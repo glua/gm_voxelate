@@ -1,3 +1,13 @@
+voxels_vs20.fxc
+common_fxc.h
+common_hlsl_cpp_consts.h
+common_vs_fxc.h
+common_pragmas.h
+voxels_vs20.fxc
+common_fxc.h
+common_hlsl_cpp_consts.h
+common_vs_fxc.h
+common_pragmas.h
 dx_proxy.dll 
 shadercompile.exe 
 shadercompile_dll.dll 
