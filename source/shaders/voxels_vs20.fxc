@@ -3,11 +3,13 @@
 struct VS_INPUT {
 	float4 pos		: POSITION;
 	float4 normal	: NORMAL;
+	float2 uv		: TEXCOORD0;
 };
 
 struct VS_OUTPUT {
 	float4 pos		: POSITION;
-	float3 color	: TEXCOORD0;
+	float3 color	: COLOR;
+	float2 uv		: TEXCOORD0;	
 };
 
 VS_OUTPUT main( VS_INPUT v ) {
@@ -18,6 +20,7 @@ VS_OUTPUT main( VS_INPUT v ) {
 
 	output.pos = mul( worldPos, cViewProj );
 	output.color = AmbientLight( worldNormal );
+	output.uv = v.uv;
 
 	return output;
 }
