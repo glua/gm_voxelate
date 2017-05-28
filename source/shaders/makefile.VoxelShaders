@@ -1,12 +1,12 @@
 default:  fxctmp9_tmp\voxels_vs20.inc shaders\fxc\voxels_vs20.vcs fxctmp9_tmp\voxels_ps20.inc shaders\fxc\voxels_ps20.vcs
 
-fxctmp9_tmp\voxels_vs20.inc shaders\fxc\voxels_vs20.vcs: voxels_vs20.fxc common_pragmas.h common_fxc.h common_vs_fxc.h common_hlsl_cpp_consts.h
+fxctmp9_tmp\voxels_vs20.inc shaders\fxc\voxels_vs20.vcs: voxels_vs20.fxc common_pragmas.h common_hlsl_cpp_consts.h common_fxc.h common_vs_fxc.h
 	perl perl\fxc_prep.pl   -source "." voxels_vs20.fxc-----voxels_vs20
 	echo voxels_vs20.fxc>> filestocopy.txt
 	echo common_pragmas.h>> filestocopy.txt
+	echo common_hlsl_cpp_consts.h>> filestocopy.txt
 	echo common_fxc.h>> filestocopy.txt
 	echo common_vs_fxc.h>> filestocopy.txt
-	echo common_hlsl_cpp_consts.h>> filestocopy.txt
 
 fxctmp9_tmp\voxels_ps20.inc shaders\fxc\voxels_ps20.vcs: voxels_ps20.fxc 
 	perl perl\fxc_prep.pl   -source "." voxels_ps20.fxc-----voxels_ps20

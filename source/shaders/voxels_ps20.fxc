@@ -9,11 +9,31 @@ sampler baseTextureSampler	: register( s0 );
 
 const float2 tileSize :  register( c0 );
 
+/*float weight(float2 pos) {
+	float approxdist = max(abs(1 - pos.x), abs(1 - pos.y));
+	return pow( 1 - approxdist, 16 );
+}*/
+
 float4 main( PS_INPUT input ) : COLOR
 {
 	float4 light = float4( input.color, 1 );
 
-	float4 base_color = tex2D( baseTextureSampler, input.tileBase + (input.uv % 1) * tileSize );
+	float4 color = 0;
+	float weight = 0;
 
-	return base_color * light;
+	float2 uv_clamped = input.uv % 1;
+	float2 uv_base = input.tileBase + uv_clamped * tileSize;
+
+	for (int x = 0; x<2; x++) {
+		for (int y = 0; y<2; y++) {
+			float2 uv = uv_base + float2(x, y) * tileSize;
+
+			float w = pow( 1 - max(abs(1 - (uv_clamped.x + x)), abs(1 - (uv_clamped.y + y))), 16);
+			
+			color += tex2D( baseTextureSampler, uv ) * w;
+			weight += w;
+		}
+	}
+
+	return color / weight * light;
 }

@@ -47,8 +47,8 @@ SHADER_DRAW
 
 		float v[4] = { 0, 0, 0, 0 };
 		
-		v[0] = 1.0f / MAX(params[ATLAS_W]->GetIntValue(), 1);
-		v[1] = 1.0f / MAX(params[ATLAS_H]->GetIntValue(), 1);
+		v[0] = 0.5f / MAX(params[ATLAS_W]->GetIntValue(), 1);
+		v[1] = 0.5f / MAX(params[ATLAS_H]->GetIntValue(), 1);
 
 		pShaderAPI->SetPixelShaderConstant(0, v, 1);
 		
