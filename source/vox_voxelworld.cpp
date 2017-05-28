@@ -21,7 +21,7 @@
 
 #include "GarrysMod/LuaHelpers.hpp"
 
-#define STD_VERT_FMT VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2)
+const int VOXEL_VERT_FMT = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2) | VERTEX_TEXCOORD_SIZE(1, 2);
 
 // TODO re-calibrate this for greedy meshing
 #define BUILD_MAX_VERTS (VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*4*2)
@@ -1330,7 +1330,7 @@ void VoxelChunk::meshStart() {
 		verts_remaining = BUILD_MAX_VERTS;
 
 		CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
-		current_mesh = pRenderContext->CreateStaticMesh(STD_VERT_FMT, "");
+		current_mesh = pRenderContext->CreateStaticMesh(VOXEL_VERT_FMT, "");
 
 		meshBuilder.Begin(current_mesh, MATERIAL_QUADS, BUILD_MAX_VERTS / 4);
 	}
@@ -1600,22 +1600,26 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
 
 			meshBuilder.Position3f(realX + realStep, realY, realZ);
-			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.TexCoord2f(0, 0, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(1, 0, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep, realY, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.TexCoord2f(0, 0, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(1, 0, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.TexCoord2f(0, w, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(1, 0, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ);
-			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.TexCoord2f(0, w, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(1, 0, 0);
 			meshBuilder.AdvanceVertex();
 			
@@ -1628,22 +1632,26 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
 
 			meshBuilder.Position3f(realX + realStep, realY, realZ);
-			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.TexCoord2f(0, w, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(-1, 0, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ);
-			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.TexCoord2f(0, 0, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(-1, 0, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.TexCoord2f(0, 0, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(-1, 0, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep, realY, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.TexCoord2f(0, w, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(-1, 0, 0);
 			meshBuilder.AdvanceVertex();
 			
@@ -1656,22 +1664,26 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
 
 			meshBuilder.Position3f(realX, realY + realStep, realZ);
-			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.TexCoord2f(0, w, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 1, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ);
-			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.TexCoord2f(0, 0, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 1, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.TexCoord2f(0, 0, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 1, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX, realY + realStep, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.TexCoord2f(0, w, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 1, 0);
 			meshBuilder.AdvanceVertex();
 
@@ -1684,22 +1696,26 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
 
 			meshBuilder.Position3f(realX, realY + realStep, realZ);
-			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.TexCoord2f(0, 0, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, -1, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX, realY + realStep, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.TexCoord2f(0, 0, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, -1, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.TexCoord2f(0, w, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, -1, 0);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ);
-			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.TexCoord2f(0, w, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, -1, 0);
 			meshBuilder.AdvanceVertex();
 
@@ -1712,22 +1728,26 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
 
 			meshBuilder.Position3f(realX, realY, realZ + realStep);
-			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.TexCoord2f(0, 0, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 0, 1);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX, realY + realStep * h, realZ + realStep);
-			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.TexCoord2f(0, 0, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 0, 1);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep * w, realY + realStep * h, realZ + realStep);
-			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.TexCoord2f(0, w, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 0, 1);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep * w, realY, realZ + realStep);
-			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.TexCoord2f(0, w, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 0, 1);
 			meshBuilder.AdvanceVertex();
 
@@ -1740,22 +1760,26 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
 
 			meshBuilder.Position3f(realX, realY, realZ + realStep);
-			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.TexCoord2f(0, 0, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 0, -1);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep * w, realY, realZ + realStep);
-			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.TexCoord2f(0, w, h);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 0, -1);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX + realStep * w, realY + realStep * h, realZ + realStep);
-			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.TexCoord2f(0, w, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 0, -1);
 			meshBuilder.AdvanceVertex();
 
 			meshBuilder.Position3f(realX, realY + realStep * h, realZ + realStep);
-			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.TexCoord2f(0, 0, 0);
+			meshBuilder.TexCoord2f(1, uMin, vMin);
 			meshBuilder.Normal3f(0, 0, -1);
 			meshBuilder.AdvanceVertex();
 

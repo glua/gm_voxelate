@@ -1,3 +1,5 @@
+voxels_ps20.fxc
+voxels_ps20.fxc
 dx_proxy.dll 
 shadercompile.exe 
 shadercompile_dll.dll 
