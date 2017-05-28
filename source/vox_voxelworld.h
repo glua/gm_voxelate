@@ -200,11 +200,11 @@ private:
 
 	VoxelWorld* system;
 	CMeshBuilder meshBuilder;
-	IMesh* current_mesh;
+	IMesh* current_mesh = nullptr;
 	std::list<IMesh*> meshes;
-	int verts_remaining;
+	int verts_remaining = 0;
 
-	CPhysPolysoup* phys_soup;
+	CPhysPolysoup* phys_soup = nullptr;
 	IPhysicsObject* phys_obj = nullptr;
 	CPhysCollide* phys_collider = nullptr;
 };

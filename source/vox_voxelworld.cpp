@@ -23,7 +23,8 @@
 
 #define STD_VERT_FMT VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2)
 
-#define BUILD_MAX_VERTS 8*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE
+// TODO re-calibrate this for greedy meshing
+#define BUILD_MAX_VERTS (VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*4*2)
 
 #define DIR_X_POS 1
 #define DIR_Y_POS 2
@@ -1034,20 +1035,18 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 	meshClearAll();
 
-	meshStart();
-
 	VoxelChunk* next_chunk_x = system->getChunk(posX + 1, posY, posZ);
 	VoxelChunk* next_chunk_y = system->getChunk(posX, posY + 1, posZ);
 	VoxelChunk* next_chunk_z = system->getChunk(posX, posY, posZ + 1);
 
-	//bool buildExterior; TODO see if this broke anything
-	//if (STATE_CLIENT)
 	bool huge = system->config.huge;
 	bool buildExterior = system->config.buildExterior;
 
-	int lower_bound_x = (!huge && buildExterior && posX == 0) ? -1 : 0;
-	int lower_bound_y = (!huge && buildExterior && posY == 0) ? -1 : 0;
-	int lower_bound_z = (!huge && buildExterior && posZ == 0) ? -1 : 0;
+	// Hoo boy. Get ready to see some shit.
+
+	int lower_bound_x = 0;
+	int lower_bound_y = 0;
+	int lower_bound_z = 0;
 
 	int hard_upper_bound_x = (system->config.dims_x - posX*VOXEL_CHUNK_SIZE);
 	int hard_upper_bound_y = (system->config.dims_y - posY*VOXEL_CHUNK_SIZE);
@@ -1057,10 +1056,135 @@ void VoxelChunk::build(CBaseEntity* ent) {
 	int upper_bound_y = !huge && hard_upper_bound_y < VOXEL_CHUNK_SIZE ? hard_upper_bound_y : VOXEL_CHUNK_SIZE;
 	int upper_bound_z = !huge && hard_upper_bound_z < VOXEL_CHUNK_SIZE ? hard_upper_bound_z : VOXEL_CHUNK_SIZE;
 
+	int lower_slice_x = !huge && buildExterior && posX == 0 ? -1 : 0;
+	int lower_slice_y = !huge && buildExterior && posY == 0 ? -1 : 0;
+	int lower_slice_z = !huge && buildExterior && posZ == 0 ? -1 : 0;
+
+	if (!huge && !buildExterior) {
+		hard_upper_bound_x--;
+		hard_upper_bound_y--;
+		hard_upper_bound_z--;
+	}
+
+	int upper_slice_x = !huge && hard_upper_bound_x < VOXEL_CHUNK_SIZE ? hard_upper_bound_x : VOXEL_CHUNK_SIZE;
+	int upper_slice_y = !huge && hard_upper_bound_y < VOXEL_CHUNK_SIZE ? hard_upper_bound_y : VOXEL_CHUNK_SIZE;
+	int upper_slice_z = !huge && hard_upper_bound_z < VOXEL_CHUNK_SIZE ? hard_upper_bound_z : VOXEL_CHUNK_SIZE;
+
 	VoxelType* blockTypes = system->config.voxelTypes;
 
-	for (int x = lower_bound_x; x < upper_bound_x; x++) {
+	// Slices along x axis!
+	for (int slice_x = lower_slice_x; slice_x < upper_slice_x; slice_x++) {
+
+		for (int z = lower_bound_z; z < upper_bound_z; z++) {
+			for (int y = lower_bound_y; y < upper_bound_y; y++) {
+
+				// Compute base type
+				BlockData base;
+
+				if (slice_x < 0)
+					base = 0;
+				else
+					base = get(slice_x, y, z);
+
+				VoxelType& base_type = blockTypes[base];
+
+				// Compute offset type
+				BlockData offset_x;
+				if (slice_x == VOXEL_CHUNK_SIZE - 1)
+					if (next_chunk_x == nullptr)
+						offset_x = 0;
+					else
+						offset_x = next_chunk_x->get(0, y, z);
+				else
+					offset_x = get(slice_x + 1 , y, z);
+
+				VoxelType& offset_x_type = blockTypes[offset_x];
+
+				// Add faces!
+				if (base_type.form == VFORM_CUBE && offset_x_type.form == VFORM_NULL)
+					addFullVoxelFace(slice_x, y, z, base_type.side_xPos.x, base_type.side_xPos.y, DIR_X_POS);
+				else if (base_type.form == VFORM_NULL && offset_x_type.form == VFORM_CUBE)
+					addFullVoxelFace(slice_x, y, z, offset_x_type.side_xNeg.x, offset_x_type.side_xNeg.y, DIR_X_NEG);
+			}
+		}
+	}
+
+	// Slices along y axis!
+	for (int slice_y = lower_slice_y; slice_y < upper_slice_y; slice_y++) {
+
+		for (int z = lower_bound_z; z < upper_bound_z; z++) {
+			for (int x = lower_bound_x; x < upper_bound_x; x++) {
+
+				// Compute base type
+				BlockData base;
+
+				if (slice_y < 0)
+					base = 0;
+				else
+					base = get(x, slice_y, z);
+
+				VoxelType& base_type = blockTypes[base];
+
+				// Compute offset type
+				BlockData offset_y;
+				if (slice_y == VOXEL_CHUNK_SIZE - 1)
+					if (next_chunk_y == nullptr)
+						offset_y = 0;
+					else
+						offset_y = next_chunk_y->get(x, 0, z);
+				else
+					offset_y = get(x, slice_y + 1, z);
+
+				VoxelType& offset_y_type = blockTypes[offset_y];
+
+				// Add faces!
+				if (base_type.form == VFORM_CUBE && offset_y_type.form == VFORM_NULL)
+					addFullVoxelFace(x, slice_y, z, base_type.side_yPos.x, base_type.side_yPos.y, DIR_Y_POS);
+				else if (base_type.form == VFORM_NULL && offset_y_type.form == VFORM_CUBE)
+					addFullVoxelFace(x, slice_y, z, offset_y_type.side_yNeg.x, offset_y_type.side_yNeg.y, DIR_Y_NEG);
+			}
+		}
+	}
+
+	// Slices along z axis! TODO ALSO PROCESS NON-CUBIC BLOCKS IN -THIS- STAGE
+	for (int slice_z = lower_slice_z; slice_z < upper_slice_z; slice_z++) {
+		
 		for (int y = lower_bound_y; y < upper_bound_y; y++) {
+			for (int x = lower_bound_x; x < upper_bound_x; x++) {
+				
+				// Compute base type
+				BlockData base;
+
+				if (slice_z < 0)
+					base = 0;
+				else
+					base = get(x, y, slice_z);
+
+				VoxelType& base_type = blockTypes[base];
+
+				// Compute offset type
+				BlockData offset_z;
+				if (slice_z == VOXEL_CHUNK_SIZE - 1)
+					if (next_chunk_z == nullptr)
+						offset_z = 0;
+					else
+						offset_z = next_chunk_z->get(x, y, 0);
+				else
+					offset_z = get(x, y, slice_z + 1);
+
+				VoxelType& offset_z_type = blockTypes[offset_z];
+
+				// Add faces!
+				if (base_type.form == VFORM_CUBE && offset_z_type.form == VFORM_NULL)
+					addFullVoxelFace(x, y, slice_z, base_type.side_zPos.x, base_type.side_zPos.y, DIR_Z_POS);
+				else if (base_type.form == VFORM_NULL && offset_z_type.form == VFORM_CUBE)
+					addFullVoxelFace(x, y, slice_z, offset_z_type.side_zNeg.x, offset_z_type.side_zNeg.y, DIR_Z_NEG);
+			}
+		}
+	}
+
+	/*for (int x = lower_bound_x; x < upper_bound_x; x++) {
+		for (int y = lower_bound_y; y < upper_bound_y; y++) {)
 			for (int z = lower_bound_z; z < upper_bound_z; z++) {
 
 				BlockData base;
@@ -1130,7 +1254,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				}
 			}
 		}
-	}
+	}*/
 
 	//final build
 	meshStop(ent);
@@ -1204,13 +1328,12 @@ void VoxelChunk::meshClearAll() {
 
 void VoxelChunk::meshStart() {
 	if (!IS_SERVERSIDE) {
+		verts_remaining = BUILD_MAX_VERTS;
+
 		CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 		current_mesh = pRenderContext->CreateStaticMesh(STD_VERT_FMT, "");
 
-		//try MATERIAL_INSTANCED_QUADS
 		meshBuilder.Begin(current_mesh, MATERIAL_QUADS, BUILD_MAX_VERTS / 4);
-
-		verts_remaining = BUILD_MAX_VERTS;
 	}
 	else {
 		phys_soup = IFACE_SV_COLLISION->PolysoupCreate();
@@ -1219,19 +1342,23 @@ void VoxelChunk::meshStart() {
 
 void VoxelChunk::meshStop(CBaseEntity* ent) {
 	if (!IS_SERVERSIDE) {
-		meshBuilder.End();
+		if (current_mesh == nullptr)
+			return;
 
-		if (verts_remaining == BUILD_MAX_VERTS) {
-			CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
-			pRenderContext->DestroyStaticMesh(current_mesh);
-		}
-		else {
-			meshes.push_back(current_mesh);
-		}
+		meshBuilder.End();
+		
+		meshes.push_back(current_mesh);
+		current_mesh = nullptr;
+		
+		verts_remaining = 0;
 	}
 	else {
+		if (phys_soup == nullptr)
+			return;
+
 		phys_collider = IFACE_SV_COLLISION->ConvertPolysoupToCollide(phys_soup, false); //todo what the fuck is MOPP?
 		IFACE_SV_COLLISION->PolysoupDestroy(phys_soup);
+		phys_soup = nullptr;
 
 		objectparams_t op = { 0 };
 		op.enableCollisions = true;
@@ -1431,6 +1558,10 @@ void VoxelChunk::addFullVoxelFace(Coord x, Coord y, Coord z, int tx, int ty, byt
 			v2 = Vector(realX + realStep, realY, realZ + realStep);
 			v3 = Vector(realX + realStep, realY + realStep, realZ + realStep);
 			v4 = Vector(realX, realY + realStep, realZ + realStep);
+		}
+
+		if (phys_soup == nullptr) {
+			meshStart();
 		}
 
 		IFACE_SV_COLLISION->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
