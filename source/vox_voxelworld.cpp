@@ -28,11 +28,11 @@
 
 #define DIR_X_POS 1
 #define DIR_Y_POS 2
-#define DIR_Z_POS 4
+#define DIR_Z_POS 3
 
-#define DIR_X_NEG 8
-#define DIR_Y_NEG 16
-#define DIR_Z_NEG 32
+#define DIR_X_NEG 4
+#define DIR_Y_NEG 5
+#define DIR_Z_NEG 6
 
 std::unordered_map<int,VoxelWorld*> indexedVoxelWorldRegistry;
 
@@ -1044,10 +1044,6 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 	// Hoo boy. Get ready to see some shit.
 
-	int lower_bound_x = 0;
-	int lower_bound_y = 0;
-	int lower_bound_z = 0;
-
 	int hard_upper_bound_x = (system->config.dims_x - posX*VOXEL_CHUNK_SIZE);
 	int hard_upper_bound_y = (system->config.dims_y - posY*VOXEL_CHUNK_SIZE);
 	int hard_upper_bound_z = (system->config.dims_z - posZ*VOXEL_CHUNK_SIZE);
@@ -1072,11 +1068,13 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 	VoxelType* blockTypes = system->config.voxelTypes;
 
+	CubeFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE];
+
 	// Slices along x axis!
 	for (int slice_x = lower_slice_x; slice_x < upper_slice_x; slice_x++) {
 
-		for (int z = lower_bound_z; z < upper_bound_z; z++) {
-			for (int y = lower_bound_y; y < upper_bound_y; y++) {
+		for (int z = 0; z < upper_bound_z; z++) {
+			for (int y = 0; y < upper_bound_y; y++) {
 
 				// Compute base type
 				BlockData base;
@@ -1101,19 +1099,31 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				VoxelType& offset_x_type = blockTypes[offset_x];
 
 				// Add faces!
-				if (base_type.form == VFORM_CUBE && offset_x_type.form == VFORM_NULL)
-					addFullVoxelFace(slice_x, y, z, base_type.side_xPos.x, base_type.side_xPos.y, DIR_X_POS);
-				else if (base_type.form == VFORM_NULL && offset_x_type.form == VFORM_CUBE)
-					addFullVoxelFace(slice_x, y, z, offset_x_type.side_xNeg.x, offset_x_type.side_xNeg.y, DIR_X_NEG);
+				CubeFace& face = faces[z][y];
+
+				if (base_type.form == VFORM_CUBE && offset_x_type.form == VFORM_NULL) {
+					face.present = true;
+					face.direction = true;
+					face.texture = base_type.side_xPos;
+				}
+				else if (base_type.form == VFORM_NULL && offset_x_type.form == VFORM_CUBE) {
+					face.present = true;
+					face.direction = false;
+					face.texture = offset_x_type.side_xNeg;
+				}
+				else
+					face.present = false;
 			}
 		}
+
+		buildSlice(slice_x, DIR_X_POS, faces, upper_bound_y, upper_bound_z);
 	}
 
 	// Slices along y axis!
 	for (int slice_y = lower_slice_y; slice_y < upper_slice_y; slice_y++) {
 
-		for (int z = lower_bound_z; z < upper_bound_z; z++) {
-			for (int x = lower_bound_x; x < upper_bound_x; x++) {
+		for (int z = 0; z < upper_bound_z; z++) {
+			for (int x = 0; x < upper_bound_x; x++) {
 
 				// Compute base type
 				BlockData base;
@@ -1138,19 +1148,32 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				VoxelType& offset_y_type = blockTypes[offset_y];
 
 				// Add faces!
-				if (base_type.form == VFORM_CUBE && offset_y_type.form == VFORM_NULL)
-					addFullVoxelFace(x, slice_y, z, base_type.side_yPos.x, base_type.side_yPos.y, DIR_Y_POS);
-				else if (base_type.form == VFORM_NULL && offset_y_type.form == VFORM_CUBE)
-					addFullVoxelFace(x, slice_y, z, offset_y_type.side_yNeg.x, offset_y_type.side_yNeg.y, DIR_Y_NEG);
+				CubeFace& face = faces[z][x];
+
+				if (base_type.form == VFORM_CUBE && offset_y_type.form == VFORM_NULL) {
+					face.present = true;
+					face.direction = true;
+					face.texture = base_type.side_yPos;
+				}
+				else if (base_type.form == VFORM_NULL && offset_y_type.form == VFORM_CUBE) {
+					face.present = true;
+					face.direction = false;
+					face.texture = offset_y_type.side_yNeg;
+				}
+				else
+					face.present = false;
 			}
 		}
+
+		buildSlice(slice_y, DIR_Y_POS, faces, upper_bound_x, upper_bound_z);
 	}
 
 	// Slices along z axis! TODO ALSO PROCESS NON-CUBIC BLOCKS IN -THIS- STAGE
+
 	for (int slice_z = lower_slice_z; slice_z < upper_slice_z; slice_z++) {
 		
-		for (int y = lower_bound_y; y < upper_bound_y; y++) {
-			for (int x = lower_bound_x; x < upper_bound_x; x++) {
+		for (int y = 0; y < upper_bound_y; y++) {
+			for (int x = 0; x < upper_bound_x; x++) {
 				
 				// Compute base type
 				BlockData base;
@@ -1175,90 +1198,66 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				VoxelType& offset_z_type = blockTypes[offset_z];
 
 				// Add faces!
-				if (base_type.form == VFORM_CUBE && offset_z_type.form == VFORM_NULL)
-					addFullVoxelFace(x, y, slice_z, base_type.side_zPos.x, base_type.side_zPos.y, DIR_Z_POS);
-				else if (base_type.form == VFORM_NULL && offset_z_type.form == VFORM_CUBE)
-					addFullVoxelFace(x, y, slice_z, offset_z_type.side_zNeg.x, offset_z_type.side_zNeg.y, DIR_Z_NEG);
+				CubeFace& face = faces[y][x];
+
+				if (base_type.form == VFORM_CUBE && offset_z_type.form == VFORM_NULL) {
+					face.present = true;
+					face.direction = true;
+					face.texture = base_type.side_zPos;
+				}
+				else if (base_type.form == VFORM_NULL && offset_z_type.form == VFORM_CUBE) {
+					face.present = true;
+					face.direction = false;
+					face.texture = offset_z_type.side_zNeg;
+				} else
+					face.present = false;
 			}
 		}
+
+		buildSlice(slice_z, DIR_Z_POS, faces, upper_bound_x, upper_bound_y);
 	}
-
-	/*for (int x = lower_bound_x; x < upper_bound_x; x++) {
-		for (int y = lower_bound_y; y < upper_bound_y; y++) {)
-			for (int z = lower_bound_z; z < upper_bound_z; z++) {
-
-				BlockData base;
-
-				if (x == -1 || y == -1 || z == -1)
-					base = 0;
-				else
-					base = get(x, y, z);
-
-				VoxelType& base_type = blockTypes[base];
-
-				if ((huge || buildExterior || x < hard_upper_bound_x - 1) && y != -1 && z != -1) {
-					BlockData offset_x;
-					if (x == VOXEL_CHUNK_SIZE - 1)
-						if (next_chunk_x == nullptr)
-							offset_x = 0;
-						else
-							offset_x = next_chunk_x->get(0, y, z);
-					//else if (x == -1)
-					//	offset_x = 0;
-					else
-						offset_x = get(x + 1, y, z);
-
-					VoxelType& offset_x_type = blockTypes[offset_x];
-					if (base_type.form == VFORM_CUBE && offset_x_type.form == VFORM_NULL)
-						addFullVoxelFace(x, y, z, base_type.side_xPos.x, base_type.side_xPos.y, DIR_X_POS);
-					else if (base_type.form == VFORM_NULL && offset_x_type.form == VFORM_CUBE)
-						addFullVoxelFace(x, y, z, offset_x_type.side_xNeg.x, offset_x_type.side_xNeg.y, DIR_X_NEG);
-				}
-
-				if ((huge || buildExterior || y < hard_upper_bound_y - 1) && x != -1 && z != -1) {
-					BlockData offset_y;
-					if (y == VOXEL_CHUNK_SIZE - 1)
-						if (next_chunk_y == nullptr)
-							offset_y = 0;
-						else
-							offset_y = next_chunk_y->get(x, 0, z);
-					//else if (y == -1)
-					//	offset_y = 0;
-					else
-						offset_y = get(x, y + 1, z);
-
-					VoxelType& offset_y_type = blockTypes[offset_y];
-					if (base_type.form == VFORM_CUBE && offset_y_type.form == VFORM_NULL)
-						addFullVoxelFace(x, y, z, base_type.side_yPos.x, base_type.side_yPos.y, DIR_Y_POS);
-					else if (base_type.form == VFORM_NULL && offset_y_type.form == VFORM_CUBE)
-						addFullVoxelFace(x, y, z, offset_y_type.side_yNeg.x, offset_y_type.side_yNeg.y, DIR_Y_NEG);
-				}
-
-				if ((huge || buildExterior || z < hard_upper_bound_z - 1) && x != -1 && y != -1) {
-					BlockData offset_z;
-					if (z == VOXEL_CHUNK_SIZE - 1)
-						if (next_chunk_z == nullptr)
-							offset_z = 0;
-						else
-							offset_z = next_chunk_z->get(x, y, 0);
-					//else if (z == -1)
-					//	offset_z = 0;
-					else
-						offset_z = get(x, y, z + 1);
-
-					VoxelType& offset_z_type = blockTypes[offset_z];
-					if (base_type.form == VFORM_CUBE && offset_z_type.form == VFORM_NULL)
-						addFullVoxelFace(x, y, z, base_type.side_zPos.x, base_type.side_zPos.y, DIR_Z_POS);
-					else if (base_type.form == VFORM_NULL && offset_z_type.form == VFORM_CUBE)
-						addFullVoxelFace(x, y, z, offset_z_type.side_zNeg.x, offset_z_type.side_zNeg.y, DIR_Z_NEG);
-				}
-			}
-		}
-	}*/
 
 	//final build
 	meshStop(ent);
 
+}
+
+void VoxelChunk::buildSlice(int slice, byte dir, CubeFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y) {
+
+	for (int y = 0; y < upper_bound_y; y++) {
+		for (int x = 0; x < upper_bound_x; x++) {
+
+			if (faces[y][x].present) {
+				CubeFace& current_face = faces[y][x];
+
+				int end_x;
+				int end_y;
+
+				for (end_x = x + 1; end_x < upper_bound_x && current_face == faces[y][end_x]; end_x++) {
+					faces[y][end_x].present = false;
+				}
+
+				for (end_y = y + 1; end_y < upper_bound_y; end_y++) {
+					for (int ix = x; ix < end_x; ix++) {
+						if (!(current_face == faces[end_y][ix]))
+							goto bail;
+					}
+
+					for (int ix = x; ix < end_x; ix++) {
+						faces[end_y][ix].present = false;
+					}
+				}
+			bail:
+
+				current_face.present = false;
+
+				int w = end_x - x;
+				int h = end_y - y;
+
+				addSliceFace(slice, x, y, w, h, current_face.texture.x, current_face.texture.y, current_face.direction ? dir : dir+3);
+			}
+		}
+	}
 }
 
 void VoxelChunk::draw(CMatRenderContextPtr& pRenderContext) {
@@ -1566,5 +1565,201 @@ void VoxelChunk::addFullVoxelFace(Coord x, Coord y, Coord z, int tx, int ty, byt
 
 		IFACE_SV_COLLISION->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
 		IFACE_SV_COLLISION->PolysoupAddTriangle(phys_soup, v1, v3, v4, 3);
+	}
+}
+
+void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir) {
+
+	double realStep = system->config.scale;
+
+	if (!IS_SERVERSIDE) {
+		if (verts_remaining < 4) {
+			meshStop(nullptr);
+			meshStart();
+		}
+		verts_remaining -= 4;
+
+		VoxelConfig* cl_config = &(system->config);
+
+		double uMin = ((double)tx / cl_config->atlasWidth) + cl_config->_padding_x;
+		double uMax = ((tx + 1.0) / cl_config->atlasWidth) - cl_config->_padding_x;
+
+		double vMin = ((double)ty / cl_config->atlasHeight) + cl_config->_padding_y;
+		double vMax = ((ty + 1.0) / cl_config->atlasHeight) - cl_config->_padding_y;
+
+		double realX;
+		double realY;
+		double realZ;
+
+		switch (dir) {
+
+		case DIR_X_POS:
+
+			realX = (slice + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realY = (x + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+
+			meshBuilder.Position3f(realX + realStep, realY, realZ);
+			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.Normal3f(1, 0, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep, realY, realZ + realStep * h);
+			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.Normal3f(1, 0, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ + realStep * h);
+			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.Normal3f(1, 0, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ);
+			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.Normal3f(1, 0, 0);
+			meshBuilder.AdvanceVertex();
+			
+			break;
+
+		case DIR_X_NEG:
+
+			realX = (slice + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realY = (x + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+
+			meshBuilder.Position3f(realX + realStep, realY, realZ);
+			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.Normal3f(-1, 0, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ);
+			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.Normal3f(-1, 0, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ + realStep * h);
+			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.Normal3f(-1, 0, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep, realY, realZ + realStep * h);
+			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.Normal3f(-1, 0, 0);
+			meshBuilder.AdvanceVertex();
+			
+			break;
+
+		case DIR_Y_POS:
+
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realY = (slice + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+
+			meshBuilder.Position3f(realX, realY + realStep, realZ);
+			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.Normal3f(0, 1, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ);
+			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.Normal3f(0, 1, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ + realStep * h);
+			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.Normal3f(0, 1, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX, realY + realStep, realZ + realStep * h);
+			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.Normal3f(0, 1, 0);
+			meshBuilder.AdvanceVertex();
+
+			break;
+		
+		case DIR_Y_NEG:
+
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realY = (slice + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+
+			meshBuilder.Position3f(realX, realY + realStep, realZ);
+			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.Normal3f(0, -1, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX, realY + realStep, realZ + realStep * h);
+			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.Normal3f(0, -1, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ + realStep * h);
+			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.Normal3f(0, -1, 0);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ);
+			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.Normal3f(0, -1, 0);
+			meshBuilder.AdvanceVertex();
+
+			break;
+
+		case DIR_Z_POS:
+
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+
+			meshBuilder.Position3f(realX, realY, realZ + realStep);
+			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.Normal3f(0, 0, 1);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX, realY + realStep * h, realZ + realStep);
+			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.Normal3f(0, 0, 1);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep * w, realY + realStep * h, realZ + realStep);
+			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.Normal3f(0, 0, 1);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep * w, realY, realZ + realStep);
+			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.Normal3f(0, 0, 1);
+			meshBuilder.AdvanceVertex();
+
+			break;
+
+		case DIR_Z_NEG:
+
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+
+			meshBuilder.Position3f(realX, realY, realZ + realStep);
+			meshBuilder.TexCoord2f(0, uMin, vMax);
+			meshBuilder.Normal3f(0, 0, -1);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep * w, realY, realZ + realStep);
+			meshBuilder.TexCoord2f(0, uMax, vMax);
+			meshBuilder.Normal3f(0, 0, -1);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX + realStep * w, realY + realStep * h, realZ + realStep);
+			meshBuilder.TexCoord2f(0, uMax, vMin);
+			meshBuilder.Normal3f(0, 0, -1);
+			meshBuilder.AdvanceVertex();
+
+			meshBuilder.Position3f(realX, realY + realStep * h, realZ + realStep);
+			meshBuilder.TexCoord2f(0, uMin, vMin);
+			meshBuilder.Normal3f(0, 0, -1);
+			meshBuilder.AdvanceVertex();
+
+			break;
+		}
 	}
 }

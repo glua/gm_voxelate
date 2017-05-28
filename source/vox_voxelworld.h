@@ -51,6 +51,7 @@ enum VoxelForm {
 };
 
 struct AtlasPos {
+	AtlasPos() {};
 	AtlasPos(int x, int y) { this->x = x; this->y = y; }
 	int x;
 	int y;
@@ -171,6 +172,19 @@ private:
 	VoxelConfig config;
 };
 
+struct CubeFace {
+	bool present;
+	bool direction;
+	AtlasPos texture;
+
+	bool operator== (const CubeFace& other) const {
+		return
+			present == other.present &&
+			direction == other.direction &&
+			texture.x == other.texture.x &&
+			texture.y == other.texture.y;
+	}
+};
 
 class VoxelChunk {
 public:
@@ -195,8 +209,11 @@ private:
 
 	void meshStart();
 	void meshStop(CBaseEntity* ent);
+	
+	void buildSlice(int slice, byte dir, CubeFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y);
 
 	void addFullVoxelFace(int x,int y,int z,int tx, int ty, byte dir);
+	void addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir);
 
 	VoxelWorld* system;
 	CMeshBuilder meshBuilder;
