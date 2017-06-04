@@ -1,0 +1,1 @@
+robocopy "source\shaders\shaders" "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\shaders" /e
