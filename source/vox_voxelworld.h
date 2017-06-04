@@ -174,6 +174,7 @@ private:
 
 struct SliceFace {
 	bool present;
+#ifdef VOXELATE_CLIENT
 	bool direction;
 	AtlasPos texture;
 
@@ -184,6 +185,11 @@ struct SliceFace {
 			texture.x == other.texture.x &&
 			texture.y == other.texture.y;
 	}
+#else
+	bool operator== (const SliceFace& other) const {
+		return present == other.present;
+	}
+#endif
 };
 
 class VoxelChunk {

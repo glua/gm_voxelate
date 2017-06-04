@@ -1103,13 +1103,17 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 				if (base_type.form == VFORM_CUBE && offset_x_type.form == VFORM_NULL) {
 					face.present = true;
+#ifdef VOXELATE_CLIENT
 					face.direction = true;
 					face.texture = base_type.side_xPos;
+#endif
 				}
 				else if (base_type.form == VFORM_NULL && offset_x_type.form == VFORM_CUBE) {
 					face.present = true;
+#ifdef VOXELATE_CLIENT
 					face.direction = false;
 					face.texture = offset_x_type.side_xNeg;
+#endif
 				}
 				else
 					face.present = false;
@@ -1152,13 +1156,17 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 				if (base_type.form == VFORM_CUBE && offset_y_type.form == VFORM_NULL) {
 					face.present = true;
+#ifdef VOXELATE_CLIENT
 					face.direction = true;
 					face.texture = base_type.side_yPos;
+#endif
 				}
 				else if (base_type.form == VFORM_NULL && offset_y_type.form == VFORM_CUBE) {
 					face.present = true;
+#ifdef VOXELATE_CLIENT
 					face.direction = false;
 					face.texture = offset_y_type.side_yNeg;
+#endif
 				}
 				else
 					face.present = false;
@@ -1202,13 +1210,17 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 				if (base_type.form == VFORM_CUBE && offset_z_type.form == VFORM_NULL) {
 					face.present = true;
+#ifdef VOXELATE_CLIENT
 					face.direction = true;
 					face.texture = base_type.side_zPos;
+#endif
 				}
 				else if (base_type.form == VFORM_NULL && offset_z_type.form == VFORM_CUBE) {
 					face.present = true;
+#ifdef VOXELATE_CLIENT
 					face.direction = false;
 					face.texture = offset_z_type.side_zNeg;
+#endif
 				} else
 					face.present = false;
 			}
@@ -1254,7 +1266,11 @@ void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZ
 				int w = end_x - x;
 				int h = end_y - y;
 
+#ifdef VOXELATE_CLIENT
 				addSliceFace(slice, x, y, w, h, current_face.texture.x, current_face.texture.y, current_face.direction ? dir : dir+3);
+#else
+				addSliceFace(slice, x, y, w, h, 0, 0, dir);
+#endif
 			}
 		}
 	}
@@ -1785,5 +1801,59 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 
 			break;
 		}
+	} else {
+		double realX;
+		double realY;
+		double realZ;
+
+		Vector v1, v2, v3, v4;
+		switch (dir) {
+
+		case DIR_X_POS:
+
+			realX = (slice + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realY = (x + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+
+			v1 = Vector(realX + realStep, realY, realZ);
+			v2 = Vector(realX + realStep, realY, realZ + realStep * h);
+			v3 = Vector(realX + realStep, realY + realStep * w, realZ + realStep * h);
+			v4 = Vector(realX + realStep, realY + realStep * w, realZ);
+			break;
+
+		case DIR_Y_POS:
+
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realY = (slice + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+
+			v1 = Vector(realX, realY + realStep, realZ);
+			v2 = Vector(realX + realStep * w, realY + realStep, realZ);
+			v3 = Vector(realX + realStep * w, realY + realStep, realZ + realStep * h);
+			v4 = Vector(realX, realY + realStep, realZ + realStep * h);
+			break;
+
+		case DIR_Z_POS:
+
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+
+			v1 = Vector(realX, realY, realZ + realStep);
+			v2 = Vector(realX, realY + realStep * h, realZ + realStep);
+			v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep);
+			v4 = Vector(realX + realStep * w, realY, realZ + realStep);
+			break;
+
+		default:
+			return;
+		}
+
+		if (phys_soup == nullptr) {
+			meshStart();
+		}
+
+		IFACE_SV_COLLISION->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
+		IFACE_SV_COLLISION->PolysoupAddTriangle(phys_soup, v1, v3, v4, 3);
 	}
 }

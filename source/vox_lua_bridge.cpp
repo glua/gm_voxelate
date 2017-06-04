@@ -1,4 +1,5 @@
-// both required
+
+#include <materialsystem/imaterialvar.h>
 
 #include "glua.h"
 
@@ -133,12 +134,28 @@ int luaf_voxNewWorld(lua_State* state) {
 		const char* temp_mat_name = config_string(state, "atlasMaterial", "models/debug/debugwhite");
 		config.atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(temp_mat_name, nullptr);
 
-		config.atlasWidth = config_num(state, "atlasWidth", 1);
-		config.atlasHeight = config_num(state, "atlasHeight", 1);
+		bool var_found;
+		IMaterialVar* var;
+		
+		var = config.atlasMaterial->FindVar("$atlas_w", &var_found);
+		if (var_found && var->GetIntValue() > 0) {
+			config.atlasWidth = var->GetIntValue();
+		}
+		else {
+			config.atlasWidth = 1;
+		}
+
+		var = config.atlasMaterial->FindVar("$atlas_h", &var_found);
+		if (var_found && var->GetIntValue() > 0) {
+			config.atlasHeight = var->GetIntValue();
+		}
+		else {
+			config.atlasHeight = 1;
+		}
 	}
 
 	// Mesh building options
-	//config.buildPhysicsMesh = config_bool(state, "buildPhysicsMesh",false); DISABLE
+	config.buildPhysicsMesh = config_bool(state, "buildPhysicsMesh",false);
 	config.buildExterior = config_bool(state, "buildExterior", false);
 
 	// The rest of this is going to have to wait...
