@@ -172,12 +172,12 @@ private:
 	VoxelConfig config;
 };
 
-struct CubeFace {
+struct SliceFace {
 	bool present;
 	bool direction;
 	AtlasPos texture;
 
-	bool operator== (const CubeFace& other) const {
+	bool operator== (const SliceFace& other) const {
 		return
 			present == other.present &&
 			direction == other.direction &&
@@ -210,7 +210,7 @@ private:
 	void meshStart();
 	void meshStop(CBaseEntity* ent);
 	
-	void buildSlice(int slice, byte dir, CubeFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y);
+	void buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y);
 
 	void addFullVoxelFace(int x,int y,int z,int tx, int ty, byte dir);
 	void addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir);

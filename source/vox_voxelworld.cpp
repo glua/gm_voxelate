@@ -1068,7 +1068,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 	VoxelType* blockTypes = system->config.voxelTypes;
 
-	CubeFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE];
+	SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE];
 
 	// Slices along x axis!
 	for (int slice_x = lower_slice_x; slice_x < upper_slice_x; slice_x++) {
@@ -1099,7 +1099,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				VoxelType& offset_x_type = blockTypes[offset_x];
 
 				// Add faces!
-				CubeFace& face = faces[z][y];
+				SliceFace& face = faces[z][y];
 
 				if (base_type.form == VFORM_CUBE && offset_x_type.form == VFORM_NULL) {
 					face.present = true;
@@ -1148,7 +1148,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				VoxelType& offset_y_type = blockTypes[offset_y];
 
 				// Add faces!
-				CubeFace& face = faces[z][x];
+				SliceFace& face = faces[z][x];
 
 				if (base_type.form == VFORM_CUBE && offset_y_type.form == VFORM_NULL) {
 					face.present = true;
@@ -1198,7 +1198,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 				VoxelType& offset_z_type = blockTypes[offset_z];
 
 				// Add faces!
-				CubeFace& face = faces[y][x];
+				SliceFace& face = faces[y][x];
 
 				if (base_type.form == VFORM_CUBE && offset_z_type.form == VFORM_NULL) {
 					face.present = true;
@@ -1222,13 +1222,13 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 }
 
-void VoxelChunk::buildSlice(int slice, byte dir, CubeFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y) {
+void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y) {
 
 	for (int y = 0; y < upper_bound_y; y++) {
 		for (int x = 0; x < upper_bound_x; x++) {
 
 			if (faces[y][x].present) {
-				CubeFace& current_face = faces[y][x];
+				SliceFace& current_face = faces[y][x];
 
 				int end_x;
 				int end_y;
