@@ -8,7 +8,9 @@ Welcome to the home of gm_voxelate, the configurable voxel module for Garrysmod.
 **NO EXTERNAL LINKS RIGHT NOW. A NEW FACEPUNCH THREA WILL BE CREATED FOR VERSION 0.3.0.**
 
 ## Documentation
-See the wiki in the sidebar. **DOCS ARE CURRENTLY OUTDATED. API SUBJECT TO CHANGE AND WILL BE STABILIZED IN VERSION 0.4.0.**
+See the wiki in the sidebar.
+
+**DOCS ARE CURRENTLY OUTDATED. API SUBJECT TO CHANGE AND WILL BE STABILIZED IN VERSION 0.4.0.**
 
 ## Support
 
@@ -39,7 +41,7 @@ At this point you should have working VS projects to build the modules with. Upo
 If you want lua hotloading, make a `.vox_hotloading` file as described in that section.
 
 ### Auto Install
-The "--autoinstall" flag can be passed to premake to automatically copy binaries to the garrysmod directory on each build. Only supported on windows. Assumes the gmod directory is "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\".
+The `--autoinstall` flag can be passed to premake to automatically copy binaries to the garrysmod directory on each build. Only supported on windows. Assumes the gmod directory is "C:\Program Files (x86)\Steam\steamapps\common\GarrysMod\garrysmod\".
 
 ### Shaders
 This module needs to load custom shaders. Fortunately, compiled shaders are shipped with the module. Unfortunately, they still need to be copied to the garrysmod directory. You can either run "install_shaders.bat", which assumes that the gmod directory is the same as above, or manually copy the shaders from "source/shaders/shaders" to "Garrysmod/garrysmod/shaders".
@@ -54,7 +56,7 @@ Hotloading can be enabled by creating a file in GarrysMod/garrysmod/data with th
 
 Secondly, you will either:
 1. install [gm_luaiox](https://cdn.discordapp.com/attachments/152162730244177920/311479180141527041/gmsv_luaiox_win32.dll) (kindly provided by MetaMan)
-2. compile gm_voxelate with the premake trigger `luahotloading`, which will add a dangerous function that can read any file without restrictions
+2. compile gm_voxelate with the premake trigger `--luahotloading`, which will add a dangerous function that can read any file without restrictions
 
 Enjoy!
 
