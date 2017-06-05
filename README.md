@@ -5,7 +5,7 @@ gm_voxelate
 Welcome to the home of gm_voxelate, the configurable voxel module for Garrysmod.
 
 ## Links
-**NO EXTERNAL LINKS RIGHT NOW. A NEW FACEPUNCH THREA WILL BE CREATED FOR VERSION 0.3.0.**
+**NO EXTERNAL LINKS RIGHT NOW. A NEW FACEPUNCH THREAD WILL BE CREATED FOR VERSION 0.3.0.**
 
 ## Documentation
 See the wiki in the sidebar.
