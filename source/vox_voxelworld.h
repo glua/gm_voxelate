@@ -95,9 +95,6 @@ struct VoxelConfig {
 	int atlasWidth = 1;
 	int atlasHeight = 1;
 
-	double _padding_x = 0;
-	double _padding_y = 0;
-
 	VoxelType voxelTypes[256];
 };
 
@@ -218,7 +215,6 @@ private:
 	
 	void buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y);
 
-	void addFullVoxelFace(int x,int y,int z,int tx, int ty, byte dir);
 	void addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir);
 
 	VoxelWorld* system;
