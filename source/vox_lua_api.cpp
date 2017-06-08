@@ -5,7 +5,7 @@
 
 #include "vox_lua_advanced_vector.hpp"
 
-#include "vox_lua_bridge.h"
+#include "vox_lua_api.h"
 #include "vox_lua_src.h"
 
 #include "vox_engine.h"
@@ -22,11 +22,11 @@ using namespace GarrysMod::Lua;
 
 //Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
 
-CBaseEntity* elua_getEntity(lua_State* state, int index) {
+CBaseEntity* elua_getEntity(GarrysMod::Lua::ILuaBase* LUA, int index) {
 	if (!IS_SERVERSIDE)
 		return nullptr;
 
-	GarrysMod::Lua::UserData* ud = reinterpret_cast<GarrysMod::Lua::UserData*>(LUA->GetUserdata(index));
+	GarrysMod::Lua::ILuaBase::UserData* ud = LUA->GetUserdata(index);
 
 	int e_index = reinterpret_cast<CBaseHandle*>(ud->data)->GetEntryIndex();
 
@@ -37,34 +37,7 @@ CBaseEntity* elua_getEntity(lua_State* state, int index) {
 	return edict->GetUnknown()->GetBaseEntity();
 }
 
-Vector elua_getVector(lua_State* state, int index) {
-	GarrysMod::Lua::UserData* ud = reinterpret_cast<GarrysMod::Lua::UserData*>(LUA->GetUserdata(index));
-	Vector v = *reinterpret_cast<Vector*>(ud->data);
-	return v;
-}
-
-
-//Can't figure out how to push vectors without crashing the game when they get GC'd
-void elua_pushVector(lua_State* state, Vector v) {
-	LUA->PushSpecial(SPECIAL_GLOB);
-	LUA->GetField(-1, "Vector");
-	LUA->Remove(-2);
-	LUA->PushNumber(v.x);
-	LUA->PushNumber(v.y);
-	LUA->PushNumber(v.z);
-	LUA->Call(3, 1);
-
-	/*
-	GarrysMod::Lua::UserData* ud = (UserData*)(LUA->NewUserdata(sizeof(UserData)));
-	ud->type = Type::VECTOR;
-	ud->data = new Vector(v);
-
-	LUA->CreateMetaTableType("Vector", Type::VECTOR);
-	LUA->SetMetaTable(-2);
-	*/
-}
-
-bool config_bool(lua_State* state, const char* name, bool default_value) {
+bool config_bool(GarrysMod::Lua::ILuaBase* LUA, const char* name, bool default_value) {
 	LUA->GetField(1, name);
 	if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
 		default_value = LUA->GetBool();
@@ -73,7 +46,7 @@ bool config_bool(lua_State* state, const char* name, bool default_value) {
 	return default_value;
 }
 
-double config_num(lua_State* state, const char* name, double default_value) {
+double config_num(GarrysMod::Lua::ILuaBase* LUA, const char* name, double default_value) {
 	LUA->GetField(1, name);
 	if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER))
 		default_value = LUA->GetNumber();
@@ -82,7 +55,7 @@ double config_num(lua_State* state, const char* name, double default_value) {
 	return default_value;
 }
 
-const char* config_string(lua_State* state, const char* name, const char* default_value) {
+const char* config_string(GarrysMod::Lua::ILuaBase* LUA, const char* name, const char* default_value) {
 	LUA->GetField(1, name);
 	if (LUA->IsType(-1, GarrysMod::Lua::Type::STRING))
 		default_value = LUA->GetString();
@@ -91,10 +64,10 @@ const char* config_string(lua_State* state, const char* name, const char* defaul
 	return default_value;
 }
 
-Vector config_vector(lua_State* state, const char* name, Vector default_value) {
+Vector config_vector(GarrysMod::Lua::ILuaBase* LUA, const char* name, Vector default_value) {
 	LUA->GetField(1, name);
 	if (LUA->IsType(-1, GarrysMod::Lua::Type::VECTOR))
-		default_value = elua_getVector(state, -1);
+		default_value = LUA->GetVector();
 	LUA->Pop();
 
 	return default_value;
@@ -103,7 +76,7 @@ Vector config_vector(lua_State* state, const char* name, Vector default_value) {
 
 //Friend function of VoxelWorld, handles all configuration.
 //Todo use some sort of struct for config and shove it into the voxels class
-int luaf_voxNewWorld(lua_State* state) {
+LUA_FUNCTION(luaf_voxNewWorld) {
 
 	int index = -1;
 
@@ -113,9 +86,9 @@ int luaf_voxNewWorld(lua_State* state) {
 	VoxelConfig config;
 
 	// Dimensions
-	config.huge = config_bool(state, "huge", false);
+	config.huge = config_bool(LUA, "huge", false);
 
-	Vector temp_dims = config_vector(state, "dimensions", Vector(VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE));
+	Vector temp_dims = config_vector(LUA, "dimensions", Vector(VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE));
 	if (!config.huge) {
 
 		config.dims_x = temp_dims.x;
@@ -127,11 +100,11 @@ int luaf_voxNewWorld(lua_State* state) {
 		}
 	}
 
-	config.scale = config_num(state, "scale", 32);
+	config.scale = config_num(LUA, "scale", 32);
 
 	// Atlas crap
 	if (!IS_SERVERSIDE) {
-		const char* temp_mat_name = config_string(state, "atlasMaterial", "models/debug/debugwhite");
+		const char* temp_mat_name = config_string(LUA, "atlasMaterial", "models/debug/debugwhite");
 		config.atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(temp_mat_name, nullptr);
 
 		bool var_found;
@@ -155,8 +128,8 @@ int luaf_voxNewWorld(lua_State* state) {
 	}
 
 	// Mesh building options
-	config.buildPhysicsMesh = config_bool(state, "buildPhysicsMesh",false);
-	config.buildExterior = config_bool(state, "buildExterior", false);
+	config.buildPhysicsMesh = config_bool(LUA, "buildPhysicsMesh",false);
+	config.buildExterior = config_bool(LUA, "buildExterior", false);
 
 	// The rest of this is going to have to wait...
 	LUA->GetField(1, "voxelTypes");
@@ -236,13 +209,13 @@ int luaf_voxNewWorld(lua_State* state) {
 	return 1;
 }
 
-int luaf_voxDeleteWorld(lua_State* state) {
+LUA_FUNCTION(luaf_voxDeleteWorld) {
 	int index = LUA->GetNumber(1);
 	deleteIndexedVoxelWorld(index);
 	return 0;
 }
 
-int luaf_voxDraw(lua_State* state) {
+LUA_FUNCTION(luaf_voxDraw) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
@@ -347,7 +320,7 @@ int luaf_voxSetWorldUpdatesEnabled(lua_State* state) {
 	return 0;
 }*/
 
-int luaf_voxGet(lua_State* state) {
+LUA_FUNCTION(luaf_voxGet) {
 	int index = LUA->GetNumber(1);
 
 	int x = LUA->CheckNumber(2);
@@ -363,7 +336,7 @@ int luaf_voxGet(lua_State* state) {
 	return 1;
 }
 
-int luaf_voxSet(lua_State* state) {
+LUA_FUNCTION(luaf_voxSet) {
 	int index = LUA->GetNumber(1);
 
 	int x = LUA->CheckNumber(2);
@@ -381,11 +354,11 @@ int luaf_voxSet(lua_State* state) {
 	return 0;
 }
 
-int luaf_voxUpdate(lua_State* state) {
+LUA_FUNCTION(luaf_voxUpdate) {
 	int index = LUA->GetNumber(1);
 	int chunk_count = LUA->GetNumber(2);
 
-	CBaseEntity* ent = elua_getEntity(state, 3);
+	CBaseEntity* ent = elua_getEntity(LUA, 3);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 
@@ -410,7 +383,7 @@ int luaf_voxUpdate(lua_State* state) {
 	return 0;
 }*/
 
-int luaf_voxGetAllChunks(lua_State* state) {
+LUA_FUNCTION(luaf_voxGetAllChunks) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
@@ -426,7 +399,8 @@ int luaf_voxGetAllChunks(lua_State* state) {
 	int i = 1;
 	for (auto v : chunk_positions) {
 		LUA->PushNumber(i);
-		elua_pushVector(state, Vector(v[0],v[1],v[2])); // vectors may not be able to represent all chunks, but they do good enough job for now
+		LUA->PushVector(Vector(v[0], v[1], v[2]));
+
 		LUA->SetTable(-3);
 		i++;
 	}
@@ -435,7 +409,7 @@ int luaf_voxGetAllChunks(lua_State* state) {
 }
 
 #ifdef VOXELATE_SERVER
-int luaf_voxSendChunk(lua_State* state) {
+LUA_FUNCTION(luaf_voxSendChunk) {
 	int index = LUA->GetNumber(1);
 	int peerID = LUA->GetNumber(2);
 	int x = LUA->GetNumber(3);
@@ -445,16 +419,16 @@ int luaf_voxSendChunk(lua_State* state) {
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v != nullptr) {
-		lua_pushboolean(state, v->sendChunk(peerID, { x, y, z }));
+		LUA->PushBool(v->sendChunk(peerID, { x, y, z }));
 	}
 	else {
-		lua_pushboolean(state, false);
+		LUA->PushBool(false);
 	}
 
 	return 1;
 }
 
-int luaf_voxSendChunks(lua_State* state) {
+/*LUA_FUNCTION(luaf_voxSendChunks) {
 	int index = LUA->GetNumber(1);
 	int peerID = LUA->GetNumber(2);
 	int x = LUA->GetNumber(3);
@@ -465,17 +439,17 @@ int luaf_voxSendChunks(lua_State* state) {
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v != nullptr) {
-		lua_pushboolean(state, v->sendChunksAround(peerID, {x, y, z}, radius));
+		LUA->PushBool(v->sendChunksAround(peerID, {x, y, z}, radius));
 	}
 	else {
 		lua_pushboolean(state, false);
 	}
 
 	return 1;
-}
+}*/
 #endif
 
-int luaf_voxSaveToString1(lua_State* state) { // save with format 1
+/*int luaf_voxSaveToString1(lua_State* state) { // save with format 1
 	// int index = LUA->GetNumber(1);
 
 	// VoxelWorld* v = getIndexedVoxelWorld(index);
@@ -513,20 +487,20 @@ int luaf_voxLoadFromString1(lua_State* state) { // save with format 1
 	// }
 
 	return 0;
-}
+}*/
 
-int luaf_voxTrace(lua_State* state) {
+LUA_FUNCTION(luaf_voxTrace) {
 	int index = LUA->GetNumber(1);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
-		Vector start = elua_getVector(state, 2);
+		Vector start = LUA->GetVector(2);
 
-		Vector delta = elua_getVector(state, 3);
+		Vector delta = LUA->GetVector(3);
 
 		VoxelTraceRes r;
 		if (LUA->GetBool(4)) {
-			Vector extents = elua_getVector(state,5);
+			Vector extents = LUA->GetVector(5);
 			r = v->doTraceHull(start, delta, extents);
 		}
 		else {
@@ -535,8 +509,8 @@ int luaf_voxTrace(lua_State* state) {
 
 		if (r.fraction != -1) {
 			LUA->PushNumber(r.fraction);
-			elua_pushVector(state, r.hitPos);
-			elua_pushVector(state, r.hitNormal);
+			LUA->PushVector(r.hitPos);
+			LUA->PushVector(r.hitNormal);
 			return 3;
 		}
 	}
@@ -544,6 +518,7 @@ int luaf_voxTrace(lua_State* state) {
 	return 0;
 }
 
+// Bootstrap shit
 void setupFiles();
 const char* grabBootstrap();
 int grabBootstrapLength();
@@ -621,7 +596,7 @@ int luaf_voxReadFile(lua_State* state) {
 
 #endif
 
-void init_lua(lua_State* state, const char* version_string) {
+void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string) {
 	LUA->PushSpecial(SPECIAL_GLOB);
 
 	LUA->CreateTable();
@@ -662,11 +637,11 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushCFunction(luaf_voxSetWorldUpdatesEnabled);
 	LUA->SetField(-2, "voxSetWorldUpdatesEnabled");*/
 
-	LUA->PushCFunction(luaf_voxLoadFromString1);
+	/*LUA->PushCFunction(luaf_voxLoadFromString1);
 	LUA->SetField(-2, "voxLoadFromString1");
 
 	LUA->PushCFunction(luaf_voxSaveToString1);
-	LUA->SetField(-2, "voxSaveToString1");
+	LUA->SetField(-2, "voxSaveToString1");*/
 
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");
@@ -675,8 +650,8 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->PushCFunction(luaf_voxSendChunk);
 	LUA->SetField(-2, "voxSendChunk");
 
-	LUA->PushCFunction(luaf_voxSendChunks);
-	LUA->SetField(-2, "voxSendChunks");
+	//LUA->PushCFunction(luaf_voxSendChunks);
+	//LUA->SetField(-2, "voxSendChunks");
 #endif
 
 #ifdef VOXELATE_LUA_HOTLOADING
@@ -684,12 +659,12 @@ void init_lua(lua_State* state, const char* version_string) {
 	LUA->SetField(-2, "readFileUnrestricted");
 #endif
 
-	setupLuaNetworking(state);
-	setupLuaAdvancedVectors(state);
+	setupLuaNetworking(LUA);
+	//setupLuaAdvancedVectors(state);
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
 
-	runBootstrap(state);
+	runBootstrap(LUA->GetState());
 
 	LUA->Pop();
 }

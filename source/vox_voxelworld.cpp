@@ -112,7 +112,7 @@ VoxelWorld::~VoxelWorld() {
 		config.atlasMaterial->DecrementReferenceCount();
 }
 
-VoxelChunk* VoxelWorld::initChunk(Coord x, Coord y, Coord z) {
+VoxelChunk* VoxelWorld::initChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
 	auto iter = chunks_map.find({ x, y, z });
 
 	if (iter != chunks_map.end())
@@ -135,7 +135,7 @@ VoxelChunk* VoxelWorld::initChunk(Coord x, Coord y, Coord z) {
 	return chunk;
 }
 
-VoxelChunk* VoxelWorld::getChunk(Coord x, Coord y, Coord z) {
+VoxelChunk* VoxelWorld::getChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
 	auto iter = chunks_map.find({ x, y, z });
 
 	if (iter == chunks_map.end())
@@ -148,7 +148,7 @@ VoxelChunk* VoxelWorld::getChunk(Coord x, Coord y, Coord z) {
 
 const int CHUNK_BUFFER_SIZE = 9000;
 
-const int VoxelWorld::getChunkData(Coord x, Coord y, Coord z,char* out) {
+const int VoxelWorld::getChunkData(VoxelCoord x, VoxelCoord y, VoxelCoord z,char* out) {
 	auto iter = chunks_map.find({ x, y, z });
 
 	if (iter == chunks_map.end())
@@ -159,7 +159,7 @@ const int VoxelWorld::getChunkData(Coord x, Coord y, Coord z,char* out) {
 	return fastlz_compress(input, VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE * 2, out);
 }
 
-bool VoxelWorld::setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len) {
+bool VoxelWorld::setChunkData(VoxelCoord x, VoxelCoord y, VoxelCoord z, const char* data_compressed, int data_len) {
 	if (data_compressed == nullptr) {
 		vox_print("NULL DATA %i", data_len);
 		return false;
@@ -198,12 +198,12 @@ bool VoxelWorld::loadFromString(std::string contents) {
 		return false;
 	}
 
-	std::unordered_map<XYZCoordinate, std::tuple<size_t, char*>> toLoad;
+	std::unordered_map<VoxelCoordXYZ, std::tuple<size_t, char*>> toLoad;
 
 	for (unsigned int i = 0; i < totalChunks; i++) {
-		Coord chunkX = reader.ReadUBitLong(32);
-		Coord chunkY = reader.ReadUBitLong(32);
-		Coord chunkZ = reader.ReadUBitLong(32);
+		VoxelCoord chunkX = reader.ReadUBitLong(32);
+		VoxelCoord chunkY = reader.ReadUBitLong(32);
+		VoxelCoord chunkZ = reader.ReadUBitLong(32);
 
 		auto dataSize = reader.ReadUBitLong(14);
 
@@ -276,16 +276,16 @@ void VoxelWorld::initialize() {
 	if (IS_SERVERSIDE) {
 		// Only explicitly init the map on the server
 		if (!config.huge) {
-			Coord max_chunk_x = (config.dims_x - 1) / VOXEL_CHUNK_SIZE;
-			Coord max_chunk_y = (config.dims_y - 1) / VOXEL_CHUNK_SIZE;
-			Coord max_chunk_z = (config.dims_z - 1) / VOXEL_CHUNK_SIZE;
+			VoxelCoord max_chunk_x = (config.dims_x - 1) / VOXEL_CHUNK_SIZE;
+			VoxelCoord max_chunk_y = (config.dims_y - 1) / VOXEL_CHUNK_SIZE;
+			VoxelCoord max_chunk_z = (config.dims_z - 1) / VOXEL_CHUNK_SIZE;
 
 
 			//vox_print("---> %i %i %i",max_chunk_x,max_chunk_y,max_chunk_z);
 
-			for (Coord x = 0; x <= max_chunk_x; x++) {
-				for (Coord y = 0; y <= max_chunk_y; y++) {
-					for (Coord z = 0; z <= max_chunk_z; z++) {
+			for (VoxelCoord x = 0; x <= max_chunk_x; x++) {
+				for (VoxelCoord y = 0; y <= max_chunk_y; y++) {
+					for (VoxelCoord z = 0; z <= max_chunk_z; z++) {
 						initChunk(x, y, z)->generate();
 					}
 				}
@@ -308,7 +308,7 @@ Vector VoxelWorld::getExtents() {
 	);
 }
 
-void VoxelWorld::getCellExtents(Coord& x, Coord& y, Coord& z) {
+void VoxelWorld::getCellExtents(VoxelCoord& x, VoxelCoord& y, VoxelCoord& z) {
 
 	x = config.dims_x;
 	y = config.dims_y;
@@ -318,10 +318,10 @@ void VoxelWorld::getCellExtents(Coord& x, Coord& y, Coord& z) {
 // Get all chunk positions
 // order by distance to localized origin
 // Can use something similar to get NEARBY chunks later...
-std::vector<XYZCoordinate> VoxelWorld::getAllChunkPositions(Vector origin) {
+std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(Vector origin) {
 	
 	// get them chunks
-	std::vector<XYZCoordinate> positions;
+	std::vector<VoxelCoordXYZ> positions;
 
 	for (auto pair : chunks_map) {
 		positions.push_back( pair.first );
@@ -331,10 +331,10 @@ std::vector<XYZCoordinate> VoxelWorld::getAllChunkPositions(Vector origin) {
 	origin /= (VOXEL_CHUNK_SIZE * config.scale);
 
 
-	XYZCoordinate origin_coord = { origin.x, origin.y, origin.z };
+	VoxelCoordXYZ origin_coord = { origin.x, origin.y, origin.z };
 
 	// sort them chunks
-	auto sorter = [&](XYZCoordinate c1, XYZCoordinate c2) {
+	auto sorter = [&](VoxelCoordXYZ c1, VoxelCoordXYZ c2) {
 		int d1x = origin_coord[0] - c1[0];
 		int d1y = origin_coord[1] - c1[1];
 		int d1z = origin_coord[2] - c1[2];
@@ -369,7 +369,7 @@ void voxelworld_initialise_networking_static() {
 			return;
 		}
 
-		XYZCoordinate pos = {
+		VoxelCoordXYZ pos = {
 			reader.ReadSBitLong(32),
 			reader.ReadSBitLong(32),
 			reader.ReadSBitLong(32)
@@ -386,7 +386,9 @@ void voxelworld_initialise_networking_static() {
 	});
 
 	networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, [&](int peerID, const char* data, size_t data_len) {
-		bf_read reader;
+		// not used.
+
+		/*bf_read reader;
 		reader.StartReading(data, data_len);
 
 		int worldID = reader.ReadUBitLong(8);
@@ -397,7 +399,7 @@ void voxelworld_initialise_networking_static() {
 			return;
 		}
 
-		Coord radius = reader.ReadUBitLong(8);
+		VoxelCoord radius = reader.ReadUBitLong(8);
 
 		XYZCoordinate origin = {
 			reader.ReadSBitLong(32),
@@ -416,14 +418,14 @@ void voxelworld_initialise_networking_static() {
 					world->setChunkData(origin[0] + x, origin[1] + y, origin[2] + z, chunkData, dataSize);
 				}
 			}
-		}
+		}*/
 	});
 #endif
 }
 
 #ifdef VOXELATE_SERVER
 
-bool VoxelWorld::sendChunk(int peerID, XYZCoordinate pos) {
+bool VoxelWorld::sendChunk(int peerID, VoxelCoordXYZ pos) {
 	static char msg[CHUNK_BUFFER_SIZE + 13];
 
 	bf_write writer;
@@ -444,7 +446,7 @@ bool VoxelWorld::sendChunk(int peerID, XYZCoordinate pos) {
 }
 
 
-bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
+bool VoxelWorld::sendChunksAround(int peerID, VoxelCoordXYZ pos, VoxelCoord radius) {
 	auto maxSize = VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 2 * radius * + 24;
 
 	auto data = new(std::nothrow) uint8_t[maxSize];
@@ -471,9 +473,9 @@ bool VoxelWorld::sendChunksAround(int peerID, XYZCoordinate pos, Coord radius) {
 	writer.WriteSBitLong(pos[1], 32);
 	writer.WriteSBitLong(pos[2], 32);
 
-	for (Coord x = 0; x < radius; x++) {
-		for (Coord y = 0; y < radius; y++) {
-			for (Coord z = 0; z < radius; z++) {
+	for (VoxelCoord x = 0; x < radius; x++) {
+		for (VoxelCoord y = 0; y < radius; y++) {
+			for (VoxelCoord z = 0; z < radius; z++) {
 				char chunkData[CHUNK_BUFFER_SIZE];
 				int len = getChunkData(pos[0] + x, pos[1] + y, pos[2] + z, chunkData);
 
@@ -526,7 +528,7 @@ void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 	// On the server, we -NEED- the entity. Not so important on the client
 	if (!IS_SERVERSIDE || (ent != nullptr && config.buildPhysicsMesh)) {
 		for (int i = 0; i < count && !dirty_chunk_queue.empty(); i++) {
-			XYZCoordinate pos = dirty_chunk_queue.front();
+			VoxelCoordXYZ pos = dirty_chunk_queue.front();
 			dirty_chunk_queue.pop_front();
 			dirty_chunk_set.erase(pos);
 
@@ -962,7 +964,7 @@ int div_floor(int x, int y) {
 }
 
 // Gets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
-BlockData VoxelWorld::get(Coord x, Coord y, Coord z) {
+BlockData VoxelWorld::get(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
 	int qx = x / VOXEL_CHUNK_SIZE;
 
 
@@ -974,7 +976,7 @@ BlockData VoxelWorld::get(Coord x, Coord y, Coord z) {
 }
 
 // Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
-bool VoxelWorld::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
+bool VoxelWorld::set(VoxelCoord x, VoxelCoord y, VoxelCoord z, BlockData d, bool flagChunks) {
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr || (!config.huge && (x>= config.dims_x || y>= config.dims_y || z >= config.dims_z)))
 		return false;
@@ -983,7 +985,7 @@ bool VoxelWorld::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
 	return true;
 }
 
-void VoxelWorld::flagChunk(XYZCoordinate chunk_pos, bool high_priority)
+void VoxelWorld::flagChunk(VoxelCoordXYZ chunk_pos, bool high_priority)
 {
 	if (!dirty_chunk_set.count(chunk_pos)) {
 		dirty_chunk_set.insert(chunk_pos);
@@ -1001,7 +1003,7 @@ void VoxelWorld::flagChunk(XYZCoordinate chunk_pos, bool high_priority)
 // I beleive I did this so I wouldn't need to push a matrix for every single chunk (lots of chunks, could be expensive?)
 // Could run into FP issues if we keep the offset built in though, as I'm pretty sure meshes use 32bit floats
 VoxelChunk::VoxelChunk(VoxelWorld* sys,int cx, int cy, int cz) {
-	system = sys;
+	world = sys;
 	posX = cx;
 	posY = cy;
 	posZ = cz;
@@ -1017,9 +1019,9 @@ void VoxelChunk::generate() {
 	int offset_y = posY*VOXEL_CHUNK_SIZE;
 	int offset_z = posZ*VOXEL_CHUNK_SIZE;
 
-	int max_x = system->config.huge ? VOXEL_CHUNK_SIZE : MIN(system->config.dims_x - offset_x, VOXEL_CHUNK_SIZE);
-	int max_y = system->config.huge ? VOXEL_CHUNK_SIZE : MIN(system->config.dims_y - offset_y, VOXEL_CHUNK_SIZE);
-	int max_z = system->config.huge ? VOXEL_CHUNK_SIZE : MIN(system->config.dims_z - offset_z, VOXEL_CHUNK_SIZE);
+	int max_x = world->config.huge ? VOXEL_CHUNK_SIZE : MIN(world->config.dims_x - offset_x, VOXEL_CHUNK_SIZE);
+	int max_y = world->config.huge ? VOXEL_CHUNK_SIZE : MIN(world->config.dims_y - offset_y, VOXEL_CHUNK_SIZE);
+	int max_z = world->config.huge ? VOXEL_CHUNK_SIZE : MIN(world->config.dims_z - offset_z, VOXEL_CHUNK_SIZE);
 
 	for (int x = 0; x < max_x; x++) {
 		for (int y = 0; y < max_y; y++) {
@@ -1035,18 +1037,18 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 	meshClearAll();
 
-	VoxelChunk* next_chunk_x = system->getChunk(posX + 1, posY, posZ);
-	VoxelChunk* next_chunk_y = system->getChunk(posX, posY + 1, posZ);
-	VoxelChunk* next_chunk_z = system->getChunk(posX, posY, posZ + 1);
+	VoxelChunk* next_chunk_x = world->getChunk(posX + 1, posY, posZ);
+	VoxelChunk* next_chunk_y = world->getChunk(posX, posY + 1, posZ);
+	VoxelChunk* next_chunk_z = world->getChunk(posX, posY, posZ + 1);
 
-	bool huge = system->config.huge;
-	bool buildExterior = system->config.buildExterior;
+	bool huge = world->config.huge;
+	bool buildExterior = world->config.buildExterior;
 
 	// Hoo boy. Get ready to see some shit.
 
-	int hard_upper_bound_x = (system->config.dims_x - posX*VOXEL_CHUNK_SIZE);
-	int hard_upper_bound_y = (system->config.dims_y - posY*VOXEL_CHUNK_SIZE);
-	int hard_upper_bound_z = (system->config.dims_z - posZ*VOXEL_CHUNK_SIZE);
+	int hard_upper_bound_x = (world->config.dims_x - posX*VOXEL_CHUNK_SIZE);
+	int hard_upper_bound_y = (world->config.dims_y - posY*VOXEL_CHUNK_SIZE);
+	int hard_upper_bound_z = (world->config.dims_z - posZ*VOXEL_CHUNK_SIZE);
 
 	int upper_bound_x = !huge && hard_upper_bound_x < VOXEL_CHUNK_SIZE ? hard_upper_bound_x : VOXEL_CHUNK_SIZE;
 	int upper_bound_y = !huge && hard_upper_bound_y < VOXEL_CHUNK_SIZE ? hard_upper_bound_y : VOXEL_CHUNK_SIZE;
@@ -1066,7 +1068,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 	int upper_slice_y = !huge && hard_upper_bound_y < VOXEL_CHUNK_SIZE ? hard_upper_bound_y : VOXEL_CHUNK_SIZE;
 	int upper_slice_z = !huge && hard_upper_bound_z < VOXEL_CHUNK_SIZE ? hard_upper_bound_z : VOXEL_CHUNK_SIZE;
 
-	VoxelType* blockTypes = system->config.voxelTypes;
+	VoxelType* blockTypes = world->config.voxelTypes;
 
 	SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE];
 
@@ -1282,32 +1284,32 @@ void VoxelChunk::draw(CMatRenderContextPtr& pRenderContext) {
 	}
 }
 
-XYZCoordinate VoxelChunk::getWorldCoords() {
+VoxelCoordXYZ VoxelChunk::getWorldCoords() {
 	return{ posX*VOXEL_CHUNK_SIZE, posY*VOXEL_CHUNK_SIZE, posZ*VOXEL_CHUNK_SIZE };
 }
 
-BlockData VoxelChunk::get(Coord x, Coord y, Coord z) {
+BlockData VoxelChunk::get(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
 	return voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE];
 }
 
-void VoxelChunk::set(Coord x, Coord y, Coord z, BlockData d, bool flagChunks) {
+void VoxelChunk::set(VoxelCoord x, VoxelCoord y, VoxelCoord z, BlockData d, bool flagChunks) {
 	voxel_data[x + y*VOXEL_CHUNK_SIZE + z*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = d;
 
 	if (!flagChunks)
 		return;
 
-	system->flagChunk({posX,posY,posZ}, true);
+	world->flagChunk({posX,posY,posZ}, true);
 
 	if (x == 0) {
-		system->flagChunk({ posX - 1,posY,posZ }, true);
+		world->flagChunk({ posX - 1,posY,posZ }, true);
 	}
 
 	if (y == 0) {
-		system->flagChunk({ posX,posY - 1,posZ }, true);
+		world->flagChunk({ posX,posY - 1,posZ }, true);
 	}
 
 	if (z == 0) {
-		system->flagChunk({ posX,posY,posZ-1 }, true);
+		world->flagChunk({ posX,posY,posZ-1 }, true);
 	}
 
 }
@@ -1389,7 +1391,7 @@ void VoxelChunk::meshStop(CBaseEntity* ent) {
 
 void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir) {
 
-	double realStep = system->config.scale;
+	double realStep = world->config.scale;
 
 	if (!IS_SERVERSIDE) {
 		if (verts_remaining < 4) {
@@ -1398,7 +1400,7 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		}
 		verts_remaining -= 4;
 
-		VoxelConfig* cl_config = &(system->config);
+		VoxelConfig* cl_config = &(world->config);
 
 		double uMin = ((double)tx / cl_config->atlasWidth);
 		double uMax = ((tx + 1.0) / cl_config->atlasWidth);
@@ -1414,9 +1416,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 
 		case DIR_X_POS:
 
-			realX = (slice + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realY = (x + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realX = (slice + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realY = (x + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
 
 			meshBuilder.Position3f(realX + realStep, realY, realZ);
 			meshBuilder.TexCoord2f(0, 0, h);
@@ -1446,9 +1448,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 
 		case DIR_X_NEG:
 
-			realX = (slice + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realY = (x + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realX = (slice + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realY = (x + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
 
 			meshBuilder.Position3f(realX + realStep, realY, realZ);
 			meshBuilder.TexCoord2f(0, w, h);
@@ -1478,9 +1480,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 
 		case DIR_Y_POS:
 
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realY = (slice + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realY = (slice + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
 
 			meshBuilder.Position3f(realX, realY + realStep, realZ);
 			meshBuilder.TexCoord2f(0, w, h);
@@ -1510,9 +1512,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		
 		case DIR_Y_NEG:
 
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realY = (slice + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realY = (slice + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
 
 			meshBuilder.Position3f(realX, realY + realStep, realZ);
 			meshBuilder.TexCoord2f(0, 0, h);
@@ -1542,9 +1544,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 
 		case DIR_Z_POS:
 
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realY = (y + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
 
 			meshBuilder.Position3f(realX, realY, realZ + realStep);
 			meshBuilder.TexCoord2f(0, 0, h);
@@ -1574,9 +1576,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 
 		case DIR_Z_NEG:
 
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realY = (y + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
 
 			meshBuilder.Position3f(realX, realY, realZ + realStep);
 			meshBuilder.TexCoord2f(0, 0, h);
@@ -1614,9 +1616,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 
 		case DIR_X_POS:
 
-			realX = (slice + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realY = (x + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realX = (slice + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realY = (x + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
 
 			v1 = Vector(realX + realStep, realY, realZ);
 			v2 = Vector(realX + realStep, realY, realZ + realStep * h);
@@ -1626,9 +1628,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 
 		case DIR_Y_POS:
 
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realY = (slice + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realY = (slice + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
 
 			v1 = Vector(realX, realY + realStep, realZ);
 			v2 = Vector(realX + realStep * w, realY + realStep, realZ);
@@ -1638,9 +1640,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 
 		case DIR_Z_POS:
 
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realY = (y + posY*VOXEL_CHUNK_SIZE) * system->config.scale;
-			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * system->config.scale;
+			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realY = (y + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
+			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
 
 			v1 = Vector(realX, realY, realZ + realStep);
 			v2 = Vector(realX, realY + realStep * h, realZ + realStep);

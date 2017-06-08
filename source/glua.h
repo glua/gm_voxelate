@@ -1,13 +1,5 @@
-#ifndef GLUA_HEADER_MEMES
-#define GLUA_HEADER_MEMES
-
-#define GMOD_ALLOW_DEPRECATED
-
-// TODO, stop using the fucking gayry lua interface
-// #define LUA state->luabase
+#pragma once
 
 #include "GarrysMod/Lua/Interface.h"
 
 #include "lua.hpp"
-
-#endif

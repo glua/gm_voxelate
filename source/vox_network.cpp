@@ -234,7 +234,8 @@ int lua_network_pollForEvents(lua_State* state) {
 	return 0;
 }
 
-void setupLuaNetworking(lua_State* state) {
+void setupLuaNetworking(GarrysMod::Lua::ILuaBase *LUA) {
+	lua_State* state = LUA->GetState();
 #ifdef VOXELATE_CLIENT
 	lua_pushcfunction(state, lua_network_connect);
 	lua_setfield(state, -2, "networkConnect");

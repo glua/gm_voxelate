@@ -16,15 +16,16 @@
 
 #include "vox_util.h"
 
+// Goddamn types.
 typedef uint16 BlockData;
-typedef std::int32_t Coord;
-typedef std::array<Coord, 3> XYZCoordinate;
+typedef std::int32_t VoxelCoord;
+typedef std::array<VoxelCoord, 3> VoxelCoordXYZ;
 
 // custom specialization of std::hash can be injected in namespace std
 // thanks zerf
 namespace std {
-	template<> struct hash<XYZCoordinate> {
-		std::size_t operator()(XYZCoordinate const& a) const {
+	template<> struct hash<VoxelCoordXYZ> {
+		std::size_t operator()(VoxelCoordXYZ const& a) const {
 			std::size_t h = 2166136261;
 
 			for (const std::int32_t& e : a) {
@@ -39,17 +40,20 @@ namespace std {
 	};
 };
 
-#define VOXEL_CHUNK_SIZE 16
+// Size of a chunk. Don't change this.
+const VoxelCoord VOXEL_CHUNK_SIZE = 16;
 
 class CPhysPolysoup;
 class IPhysicsObject;
 class CPhysCollide;
 
+// The physical form of a block. The only options right now are nothing, and a cube.
 enum VoxelForm {
 	VFORM_NULL,
 	VFORM_CUBE
 };
 
+// 2D Location in an atlas.
 struct AtlasPos {
 	AtlasPos() {};
 	AtlasPos(int x, int y) { this->x = x; this->y = y; }
@@ -57,6 +61,7 @@ struct AtlasPos {
 	int y;
 };
 
+// A single block type. Sides are valid only if VFORM_CUBE is used. Probably subject to change soon.
 struct VoxelType {
 	VoxelForm form = VFORM_NULL;
 	AtlasPos side_xPos = AtlasPos(0, 0);
@@ -67,15 +72,13 @@ struct VoxelType {
 	AtlasPos side_zNeg = AtlasPos(0, 0);
 };
 
+// Simplified traceres struct.
 struct VoxelTraceRes {
 	double fraction = -1;
 	Vector hitPos;
 	Vector hitNormal = Vector(0,0,0);
 	VoxelTraceRes& operator*(double n) { hitPos *= n; return *this; }
 };
-
-struct VoxelConfigClient;
-struct VoxelConfigServer;
 
 struct VoxelConfig {
 
@@ -101,6 +104,7 @@ struct VoxelConfig {
 class VoxelWorld;
 class VoxelChunk;
 
+// Voxel worlds have indices. This is used for networking and stuff.
 int newIndexedVoxelWorld(int index, VoxelConfig& config);
 
 VoxelWorld* getIndexedVoxelWorld(int index);
@@ -108,6 +112,7 @@ VoxelWorld* getIndexedVoxelWorld(int index);
 void deleteIndexedVoxelWorld(int index);
 void checkAllVoxelWorldsDeleted();
 
+// Sets up network handlers.
 void voxelworld_initialise_networking_static();
 
 class VoxelWorld {
@@ -118,11 +123,11 @@ public:
 
 	int worldID = -1;
 
-	VoxelChunk* initChunk(Coord x, Coord y, Coord z);
-	VoxelChunk* getChunk(Coord x, Coord y, Coord z);
+	VoxelChunk* initChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z);
+	VoxelChunk* getChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z);
 
-	const int getChunkData(Coord x, Coord y, Coord z, char * out);
-	bool setChunkData(Coord x, Coord y, Coord z, const char* data_compressed, int data_len);
+	const int getChunkData(VoxelCoord x, VoxelCoord y, VoxelCoord z, char * out);
+	bool setChunkData(VoxelCoord x, VoxelCoord y, VoxelCoord z, const char* data_compressed, int data_len);
 
 	bool loadFromString(std::string contents);
 
@@ -131,16 +136,15 @@ public:
 	void initialize();
 
 	Vector getExtents();
-	void getCellExtents(Coord& x, Coord &y, Coord &z);
+	void getCellExtents(VoxelCoord& x, VoxelCoord &y, VoxelCoord &z);
 
-	std::vector<XYZCoordinate> getAllChunkPositions(Vector origin);
+	std::vector<VoxelCoordXYZ> getAllChunkPositions(Vector origin);
 
 #ifdef VOXELATE_SERVER
-	bool sendChunk(int peerID, XYZCoordinate pos);
-	bool sendChunksAround(int peerID, XYZCoordinate pos, Coord radius = 10);
+	bool sendChunk(int peerID, VoxelCoordXYZ pos);
+	bool sendChunksAround(int peerID, VoxelCoordXYZ pos, VoxelCoord radius = 10);
 #endif
 
-	void sortUpdatesByDistance(Vector * origin);
 	void doUpdates(int count, CBaseEntity * ent);
 
 	VoxelTraceRes doTrace(Vector startPos, Vector delta);
@@ -151,24 +155,25 @@ public:
 
 	void draw();
 
-	BlockData get(Coord x, Coord y, Coord z);
-	bool set(Coord x, Coord y, Coord z, BlockData d,bool flagChunks=true);
+	BlockData get(VoxelCoord x, VoxelCoord y, VoxelCoord z);
+	bool set(VoxelCoord x, VoxelCoord y, VoxelCoord z, BlockData d,bool flagChunks=true);
 
 	//bool trackUpdates = false;
 	//std::vector<XYZCoordinate> queued_block_updates;
 private:
 	//bool initialised = false;
 
-	std::unordered_map<XYZCoordinate, VoxelChunk*> chunks_map; // ok zerf lmao
+	std::unordered_map<VoxelCoordXYZ, VoxelChunk*> chunks_map; // ok zerf lmao
 
-	void flagChunk(XYZCoordinate chunk_pos, bool high_priority);
+	void flagChunk(VoxelCoordXYZ chunk_pos, bool high_priority);
 
-	std::deque<XYZCoordinate> dirty_chunk_queue;
-	std::set<XYZCoordinate> dirty_chunk_set;
+	std::deque<VoxelCoordXYZ> dirty_chunk_queue;
+	std::set<VoxelCoordXYZ> dirty_chunk_set;
 
 	VoxelConfig config;
 };
 
+// Used for building chunk slice meshes.
 struct SliceFace {
 	bool present;
 #ifdef VOXELATE_CLIENT
@@ -199,7 +204,7 @@ public:
 	void build(CBaseEntity* ent);
 	void draw(CMatRenderContextPtr& pRenderContext);
 
-	XYZCoordinate getWorldCoords();
+	VoxelCoordXYZ getWorldCoords();
 
 	BlockData get(int x, int y, int z);
 	void set(int x, int y, int z, BlockData d, bool flagChunks);
@@ -217,7 +222,7 @@ private:
 
 	void addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir);
 
-	VoxelWorld* system;
+	VoxelWorld* world;
 	CMeshBuilder meshBuilder;
 	IMesh* current_mesh = nullptr;
 	std::list<IMesh*> meshes;

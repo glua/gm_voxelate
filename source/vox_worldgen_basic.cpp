@@ -1,6 +1,6 @@
 #include "vox_worldgen_basic.h"
 
-BlockData vox_worldgen_basic(Coord _x, Coord _y, Coord _z) {
+BlockData vox_worldgen_basic(VoxelCoord _x, VoxelCoord _y, VoxelCoord _z) {
 	auto x = static_cast<double>(_x);
 	auto y = static_cast<double>(_y);
 	auto z = static_cast<double>(_z);

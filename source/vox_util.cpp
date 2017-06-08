@@ -3,12 +3,13 @@
 #include "tier0/dbg.h"
 #include "Color.h"
 
+// Basically printf with some fancy shit.
 void vox_print(const char* msg, ...) {
 	char buffer[256];
 	
 	va_list args;
 	va_start(args, msg);
-	vsprintf(buffer, msg, args);
+	vsnprintf(buffer, sizeof(buffer), msg, args);
 	va_end(args);
 	
 	ConMsg("[");
@@ -27,6 +28,7 @@ void vox_print(const char* msg, ...) {
 }
 
 // I will shit if this still works.
+// I guess it still works lol?
 Vector eent_getPos(CBaseEntity* ent) {
 	/*float* a_ptr = reinterpret_cast<float*>(ent);
 

@@ -1,11 +1,12 @@
 #pragma once
 
-#ifndef VOX_NETWORK_HEADER
-#define VOX_NETWORK_HEADER
-
+// TODO allow the server to specify a port.
 #define VOX_NETWORK_PORT 42069
 
-// #include "enet/enet.h"
+// This whole fuckin thing is gonna need to be changed.
+// All world data should run over the same channel, so will probably just
+// add my own channel/messge type field on top of ENet...
+
 #include "enetpp/client.h"
 #include "enetpp/server.h"
 
@@ -29,7 +30,7 @@ bool network_startup();
 
 void network_shutdown();
 
-void setupLuaNetworking(lua_State* state);
+void setupLuaNetworking(GarrysMod::Lua::ILuaBase *LUA);
 
 namespace networking {
 #ifdef VOXELATE_SERVER
@@ -39,5 +40,3 @@ namespace networking {
 #endif
 	void channelListen(uint16_t channelID, networkCallback callback);
 };
-
-#endif
