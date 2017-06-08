@@ -1,6 +1,10 @@
 local FILETABLE = FILETABLE
 _G.FILETABLE = nil
 
+local function print(...)
+	MsgC( Color(100,255,100), "[Voxelate] ", SERVER and Color(0x91,0xdb,0xe7) or Color(0xe7,0xdb,0x74), ... , "\n" )
+end
+
 do
 	-- hotloading
 	local function getHotloadingPath()
@@ -17,7 +21,7 @@ do
 	local hotloadBasePath = getHotloadingPath()
 
 	if hotloadBasePath then
-		print("[VOX-BOOTSTRAP] Attempting to hot-load code...")
+		print("Attempting to hot-load code...")
 
 		local OLD_FILETABLE = FILETABLE
 		local module = G_VOX_IMPORTS
@@ -25,9 +29,9 @@ do
 		local suc = pcall(require,"luaiox")
 
 		if suc then
-			print("[VOX-BOOTSTRAP] Hot-loading code using luaiox!")
+			print("Hot-loading code using luaiox!")
 		else
-			print("[VOX-BOOTSTRAP] Hot-loading code using module.readFileUnrestricted!")
+			print("Hot-loading code using module.readFileUnrestricted!")
 		end
 
 		local function readFileUnrestricted(path)
@@ -59,6 +63,8 @@ local __args = __args or {}
 _G.__args = nil
 
 local sandbox = {}
+
+sandbox.print = print
 
 local function normalizePath(path)
 	path = string.gsub(path,"\\","/")

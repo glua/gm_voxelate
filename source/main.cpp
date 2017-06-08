@@ -50,7 +50,7 @@ GMOD_MODULE_OPEN() {
 
 	vox_init_lua_api(LUA, VERSION);
 
-	vox_print("Loaded module. [V%s]",VERSION);
+	vox_print("Module initialization complete. [Version %s]",VERSION);
 
 	return 0;
 }

@@ -29,7 +29,7 @@ function BlockUpdateChannel:SendBlockUpdate(worldID,x,y,z,d)
 	buffer:WriteUInt(d,16)
 	buffer:WriteUInt(UPDATE_TYPE_BLOCK,8)
 
-	return buffer:Broadcast()
+	return buffer:Broadcast() -- todo only send to nearby players
 end
 
 function BlockUpdateChannel:SendBulkCuboidUpdate(worldID,x,y,z,sx,sy,sz,d)
@@ -50,7 +50,7 @@ function BlockUpdateChannel:SendBulkCuboidUpdate(worldID,x,y,z,sx,sy,sz,d)
 	buffer:WriteInt(sy,16)
 	buffer:WriteInt(sz,16)
 
-	return buffer:Broadcast()
+	return buffer:Broadcast() -- todo only send to nearby players
 end
 
 function BlockUpdateChannel:SendBulkSphereUpdate(worldID,x,y,z,r,d)
@@ -69,7 +69,7 @@ function BlockUpdateChannel:SendBulkSphereUpdate(worldID,x,y,z,r,d)
 
 	buffer:WriteUInt(r,16)
 
-	return buffer:Broadcast()
+	return buffer:Broadcast() -- todo only send to nearby players
 end
 
 function BlockUpdateChannel:OnIncomingPacket(packet)

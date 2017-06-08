@@ -944,10 +944,10 @@ void VoxelWorld::draw() {
 	pRenderContext->Bind(atlasMat);
 
 	//Set lighting
-	Vector4D lighting_cube[] = { Vector4D(.7, .7, .7, 1), Vector4D(.3, .3, .3, 1), Vector4D(.5, .5, .5, 1), Vector4D(.5, .5, .5, 1), Vector4D(1, 1, 1, 1), Vector4D(.1, .1, .1, 1) };
-	pRenderContext->SetAmbientLightCube(lighting_cube);
-	pRenderContext->SetAmbientLight(0, 0, 0);
-	pRenderContext->DisableAllLocalLights();
+	//Vector4D lighting_cube[] = { Vector4D(.7, .7, .7, 1), Vector4D(.3, .3, .3, 1), Vector4D(.5, .5, .5, 1), Vector4D(.5, .5, .5, 1), Vector4D(1, 1, 1, 1), Vector4D(.1, .1, .1, 1) };
+	//pRenderContext->SetAmbientLightCube(lighting_cube);
+	//pRenderContext->SetAmbientLight(0, 0, 0);
+	//pRenderContext->DisableAllLocalLights();
 
 	// TODO: only draw nearby chunks
 	for (auto pair : chunks_map) {

@@ -4,13 +4,13 @@ gm_voxelate = runtime.require("./voxelate").Voxelate
 
 gm_voxelate.io:SetDebug(true)
 
-gm_voxelate.io:Print("Lua initialisation complete.")
+print("Lua initialization complete.")
 
 -- Why?
-function gm_voxelate:GetVoxelateRuntime()
+--[[function gm_voxelate:GetVoxelateRuntime()
 	return runtime
 end
 
 function gm_voxelate:GetNewRuntime()
 	return dofile("runtime.lua")
-end
+end]]

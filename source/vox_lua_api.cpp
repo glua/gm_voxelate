@@ -586,6 +586,9 @@ int luaf_voxReadFile(lua_State* state) {
 	std::string path = luaL_checkstring(state, 1);
 
 	std::ifstream t(path);
+	if (t.fail())
+		return 0;
+
 	std::string contents((std::istreambuf_iterator<char>(t)),
 		std::istreambuf_iterator<char>());
 

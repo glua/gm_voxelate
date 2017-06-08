@@ -56,10 +56,10 @@ function VoxelWorldInitChannel:ReceiveVoxelWorldConfig(worldID,buffer)
 	self.voxelate.io:PrintDebug("Receiving voxel config for %d...",worldID)
 
 	local config = serialization.deserialize(buffer:ReadString())
-	if not IsValid(config.sourceEngineEntity) then
+	--[[if not IsValid(config.sourceEngineEntity) then
 		self.voxelate.io:PrintError("Voxel config for world %d has an invalid Source Engine Entity! Ignoring...",worldID)
 		return
-	end
+	end]]
 
 	self.voxelate:SetWorldConfig(worldID,config)
 

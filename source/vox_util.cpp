@@ -12,18 +12,14 @@ void vox_print(const char* msg, ...) {
 	vsnprintf(buffer, sizeof(buffer), msg, args);
 	va_end(args);
 	
-	ConMsg("[");
-	ConColorMsg(Color(0,255,0,255), "VOXELATE");
-	ConMsg("-");
+	ConColorMsg(Color(100, 255, 100, 255), "[Voxelate] ");
 
 #if IS_SERVERSIDE
-	ConColorMsg(Color(0,0,255,255), "SV");
+	ConColorMsg(Color(0x91, 0xdb, 0xe7, 0xff), buffer);
 #else
-	ConColorMsg(Color(255, 255, 0, 255), "CL");
+	ConColorMsg(Color(0xe7, 0xdb, 0x74, 0xff), buffer);
 #endif
 
-	ConMsg("] ");
-	ConMsg(buffer);
 	ConMsg("\n");
 }
 

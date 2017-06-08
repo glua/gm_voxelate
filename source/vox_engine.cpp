@@ -45,10 +45,12 @@ bool init_interfaces() {
 	else {
 		if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, IFACE_CL_MATERIALS))
 			return false;
+
+		// This initializes some of our module's internal shit that the shader library needs.
 		IShaderDLLInternal* shader_dll = GetShaderDLLInternal();
 		CreateInterfaceFn factory = Sys_GetFactory("materialsystem");
-		if (shader_dll->Connect(factory, false)) // todo bool value?
-			vox_print("shader dll good!");
+		if (!(shader_dll->Connect(factory, false)))
+			return false;
 	}
 
 	return true;
