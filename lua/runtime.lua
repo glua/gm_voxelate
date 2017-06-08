@@ -135,7 +135,7 @@ function runtime.require(name)
 
 			local found,suc,ret = runtime.internal.require(fmt)
 
-			if found or (not tostring(ret):match("File not found in compiled filetable!")) then
+			if found then
 				if suc then
 					runtime.__packages[name] = ret
 					return ret
@@ -151,7 +151,7 @@ function runtime.require(name)
 
 			local found,suc,ret = runtime.internal.require(fmt)
 
-			if found or (not tostring(ret):match("File not found in compiled filetable!")) then
+			if found then
 				if suc then
 					runtime.__packages[name] = ret
 					return ret
