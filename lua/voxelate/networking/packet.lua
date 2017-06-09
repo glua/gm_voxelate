@@ -1,12 +1,10 @@
-local runtime,exports = ...
+--[[local runtime,exports = ...
 
-local DEFAULT_NETWORK_PACKET_SIZE = 25 * 1024 -- 25 KB
-
-local NetworkPacket = runtime.oop.create("NetworkPacket")
-exports.NetworkPacket = NetworkPacket
+local DEFAULT_NETWORK_PACKET_SIZE = 128 -- most lua based packets are TINY
 
 local bitbuf = runtime.require("../bitbuffer")
 
+--[[
 local StaticPacketBufferMeta = {}
 local _R = debug.getregistry()
 debug.setmetatable(StaticPacketBufferMeta,{__index = _R.sn_bf_write})
@@ -96,3 +94,4 @@ function NetworkPacket:BroadcastBuffer(buffer)
 
 	return self
 end
+]]

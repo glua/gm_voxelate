@@ -211,6 +211,8 @@ local UCHARPTR_FromString = UCHARPTR_FromString
 local sn_bf_read = sn_bf_read
 local sn_bf_write = sn_bf_write
 
+-- todo can i just nil these out?
+
 local _R = debug.getregistry()
 
 do -- extending bf_write

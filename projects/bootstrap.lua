@@ -64,7 +64,10 @@ _G.__args = nil
 
 local sandbox = {}
 
+sandbox.internals = { module = G_VOX_IMPORTS }
 sandbox.print = print
+
+G_VOX_IMPORTS = nil
 
 local function normalizePath(path)
 	path = string.gsub(path,"\\","/")

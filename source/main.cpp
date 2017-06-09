@@ -29,7 +29,7 @@ GMOD_MODULE_OPEN() {
 	}
 
 	// Sets up ENet.
-	if (!network_startup()) {
+	if (!vox_network_startup()) {
 		vox_print("Fatal! Failed to setup networking!");
 		return 1;
 	}
@@ -61,7 +61,7 @@ GMOD_MODULE_CLOSE() {
 
 	uninstallShaders();
 
-	network_shutdown();
+	vox_network_shutdown();
 
 	sn_bf_write::Deinitialize(LUA);
 	sn_bf_read::Deinitialize(LUA);

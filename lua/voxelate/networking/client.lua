@@ -1,68 +1,44 @@
 local runtime,exports = ...
 
-local Router = runtime.oop.create("Router")
-exports.Router = Router
+runtime.require("./shared")
 
-local SharedRouter = runtime.require("./shared").Router
-runtime.oop.extend(Router,SharedRouter)
+-- Start the sync sequence.
+hook.Add("InitPostEntity","Voxelate.Networking.BeginSyncSequence",function()
+	net.Start("gmod_vox_sync")
+	net.WriteString(internals.module.VERSION)
+	net.SendToServer()
+end)
 
-local bitbuf = runtime.require("../bitbuffer")
+local localPUID
 
-function Router:__ctor(voxelate)
-	self.super:__ctor(voxelate)
-	self.ready = false
-	self.packetsToSendOnReady = {}
+-- Server response. Tells us our PUID.
+net.Receive("gmod_vox_sync",function(len)
+	localPUID = net.ReadString()
 
-	hook.Add("InitPostEntity","Voxelate.Networking.BeginSyncSequence",function()
-		net.Start("gmod_vox_sync")
-			net.WriteString(self.voxelate.module.VERSION)
-		net.SendToServer()
-	end)
+	gm_voxelate.io:PrintDebug("Starting ENet with PUID [%s]...",localPUID)
 
-	hook.Add("VoxNetworkConnect","Voxelate.Networking",function()
-
-		self.voxelate.io:PrintDebug("Now connected to server.")
-
-		self:SendInChannel("AuthHandshake",self.clientPUID)
-		self.ready = true
-
-		for i,data in ipairs(self.packetsToSendOnReady) do
-			self.voxelate.module.networkSendPacket(data.channel,data.data,data.unreliable)
-		end
-
-		self.packetsToSendOnReady = {}
-
-	end)
-
-	hook.Add("VoxNetworkDisconnect","Voxelate.Networking",function()
-		self.voxelate.io:PrintDebug("We have disconnected from the server...")
-	end)
-
-	hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,channelID,data)
-		self:IncomingPacket(data,channelID)
-	end)
-
-	net.Receive("gmod_vox_sync",function(len)
-		local PUID = net.ReadString()
-
-		self.clientPUID = PUID
-
-		self:StartENet()
-	end)
-end
-
-function Router:StartENet()
-	self.voxelate.io:PrintDebug("Starting ENet with PUID [%s]...",self.clientPUID)
-
+	-- Connect to the server via ENet.
 	local serverIP = game.GetIPAddress():gsub(":%d+$","")
 	if serverIP == "loopback" then serverIP = "localhost" end
 
-	self.voxelate.io:PrintDebug("Connecting to %s...",serverIP)
+	gm_voxelate.io:PrintDebug("Connecting to %s...",serverIP)
 
-	self.voxelate.module.networkConnect(serverIP)
-end
+	internals.module.networkConnect(serverIP)
+end)
 
-function Router:IncomingPacket(data,channelID)
+-- Connected via ENet. Send our PUID.
+hook.Add("VoxNetworkConnect","Voxelate.Networking",function()
+
+	gm_voxelate.io:PrintDebug("Now connected to server.")
+
+	internals.net.sendAuth(localPUID)
+end)
+
+hook.Add("VoxNetworkDisconnect","Voxelate.Networking",function()
+	gm_voxelate.io:PrintDebug("We have disconnected from the server...")
+end)
+
+--[[function Router:IncomingPacket(data,channelID)
 	self:PropagateMessage(false,channelID,data)
 end
 
@@ -79,3 +55,4 @@ function Router:SendInChannel(channelName,payloadData,unreliable)
 		}
 	end
 end
+]]

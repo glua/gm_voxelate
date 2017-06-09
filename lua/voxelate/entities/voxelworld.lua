@@ -1,7 +1,7 @@
 local runtime,exports = ...
 
-local CreateSourceEngineSubEntity = runtime.require("./voxelentity/source_engine").CreateEntity
-local CreateVoxelateEngineSubEntity = runtime.require("./voxelentity/voxelate_engine").CreateEntity
+--local CreateSourceEngineSubEntity = runtime.require("./voxelentity/source_engine").CreateEntity
+--local CreateVoxelateEngineSubEntity = runtime.require("./voxelentity/voxelate_engine").CreateEntity
 
 local ENT = {}
 
@@ -26,8 +26,8 @@ function ENT:IsReady() -- its exactly this kind of shit i was trying to avoid wh
 end]]
 
 function ENT:Initialize()
-	self.subEntities = {}
-	self.incrementingSubEntityIndex = 0
+	--self.subEntities = {}
+	--self.incrementingSubEntityIndex = 0
 
 	if SERVER then
 		--self:UpdateVoxelLoadState("LOADING_CHUNKS")
@@ -37,7 +37,7 @@ function ENT:Initialize()
 
 		config.sourceEngineEntity = self
 
-		local index = gm_voxelate.module.voxNewWorld(config)
+		local index = internals.module.voxNewWorld(config)
 
 		self:SetInternalIndex(index)
 
@@ -65,7 +65,7 @@ end
 function ENT:OnRemove()
 	local index = self:GetInternalIndex()
 
-	gm_voxelate.module.voxDeleteWorld(index)
+	internals.module.voxDeleteWorld(index)
 end
 
 function ENT:GetConfig()
@@ -97,11 +97,12 @@ function ENT:Think()
 
 	-- 100 updates per frame is -SERIOUSLY- excessive
 	-- the entire point of queueing updates is so we dont lag balls
-	gm_voxelate.module.voxUpdate(index,20,self)
+	internals.module.voxUpdate(index,20,self)
 
 	if CLIENT then
 		if not self.correct_maxs then
 			-- bounds not setup, try setting them up.
+			do return end
 			local config = gm_voxelate:GetWorldConfig(index)
 			if config then
 				self:SetupBounds(config)
@@ -129,7 +130,7 @@ function ENT:Draw()
 	-- TODO: when in an infinite world, place the player at Vec(0,0,0) and render the voxel world around the player
 
 	cam.PushModelMatrix(m)
-	gm_voxelate.module.voxDraw(index)
+	internals.module.voxDraw(index)
 	cam.PopModelMatrix()
 end
 
@@ -139,7 +140,7 @@ function ENT:TestCollision(start,delta,isbox,extents)
 	end
 	start=self:WorldToLocal(start)
 	local index = self:GetInternalIndex()
-	local fraction,hitpos,normal = gm_voxelate.module.voxTrace(index,start,delta,isbox,extents)
+	local fraction,hitpos,normal = internals.module.voxTrace(index,start,delta,isbox,extents)
 	if fraction then
 		hitpos = self:LocalToWorld(hitpos)
 		if isbox and (normal.x~=0 or normal.y~=0) then
@@ -154,7 +155,7 @@ function ENT:TestCollision(start,delta,isbox,extents)
 	end
 end
 
-function ENT:CreateSubEntity(className)
+--[[function ENT:CreateSubEntity(className)
 	-- negative indexes are clientside-created ents
 	-- positive indexes are serverside-created ents
 
@@ -171,7 +172,7 @@ function ENT:CreateSubEntity(className)
 	else
 		return CreateSourceEngineSubEntity(self,index,className) -- name used
 	end
-end
+end]]
 
 if SERVER then
 	--[[function ENT:generate(f)
@@ -190,13 +191,13 @@ if SERVER then
 
 	function ENT:getBlock(x,y,z)
 		local index = self:GetInternalIndex()
-		return gm_voxelate.module.voxGet(index,x,y,z)
+		return internals.module.voxGet(index,x,y,z)
 	end
 
 	function ENT:setBlock(x,y,z,d)
 		local index = self:GetInternalIndex()
 
-		local success = gm_voxelate.module.voxSet(index,x,y,z,d)
+		local success = internals.module.voxSet(index,x,y,z,d)
 		if success then gm_voxelate.channels.blockUpdate:SendBlockUpdate(index,x,y,z,d) end
 		return success
 	end
@@ -258,7 +259,7 @@ if SERVER then
 
 	function ENT:setSphere(x,y,z,r,d)
 		local index = self:GetInternalIndex()
-		local set = gm_voxelate.module.voxSet
+		local set = internals.module.voxSet
 
 		local fix = math.floor
 

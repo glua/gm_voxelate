@@ -1,6 +1,6 @@
 local runtime = dofile("runtime.lua")
 
-gm_voxelate = runtime.require("./voxelate").Voxelate
+gm_voxelate = runtime.require("./voxelate")
 
 gm_voxelate.io:SetDebug(true)
 

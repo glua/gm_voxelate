@@ -356,7 +356,7 @@ std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(Vector origin) {
 
 void voxelworld_initialise_networking_static() {
 #ifdef VOXELATE_CLIENT
-	networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, [&](int peerID, const char* data, size_t data_len) {
+	vox_networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, [&](int peerID, const char* data, size_t data_len) {
 		bf_read reader;
 		reader.StartReading(data, data_len);
 
@@ -385,7 +385,7 @@ void voxelworld_initialise_networking_static() {
 		world->setChunkData(pos[0], pos[1], pos[2], chunkData, dataSize);
 	});
 
-	networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, [&](int peerID, const char* data, size_t data_len) {
+	vox_networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, [&](int peerID, const char* data, size_t data_len) {
 		// not used.
 
 		/*bf_read reader;
@@ -442,7 +442,7 @@ bool VoxelWorld::sendChunk(int peerID, VoxelCoordXYZ pos) {
 	if (compressed_size == 0)
 		return false;
 
-	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, msg, writer.GetNumBytesWritten() + compressed_size );
+	return vox_networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, msg, writer.GetNumBytesWritten() + compressed_size );
 }
 
 
@@ -487,7 +487,7 @@ bool VoxelWorld::sendChunksAround(int peerID, VoxelCoordXYZ pos, VoxelCoord radi
 
 	writer.WriteOneBit(0); // null terminate for good measure
 
-	return networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, data, writer.GetNumBytesWritten());
+	return vox_networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, data, writer.GetNumBytesWritten());
 }
 #endif
 /*

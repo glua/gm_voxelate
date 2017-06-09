@@ -662,7 +662,7 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 	LUA->SetField(-2, "readFileUnrestricted");
 #endif
 
-	setupLuaNetworking(LUA);
+	vox_setupLuaNetworkingAPI(LUA);
 	//setupLuaAdvancedVectors(state);
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");

@@ -1,22 +1,16 @@
 local runtime,exports = ...
 
-local ClientRouter = runtime.require("./networking/client").Router
-local ServerRouter = runtime.require("./networking/server").Router
-
-local VoxelWorldInitChannel = runtime.require("./channels/voxelworldinit").VoxelWorldInitChannel
-local BlockUpdateChannel = runtime.require("./channels/blockupdate").BlockUpdateChannel
---local BulkUpdateChannel = runtime.require("./channels/bulkupdate").BulkUpdateChannel
-
+runtime.require("./networking")
 runtime.require("./entities/voxelworld")
-local VoxelEntity = runtime.require("./entities/voxelentity/voxelate_engine").VoxelEntity
 
-local IO = runtime.require("./io").IO
+--local VoxelEntity = runtime.require("./entities/voxelentity/voxelate_engine").VoxelEntity
 
-local Voxelate = runtime.oop.create("Voxelate")
 
-local module = G_VOX_IMPORTS
-G_VOX_IMPORTS = nil
-exports.module = module
+--local Voxelate = runtime.oop.create("Voxelate")
+
+--local module = G_VOX_IMPORTS
+--G_VOX_IMPORTS = nil
+--exports.module = module
 
 --[[Voxelate.EVoxelLoadState = { how about no?
 	STALE = 0,
@@ -25,31 +19,52 @@ exports.module = module
 	READY = 3,
 }]]
 
-function Voxelate:__ctor()
-	self.module = module
+-- Sets up IO. -- Not long for the world.
+local IO = runtime.require("./io").IO
+
+local tag_color = Color(255,100,50)
+local msg_color = SERVER and Color(0x91,0xdb,0xe7) or Color(0xe7,0xdb,0x74)
+
+exports.io = IO:__new("Voxelate",tag_color,msg_color)
+
+-- Don't let players screw with our voxels!
+hook.Add("PhysgunPickup", "Voxelate.NoPhysgun", function(ply,ent)
+	if ent:GetClass() == "voxel_world" then return false end
+end)
+
+hook.Add("CanTool", "Voxelate.NoTool", function(ply,tr,tool)
+	if IsValid( tr.Entity ) and tr.Entity:GetClass() == "voxel_world" then return false end
+end)
+
+-- todo
+-- self:AddChannel(VoxelWorldInitChannel,"voxelWorldInit",2)
+-- self:AddChannel(BlockUpdateChannel,"blockUpdate",3)
+
+--[[function Voxelate:__ctor()
+	--self.module = module
 
 	--self.voxelWorldEnts = {}
-	self.voxelWorldConfigs = {}
+	--self.voxelWorldConfigs = {}
 
-	self.channels = {}
+	--self.channels = {}
 
-	local tag_color = Color(50,255,50)
-	local msg_color = SERVER and Color(0x91,0xdb,0xe7) or Color(0xe7,0xdb,0x74)
+	--local tag_color = Color(255,100,50)
+	--local msg_color = SERVER and Color(0x91,0xdb,0xe7) or Color(0xe7,0xdb,0x74)
 
-	self.io = IO:__new("Voxelate",tag_color,msg_color)
+	--self.io = IO:__new("Voxelate",tag_color,msg_color)
 
-	if CLIENT then
-		self.router = ClientRouter:__new(self)
-	else
+	--if CLIENT then
+	--	self.router = ClientRouter:__new(self)
+	--else
 
-		self.router = ServerRouter:__new(self)
-	end
+	--	self.router = ServerRouter:__new(self)
+	--end
 
-	self.registeredSubEntityClasses = {
+	--[[self.registeredSubEntityClasses = {
 		voxel_entity = VoxelEntity,
-	}
+	}]]
 
-	if CLIENT then
+	--if CLIENT then
 		--[[timer.Create("Voxelate.SortUpdatesOrigin",2.5,0,function()
 			for index,config in pairs(self.voxelWorldConfigs) do
 				if config and IsValid(config.sourceEngineEntity) then
@@ -60,7 +75,7 @@ function Voxelate:__ctor()
 				end
 			end
 		end)]]
-	end
+	--end
 
 	--[[hook.Add("Tick","Voxelate.TrackWorldUpdates",function()
 		for worldID,_ in pairs(self.voxelWorldConfigs) do
@@ -80,7 +95,7 @@ function Voxelate:__ctor()
 				ent:OnBlockUpdate(x,y,z)
 			end
 		end
-	end)]]
+	end)]
 
 	self:AddChannel(VoxelWorldInitChannel,"voxelWorldInit",2)
 	self:AddChannel(BlockUpdateChannel,"blockUpdate",3)
@@ -111,7 +126,7 @@ function Voxelate:SetWorldConfig(index,config)
 	self.voxelWorldConfigs[index] = config
 end
 
-function Voxelate:RegisterSubEntity(className,classObj)
+--[[function Voxelate:RegisterSubEntity(className,classObj)
 	assert(some_condition_to_be_decided,"For voxelate-engine based VoxelWorld entities only")
 
 	runtime.oop.extend(classObj,VoxelEntity)
@@ -122,15 +137,5 @@ end
 function Voxelate:ResolveSubEntityClassName(className)
 	assert(self.registeredSubEntityClasses[className],"Unknown voxel entity class name")
 	return self.registeredSubEntityClasses[className]
-end
+end]]
 
-exports.Voxelate = Voxelate:__new()
-
--- Don't let players screw with our voxels!
-hook.Add("PhysgunPickup", "Voxelate.NoPhysgun", function(ply,ent)
-	if ent:GetClass() == "voxel_world" then return false end
-end)
-
-hook.Add("CanTool", "Voxelate.NoTool", function(ply,tr,tool)
-	if IsValid( tr.Entity ) and tr.Entity:GetClass() == "voxel_world" then return false end
-end)

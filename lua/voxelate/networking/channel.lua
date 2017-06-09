@@ -1,4 +1,4 @@
-local runtime,exports = ...
+--[[local runtime,exports = ...
 
 local NetworkChannel = runtime.oop.create("NetworkChannel")
 exports.NetworkChannel = NetworkChannel
@@ -35,4 +35,4 @@ end
 
 function NetworkChannel:OnIncomingPacket()
 	error("Unimplemented: NetworkChannel:OnIncomingPacket()")
-end
+end]]
