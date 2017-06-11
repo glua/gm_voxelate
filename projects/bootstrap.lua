@@ -1,10 +1,3 @@
-local FILETABLE = FILETABLE
-_G.FILETABLE = nil
-
-local function print(...)
-	MsgC( Color(100,255,100), "[Voxelate] ", SERVER and Color(0x91,0xdb,0xe7) or Color(0xe7,0xdb,0x74), ... , "\n" )
-end
-
 do
 	-- hotloading
 	local function getHotloadingPath()
@@ -21,7 +14,7 @@ do
 	local hotloadBasePath = getHotloadingPath()
 
 	if hotloadBasePath then
-		print("Attempting to hot-load code...")
+		print("[Voxelate Bootstrap] Attempting to hot-load code...")
 
 		local OLD_FILETABLE = FILETABLE
 		local module = G_VOX_IMPORTS
@@ -29,9 +22,9 @@ do
 		local suc = pcall(require,"luaiox")
 
 		if suc then
-			print("Hot-loading code using luaiox!")
+			print("[Voxelate Bootstrap] Hot-loading code using luaiox!")
 		else
-			print("Hot-loading code using module.readFileUnrestricted!")
+			print("[Voxelate Bootstrap] Hot-loading code using module.readFileUnrestricted!")
 		end
 
 		local function readFileUnrestricted(path)
@@ -59,10 +52,21 @@ do
 	end
 end
 
-local __args = __args or {}
-_G.__args = nil
+local entry_point = INSERT_ENTRY_POINT_FILENAME_HERE or "main.lua"
 
-local sandbox = {}
+local source = FILETABLE[entry_point]
+
+if source == nil then
+	error("Bootstrap could not find entry point.")
+end
+
+RunString(source,entry_point)
+
+
+--local __args = __args or {}
+--_G.__args = nil
+
+--[[local sandbox = {}
 
 sandbox.internals = { module = G_VOX_IMPORTS }
 sandbox.print = print
@@ -108,6 +112,7 @@ end
 function sandbox.loadfile(_path)
 	if type(_path) ~= "string" then error("Argument #1 to loadfile needs to be a string!") end
 	local path = normalizePath(_path)
+	print(">",_path,path)
 	if FILETABLE[path] then
 		local fn = CompileString(FILETABLE[path],path,false)
 
@@ -131,26 +136,22 @@ function sandbox.fileContents(_path)
 	return FILETABLE[path]
 end
 
-local function cleanup()
-	-- idk
-end
-
 setmetatable(sandbox,{__index = _G,__newindex = _G})
 
 local mainFn,err = sandbox.loadfile(INSERT_ENTRY_POINT_FILENAME_HERE or "main.lua")
+print("entry",INSERT_ENTRY_POINT_FILENAME_HERE,mainFn)
 
 if mainFn then
 	debug.setfenv(mainFn,sandbox)
 
 	local suc,err = xpcall(mainFn,function(err)
 		return debug.traceback(err,2)
-	end,unpack(__args))
+	end)
 
-	cleanup()
 	if not suc then
 		error(err)
 	end
 else
-	cleanup()
 	error(err or "couldn't find entry point!")
 end
+]]

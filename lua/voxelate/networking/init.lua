@@ -1,4 +1,15 @@
-local runtime,exports = ...
+local module
+
+if SERVER then
+	module = require("server")
+else
+	module = require("client")
+end
+
+-- My version of require is not as smart as I thought. Beware of tailcalls!
+return module
+
+--[[local runtime,exports = ...
 
 local channelHandlers = {}
 
@@ -28,12 +39,7 @@ hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,channelID,payl
 		print("Unhandled network message in channel ID %d", channelID)
 	end
 end)
-
-if SERVER then
-	runtime.require("./server")
-else
-	runtime.require("./client")
-end
+]]
 
 -- move to server
 --[[function Router:GeneratePUID()

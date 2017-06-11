@@ -1,4 +1,7 @@
-local runtime,exports = ...
+
+require("networking")
+
+--[[local runtime,exports = ...
 
 runtime.require("./networking")
 runtime.require("./entities/voxelworld")
@@ -17,7 +20,7 @@ runtime.require("./entities/voxelworld")
 	SYNCHRONISING = 1,
 	LOADING_CHUNKS = 2,
 	READY = 3,
-}]]
+}]
 
 -- Sets up IO. -- Not long for the world.
 local IO = runtime.require("./io").IO
@@ -138,4 +141,3 @@ function Voxelate:ResolveSubEntityClassName(className)
 	assert(self.registeredSubEntityClasses[className],"Unknown voxel entity class name")
 	return self.registeredSubEntityClasses[className]
 end]]
-

@@ -1,4 +1,76 @@
-local runtime,exports = ...
+
+local internals = require("internals")
+local channels = require("channels")
+
+local TIMEOUT = 5
+
+util.AddNetworkString("Voxelate.Auth")
+
+local next_handshake_number = 0
+local function generateHandshakeKey()
+	
+	local key = string.format(
+		"%08x%08x%08x",
+		next_handshake_number,
+		math.random(2 ^ 32),
+		math.random(2 ^ 32)
+	)
+
+	next_handshake_number = next_handshake_number + 1
+
+	return key
+end
+
+
+local handshake_map = {}
+
+-- PLAYERS are kicked if they do not auth soon enough.
+-- HANDSHAKES are closed if they are not completed fast enough.
+-- ONCE OPEN, PLAYERS are kicked and CONNECTIONS are closed if either is disconnected.
+
+hook.Add("PlayerInitialSpawn","Voxelate.PlayerConnectTimeout",function(ply)
+	print("A player connected, todo boot them if they dont handshake.")
+end)
+
+-- We wait for auth requests over source's networking.
+net.Receive("Voxelate.Auth",function(len,ply)
+	print("Network synchronisation sequence starting for "..ply:Nick().." ["..ply:SteamID().."]")
+
+	-- Perform version check.
+	local serverModuleVersion = internals.VERSION
+	local clientModuleVersion = net.ReadString()
+
+	if not checkCompatibility(serverModuleVersion,clientModuleVersion) then
+		-- Don't need to print anything here, server prints the kick message.
+		ply:Kick(string.format("Failed Voxelate version check. Server has V%s. You have V%s. Visit the Voxelate Github page for more information on version compatability.",serverModuleVersion,clientModuleVersion))
+		
+		return
+	end
+
+	-- Allocate a PUID and sent it back to the client.
+	local handshake_key = generateHandshakeKey()
+	handshake_map[handshake_key] = ply
+
+	print("Allocated key ["..handshake_key.."] for "..ply:Nick().." ["..ply:SteamID().."]")
+
+	net.Start("Voxelate.Auth")
+		net.WriteString(handshake_key)
+	net.Send(ply)
+	
+	-- After a timeout, delete the handshake. Booting the player is handled elsewhere.
+	timer.Simple(TIMEOUT, function() handshake_map[handshake_key] = nil end )
+end)
+
+hook.Add("VoxNetworkConnect","Voxelate.Networking",function(peerID,address)
+	print("New ENet peer. Todo boot if no handshake.")
+end)
+
+hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,channelID,data)
+	print("New packet.")
+	--self:IncomingPacket(peerID,data,channelID)
+end)
+
+--[[local runtime,exports = ...
 
 local Router = runtime.oop.create("Router")
 exports.Router = Router
@@ -194,7 +266,7 @@ function Router:__ctor(voxelate)
 				self.voxelate.io:PrintError("PUID [%s] has already been allocated to a Peer ID!",data)
 			else
 				self.PeerIDs[peerID] = self.PUIDs[data]
-				self.PeerIDsEx[self.PUIDs[data]] = peerID
+				self.PeerIDsEx[self.PUIDs[data] ] = peerID
 
 				self.voxelate.io:PrintDebug("PUID [%s] has been allocated to Peer ID [%d]",data,peerID)
 
@@ -228,3 +300,4 @@ function Router:BroadcastInChannel(channelName,payloadData,unreliable)
 		self.voxelate.module.networkSendPacket(channelNum,payloadData,unreliable,peerID)
 	end
 end
+]]

@@ -67,6 +67,6 @@ GMOD_MODULE_CLOSE() {
 	sn_bf_read::Deinitialize(LUA);
 	UCHARPTR::Deinitialize(LUA);
 
-	vox_print("Unloaded module.");
+	vox_print("Module unloaded.");
 	return 0;
 }
