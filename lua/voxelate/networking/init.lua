@@ -1,3 +1,5 @@
+local internals = require("internals")
+
 local module
 
 if SERVER then
@@ -5,6 +7,19 @@ if SERVER then
 else
 	module = require("client")
 end
+
+hook.Add("Tick","Voxelate.Networking.Polling",function()
+	internals.networkPoll()
+end)
+
+hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,channelID,payloadData)
+
+	if module.listeners[channelID] then
+		module.listeners[channelID](payloadData, peerID)
+	else
+		print("Unhandled network message in channel ID ".. channelID)
+	end
+end)
 
 -- My version of require is not as smart as I thought. Beware of tailcalls!
 return module

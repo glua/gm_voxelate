@@ -2,6 +2,8 @@
 local internals = require("internals")
 local channels = require("channels")
 
+local client = { listeners = {} }
+
 local sendToServer = internals.networkSendPacket
 
 -- Start the auth sequence.
@@ -13,13 +15,13 @@ hook.Add("InitPostEntity","Voxelate.Networking.BeginAuthSequence",function()
 	net.SendToServer()
 end)
 
-local localPUID
+local handshakeKey
 
 -- Server response. Tells us our PUID.
 net.Receive("Voxelate.Auth",function(len)
-	localPUID = net.ReadString()
+	handshakeKey = net.ReadString()
 
-	print("Starting ENet with PUID ["..localPUID.."]...")
+	print("Starting ENet with PUID ["..handshakeKey.."]...")
 
 	-- Connect to the server via ENet.
 	local serverIP = game.GetIPAddress():gsub(":%d+$","")
@@ -35,10 +37,12 @@ hook.Add("VoxNetworkConnect","Voxelate.Networking",function()
 
 	print("Now connected to server.")
 
-	sendToServer(channels.auth, localPUID)
+	sendToServer(channels.auth, handshakeKey)
 end)
 
 -- Disconnet. Not really much to do.
 hook.Add("VoxNetworkDisconnect","Voxelate.Networking",function()
 	print("We have disconnected from the server.")
 end)
+
+return client

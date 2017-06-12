@@ -117,18 +117,18 @@ int lua_network_connect(lua_State* state) {
 int lua_network_disconnectPeer(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
-	server.disconnect_client(peerID, false);
+	server.disconnect_client(peerID, true);
 
 	return 0;
 }
 
-int lua_network_resetPeer(lua_State* state) {
+/*int lua_network_resetPeer(lua_State* state) {
 	unsigned int peerID = luaL_checkinteger(state, 1);
 
 	server.disconnect_client(peerID, true);
 
 	return 0;
-}
+}*/
 
 /*int lua_network_getPeerSteamID(lua_State* state) {
 	vox_print("get steamid?");
@@ -171,7 +171,6 @@ int lua_network_pollForEvents(lua_State* state) {
 
 #ifdef VOXELATE_SERVER
 	auto on_connected = [&](server_client& client) {
-
 		LuaHelpers::PushHookRun(state->luabase, "VoxNetworkConnect");
 
 		lua_pushnumber(state, client.get_id());
@@ -252,8 +251,8 @@ void vox_setupLuaNetworkingAPI(GarrysMod::Lua::ILuaBase *LUA) {
 	lua_pushcfunction(state, lua_network_disconnectPeer);
 	lua_setfield(state, -2, "networkDisconnectPeer");
 
-	lua_pushcfunction(state, lua_network_resetPeer);
-	lua_setfield(state, -2, "networkResetPeer");
+	//lua_pushcfunction(state, lua_network_resetPeer);
+	//lua_setfield(state, -2, "networkResetPeer");
 
 	/*lua_pushcfunction(state, lua_network_setPeerSteamID);
 	lua_setfield(state, -2, "networkSetPeerSteamID");

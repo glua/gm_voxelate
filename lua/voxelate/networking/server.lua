@@ -4,6 +4,9 @@ local channels = require("channels")
 
 local TIMEOUT = 5
 
+local server = { listeners = {} }
+
+-- Auth Shit
 util.AddNetworkString("Voxelate.Auth")
 
 local next_handshake_number = 0
@@ -23,14 +26,77 @@ end
 
 
 local handshake_map = {}
+local map_players_to_peers = {}
+local map_peers_to_players = {}
 
--- PLAYERS are kicked if they do not auth soon enough.
+-- PLAYERS are kicked if they do not auth fast enough.
+-- CONNECTIONS are closed if they do not auth fast enough.
 -- HANDSHAKES are closed if they are not completed fast enough.
--- ONCE OPEN, PLAYERS are kicked and CONNECTIONS are closed if either is disconnected.
+-- ONCE OPEN, PLAYERS are kicked and CONNECTIONS are closed if either is disconnected. [TODO]
 
 hook.Add("PlayerInitialSpawn","Voxelate.PlayerConnectTimeout",function(ply)
-	print("A player connected, todo boot them if they dont handshake.")
+
+	timer.Simple(TIMEOUT, function()
+		if not map_players_to_peers[ply] and IsValid(ply) then
+			
+			local serverModuleVersion = internals.VERSION
+			
+			ply:Kick("Voxelate handshake failed. You need gm_voxelate to play on this server. Server has [V "..serverModuleVersion.."].")
+		end
+	end )
+
 end)
+
+hook.Add("VoxNetworkConnect","Voxelate.Networking",function(peerID,address)
+	
+	timer.Simple(TIMEOUT, function()
+		if not map_peers_to_players[peerID] then
+			internals.networkDisconnectPeer(peerID)
+		end
+	end )
+
+end)
+
+local function checkCompatibility(serverVer,clientVer)
+		
+	-- Parse server version.
+	local serverMajor,serverMinor,serverPatch = string.match(serverVer,"(%d+)%.(%d+)%.(%d+)")
+	if not serverMajor then
+		error("Invalid Voxelate server version (%s)",serverVer)
+	end
+	serverMajor,serverMinor,serverPatch = tonumber(serverMajor),tonumber(serverMinor),tonumber(serverPatch)
+
+
+	-- Parse client version.
+	local clientMajor,clientMinor,clientPatch = string.match(clientVer,"(%d+)%.(%d+)%.(%d+)") 
+	if not clientMajor then
+		return false
+	end
+	clientMajor,clientMinor,clientPatch = tonumber(clientMajor),tonumber(clientMinor),tonumber(clientPatch)
+
+	-- Major versions must always match
+	if serverMajor ~= clientMajor then
+		return false
+	end
+
+	if serverMajor == 0 then
+		-- Minor versions must match if we are in alpha.
+		if serverMinor ~= clientMinor then
+			return false
+		end
+	else
+		-- Minor versions must match or be greater.
+		if serverMinor > clientMinor then
+			return false
+		end
+	end
+
+	-- We don't really care about the patch.
+
+	-- good to go
+	return true
+end
+
 
 -- We wait for auth requests over source's networking.
 net.Receive("Voxelate.Auth",function(len,ply)
@@ -42,7 +108,7 @@ net.Receive("Voxelate.Auth",function(len,ply)
 
 	if not checkCompatibility(serverModuleVersion,clientModuleVersion) then
 		-- Don't need to print anything here, server prints the kick message.
-		ply:Kick(string.format("Failed Voxelate version check. Server has V%s. You have V%s. Visit the Voxelate Github page for more information on version compatability.",serverModuleVersion,clientModuleVersion))
+		ply:Kick(string.format("Failed Voxelate version check. Server has [V %s]. You have [V %s]. Visit the Voxelate Github page for more information on version compatability.",serverModuleVersion,clientModuleVersion))
 		
 		return
 	end
@@ -61,14 +127,21 @@ net.Receive("Voxelate.Auth",function(len,ply)
 	timer.Simple(TIMEOUT, function() handshake_map[handshake_key] = nil end )
 end)
 
-hook.Add("VoxNetworkConnect","Voxelate.Networking",function(peerID,address)
-	print("New ENet peer. Todo boot if no handshake.")
-end)
 
-hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,channelID,data)
-	print("New packet.")
-	--self:IncomingPacket(peerID,data,channelID)
-end)
+server.listeners[channels.auth] = function(data, peer)
+	if handshake_map[data] then
+		local ply = handshake_map[data]
+		handshake_map[data] = nil
+
+		map_players_to_peers[ply] = peer
+		map_peers_to_players[peer] = ply
+
+		print("PLAYER "..tostring(ply).." AUTHED.")
+	end
+end
+
+return server
+
 
 --[[local runtime,exports = ...
 
