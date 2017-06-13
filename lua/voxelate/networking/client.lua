@@ -1,5 +1,4 @@
 
-local internals = require("internals")
 local channels = require("channels")
 
 local client = { listeners = {} }

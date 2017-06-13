@@ -1,4 +1,3 @@
-local internals = require("internals")
 
 local module
 

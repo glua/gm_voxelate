@@ -19,6 +19,7 @@ _G.FILETABLE = nil
 
 local sandbox = {}
 sandbox.print = print
+sandbox.internals = INTERNALS
 
 local function normalizePath(path)
 	path = path:gsub("\\","/")
@@ -42,7 +43,6 @@ local endings = { ".lua", "/init.lua" }
 
 -- My version of require is not as smart as I thought. Beware of tailcalls!
 sandbox.require = function(name)
-	if name == "internals" then return INTERNALS end
 
 	local base_path = debug.getinfo(2).short_src:GetPathFromFilename()
 

@@ -1,29 +1,13 @@
-local runtime,exports = ...
-
---local CreateSourceEngineSubEntity = runtime.require("./voxelentity/source_engine").CreateEntity
---local CreateVoxelateEngineSubEntity = runtime.require("./voxelentity/voxelate_engine").CreateEntity
 
 local ENT = {}
 
 ENT.Type = "anim"
 
+local configs = {}
+
 function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"InternalIndex")
 end
-
--- Internal; Do not call (how about never call, not even internally?)
---[[function ENT:UpdateVoxelLoadState(state,progress)
-	assert(gm_voxelate.EVoxelLoadState[state],"Unknown index passed into ENT:UpdateVoxelLoadState()")
-
-	self.state = {
-		enum = gm_voxelate.EVoxelLoadState[state],
-		progress = progress or 1,
-	}
-end
-
-function ENT:IsReady() -- its exactly this kind of shit i was trying to avoid when i removed like half of the api
-	return self.state and (self.state.enum == gm_voxelate.EVoxelLoadState.READY)
-end]]
 
 function ENT:Initialize()
 	--self.subEntities = {}
@@ -35,15 +19,18 @@ function ENT:Initialize()
 		local config = self.config
 		self.config = nil
 
-		config.sourceEngineEntity = self
+		--config.sourceEngineEntity = self
 
-		local index = internals.module.voxNewWorld(config)
+		local index = internals.voxNewWorld(config)
+		config.index = index
+
+		configs[index] = config
+
+		internals.sendConfigs({config})
 
 		self:SetInternalIndex(index)
 
-		gm_voxelate:SetWorldConfig(index,config)
-
-		self:SetupBounds(config)
+		self:SetupBounds()
 
 		--[[if config.generator then
 			self:generate(config.generator)
@@ -53,27 +40,21 @@ function ENT:Initialize()
 
 		--gm_voxelate.module.voxSetWorldUpdatesEnabled(index,true)
 		--self:UpdateVoxelLoadState("READY")
-	else
-		--self:UpdateVoxelLoadState("SYNCHRONISING")
-
-		local index = self:GetInternalIndex()
-
-		gm_voxelate.channels.voxelWorldInit:RequestVoxelWorldConfig(index)
 	end
 end
 
 function ENT:OnRemove()
 	local index = self:GetInternalIndex()
 
-	internals.module.voxDeleteWorld(index)
+	internals.voxDeleteWorld(index)
+
+	configs[index] = nil
 end
 
-function ENT:GetConfig()
-	return gm_voxelate:GetWorldConfig(self:GetInternalIndex())
-end
+-- todo
+function ENT:SetupBounds()
 
-
-function ENT:SetupBounds(config)
+	local config = {}
 
 	self:EnableCustomCollisions(true)
 	self:SetSolid(SOLID_BBOX)
@@ -97,13 +78,13 @@ function ENT:Think()
 
 	-- 100 updates per frame is -SERIOUSLY- excessive
 	-- the entire point of queueing updates is so we dont lag balls
-	internals.module.voxUpdate(index,20,self)
+	internals.voxUpdate(index,20,self)
 
 	if CLIENT then
 		if not self.correct_maxs then
 			-- bounds not setup, try setting them up.
 			do return end
-			local config = gm_voxelate:GetWorldConfig(index)
+			local config = internals.getConfig(index)
 			if config then
 				self:SetupBounds(config)
 			end
@@ -130,7 +111,7 @@ function ENT:Draw()
 	-- TODO: when in an infinite world, place the player at Vec(0,0,0) and render the voxel world around the player
 
 	cam.PushModelMatrix(m)
-	internals.module.voxDraw(index)
+	internals.voxDraw(index)
 	cam.PopModelMatrix()
 end
 
@@ -140,7 +121,7 @@ function ENT:TestCollision(start,delta,isbox,extents)
 	end
 	start=self:WorldToLocal(start)
 	local index = self:GetInternalIndex()
-	local fraction,hitpos,normal = internals.module.voxTrace(index,start,delta,isbox,extents)
+	local fraction,hitpos,normal = internals.voxTrace(index,start,delta,isbox,extents)
 	if fraction then
 		hitpos = self:LocalToWorld(hitpos)
 		if isbox and (normal.x~=0 or normal.y~=0) then
@@ -191,13 +172,13 @@ if SERVER then
 
 	function ENT:getBlock(x,y,z)
 		local index = self:GetInternalIndex()
-		return internals.module.voxGet(index,x,y,z)
+		return internals.voxGet(index,x,y,z)
 	end
 
 	function ENT:setBlock(x,y,z,d)
 		local index = self:GetInternalIndex()
 
-		local success = internals.module.voxSet(index,x,y,z,d)
+		local success = internals.voxSet(index,x,y,z,d)
 		if success then gm_voxelate.channels.blockUpdate:SendBlockUpdate(index,x,y,z,d) end
 		return success
 	end
@@ -259,7 +240,7 @@ if SERVER then
 
 	function ENT:setSphere(x,y,z,r,d)
 		local index = self:GetInternalIndex()
-		local set = internals.module.voxSet
+		local set = internals.voxSet
 
 		local fix = math.floor
 

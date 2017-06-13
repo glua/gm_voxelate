@@ -1,5 +1,4 @@
 
-local internals = require("internals")
 local channels = require("channels")
 
 local TIMEOUT = 5
@@ -55,6 +54,43 @@ hook.Add("VoxNetworkConnect","Voxelate.Networking",function(peerID,address)
 		end
 	end )
 
+end)
+
+-- NEITHER of these seem to work in singleplayer tests. Need to test them.
+gameevent.Listen("player_disconnect")
+hook.Add("player_disconnect","Voxelate.CleanupConnection",function(data)
+
+	local steamID = data.networkid
+	local bot = data.bot
+
+	if bot then return end
+
+	local ply = player.GetBySteamID(steamID) -- does this even work at this point?
+
+	local peerID = map_players_to_peers[ply]
+	print("DISCONNECT 1",ply,peerID)
+
+	if peerID then
+		print("unmapping 1")
+		map_players_to_peers[ply] = nil
+		map_peers_to_players[peerID] = nil
+		internals.networkDisconnectPeer(peerID)
+	end
+end)
+
+hook.Add("VoxNetworkDisconnect","Voxelate.CleanupConnection",function(peerID)
+	
+	local ply = map_peers_to_players[peerID]
+	
+	print("DISCONNECT 2")
+
+	if ply then
+		print("unmapping 2")
+
+		map_players_to_peers[ply] = nil
+		map_peers_to_players[peerID] = nil
+		ply:Kick("Voxelate lost connection.")
+	end
 end)
 
 local function checkCompatibility(serverVer,clientVer)
@@ -138,6 +174,10 @@ server.listeners[channels.auth] = function(data, peer)
 
 		print("PLAYER "..tostring(ply).." AUTHED.")
 	end
+end
+
+internals.sendConfigs = function(configs, ply)
+	print("please send configs to",ply)
 end
 
 return server

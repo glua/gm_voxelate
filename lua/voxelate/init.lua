@@ -1,5 +1,6 @@
 
 require("networking")
+require("entities/voxelworld")
 
 --[[local runtime,exports = ...
 
