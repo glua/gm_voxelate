@@ -5,6 +5,10 @@ ENT.Type = "anim"
 
 local configs = {}
 
+hook.Add("VoxNetworkAuthed","Voxelate.SendConfigs",function(peerID)
+	internals.sendConfigs(configs, {peerID})
+end)
+
 function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"InternalIndex")
 end
@@ -22,11 +26,11 @@ function ENT:Initialize()
 		--config.sourceEngineEntity = self
 
 		local index = internals.voxNewWorld(config)
-		config.index = index
+		--config.index = index
 
 		configs[index] = config
 
-		internals.sendConfigs({config})
+		internals.sendConfigs({[index] = config})
 
 		self:SetInternalIndex(index)
 

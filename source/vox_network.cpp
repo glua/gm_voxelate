@@ -76,7 +76,7 @@ int lua_network_sendpacket(lua_State* state) {
 
 	int channel = luaL_checknumber(state, 1);
 	auto Ldata = luaL_checklstring(state, 2, &size);
-	int unreliable = lua_toboolean(state, 3); // im like a million percent positive we don't never want unreliable messages but w/e
+	int unreliable = false; // im like a million percent positive we don't never want unreliable messages
 
 	std::string* data = new std::string(Ldata, size);
 
@@ -86,7 +86,7 @@ int lua_network_sendpacket(lua_State* state) {
 	}
 
 #ifdef VOXELATE_SERVER
-	unsigned int peerID = luaL_checkinteger(state, 4);
+	unsigned int peerID = luaL_checkinteger(state, 3);
 
 	server.send_packet_to(peerID, channel, (const enet_uint8*)data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 #else

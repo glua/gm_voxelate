@@ -3,8 +3,6 @@ local channels = require("channels")
 
 local TIMEOUT = 5
 
-local server = { listeners = {} }
-
 -- Auth Shit
 util.AddNetworkString("Voxelate.Auth")
 
@@ -12,8 +10,9 @@ local next_handshake_number = 0
 local function generateHandshakeKey()
 	
 	local key = string.format(
-		"%08x%08x%08x",
+		"%08x%08x%08x%08x",
 		next_handshake_number,
+		math.random(2 ^ 32),
 		math.random(2 ^ 32),
 		math.random(2 ^ 32)
 	)
@@ -31,7 +30,7 @@ local map_peers_to_players = {}
 -- PLAYERS are kicked if they do not auth fast enough.
 -- CONNECTIONS are closed if they do not auth fast enough.
 -- HANDSHAKES are closed if they are not completed fast enough.
--- ONCE OPEN, PLAYERS are kicked and CONNECTIONS are closed if either is disconnected. [TODO]
+-- ONCE OPEN, PLAYERS and CONNECTIONS are disconnected if their matching PLAYER or CONNECTION disconnects.
 
 hook.Add("PlayerInitialSpawn","Voxelate.PlayerConnectTimeout",function(ply)
 
@@ -40,7 +39,7 @@ hook.Add("PlayerInitialSpawn","Voxelate.PlayerConnectTimeout",function(ply)
 			
 			local serverModuleVersion = internals.VERSION
 			
-			ply:Kick("Voxelate handshake failed. You need gm_voxelate to play on this server. Server has [V "..serverModuleVersion.."].")
+			ply:Kick("Voxelate handshake failed. You need gm_voxelate to play on this server. Server has version "..serverModuleVersion..".")
 		end
 	end )
 
@@ -56,7 +55,7 @@ hook.Add("VoxNetworkConnect","Voxelate.Networking",function(peerID,address)
 
 end)
 
--- NEITHER of these seem to work in singleplayer tests. Need to test them.
+-- NEITHER of these seem to work in singleplayer tests. Need to test them better.
 gameevent.Listen("player_disconnect")
 hook.Add("player_disconnect","Voxelate.CleanupConnection",function(data)
 
@@ -144,7 +143,7 @@ net.Receive("Voxelate.Auth",function(len,ply)
 
 	if not checkCompatibility(serverModuleVersion,clientModuleVersion) then
 		-- Don't need to print anything here, server prints the kick message.
-		ply:Kick(string.format("Failed Voxelate version check. Server has [V %s]. You have [V %s]. Visit the Voxelate Github page for more information on version compatability.",serverModuleVersion,clientModuleVersion))
+		ply:Kick(string.format("Failed Voxelate version check. Server has version %s. You have version %s. Visit the Voxelate Github page for more information on version compatability.",serverModuleVersion,clientModuleVersion))
 		
 		return
 	end
@@ -164,7 +163,7 @@ net.Receive("Voxelate.Auth",function(len,ply)
 end)
 
 
-server.listeners[channels.auth] = function(data, peer)
+internals.netListeners[channels.auth] = function(data, peer)
 	if handshake_map[data] then
 		local ply = handshake_map[data]
 		handshake_map[data] = nil
@@ -172,15 +171,23 @@ server.listeners[channels.auth] = function(data, peer)
 		map_players_to_peers[ply] = peer
 		map_peers_to_players[peer] = ply
 
-		print("PLAYER "..tostring(ply).." AUTHED.")
+		hook.Call("VoxNetworkAuthed", GAMEMODE, peer)
 	end
 end
 
-internals.sendConfigs = function(configs, ply)
-	print("please send configs to",ply)
-end
+internals.sendConfigs = function(configs, peers)
+	if not peers then peers = map_players_to_peers end
 
-return server
+	print("please send some configs:")
+	local msg = util.TableToJSON(configs)
+
+
+	for _,peer in pairs(peers) do
+		print("-> "..peer)
+		internals.networkSendPacket(channels.config, msg, peer)
+	end
+
+end
 
 
 --[[local runtime,exports = ...

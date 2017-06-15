@@ -1,10 +1,6 @@
 
 local channels = require("channels")
 
-local client = { listeners = {} }
-
-local sendToServer = internals.networkSendPacket
-
 -- Start the auth sequence.
 hook.Add("InitPostEntity","Voxelate.Networking.BeginAuthSequence",function()
 	print("Sending auth request.")
@@ -36,7 +32,7 @@ hook.Add("VoxNetworkConnect","Voxelate.Networking",function()
 
 	print("Now connected to server.")
 
-	sendToServer(channels.auth, handshakeKey)
+	internals.networkSendPacket(channels.auth, handshakeKey)
 end)
 
 -- Disconnet. Not really much to do.
@@ -44,4 +40,13 @@ hook.Add("VoxNetworkDisconnect","Voxelate.Networking",function()
 	print("We have disconnected from the server.")
 end)
 
-return client
+-- Configs
+
+internals.netListeners[channels.config] = function(data)
+	local configs = util.JSONToTable(data)
+
+	for index,config in pairs(configs) do
+		print("=>",index)
+		internals.voxNewWorld(config, index)
+	end
+end

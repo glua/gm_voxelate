@@ -1,3 +1,4 @@
 return {
-	auth = 0
+	auth = 0,
+	config = 1
 }
