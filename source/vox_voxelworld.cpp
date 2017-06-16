@@ -357,6 +357,8 @@ std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(Vector origin) {
 void voxelworld_initialise_networking_static() {
 #ifdef VOXELATE_CLIENT
 	vox_networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, [&](int peerID, const char* data, size_t data_len) {
+		//vox_print("chunk!");
+
 		bf_read reader;
 		reader.StartReading(data, data_len);
 
@@ -526,6 +528,7 @@ void VoxelWorld::sortUpdatesByDistance(Vector* origin) {
 // TODO: convert Vector to AdvancedVector
 void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 	// On the server, we -NEED- the entity. Not so important on the client
+	
 	if (!IS_SERVERSIDE || (ent != nullptr && config.buildPhysicsMesh)) {
 		for (int i = 0; i < count && !dirty_chunk_queue.empty(); i++) {
 			VoxelCoordXYZ pos = dirty_chunk_queue.front();

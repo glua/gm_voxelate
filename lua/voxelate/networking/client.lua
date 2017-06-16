@@ -46,7 +46,6 @@ internals.netListeners[channels.config] = function(data)
 	local configs = util.JSONToTable(data)
 
 	for index,config in pairs(configs) do
-		print("=>",index)
 		internals.voxNewWorld(config, index)
 	end
 end

@@ -22,10 +22,15 @@ local function generateHandshakeKey()
 	return key
 end
 
-
+-- Maps open handshake keys to players
 local handshake_map = {}
+
+-- Maps players to peers and vice verse
 local map_players_to_peers = {}
 local map_peers_to_players = {}
+
+-- Each player has a stack of chunks to be networked.
+local chunk_stacks = {}
 
 -- PLAYERS are kicked if they do not auth fast enough.
 -- CONNECTIONS are closed if they do not auth fast enough.
@@ -73,6 +78,7 @@ hook.Add("player_disconnect","Voxelate.CleanupConnection",function(data)
 		print("unmapping 1")
 		map_players_to_peers[ply] = nil
 		map_peers_to_players[peerID] = nil
+		chunk_stacks[peerID] = nil
 		internals.networkDisconnectPeer(peerID)
 	end
 end)
@@ -88,6 +94,7 @@ hook.Add("VoxNetworkDisconnect","Voxelate.CleanupConnection",function(peerID)
 
 		map_players_to_peers[ply] = nil
 		map_peers_to_players[peerID] = nil
+		chunk_stacks[peerID] = nil
 		ply:Kick("Voxelate lost connection.")
 	end
 end)
@@ -135,7 +142,7 @@ end
 
 -- We wait for auth requests over source's networking.
 net.Receive("Voxelate.Auth",function(len,ply)
-	print("Network synchronisation sequence starting for "..ply:Nick().." ["..ply:SteamID().."]")
+	print("Network auth sequence starting for "..ply:Nick().." ["..ply:SteamID().."]")
 
 	-- Perform version check.
 	local serverModuleVersion = internals.VERSION
@@ -170,6 +177,7 @@ internals.netListeners[channels.auth] = function(data, peer)
 
 		map_players_to_peers[ply] = peer
 		map_peers_to_players[peer] = ply
+		chunk_stacks[peer] = {}
 
 		hook.Call("VoxNetworkAuthed", GAMEMODE, peer)
 	end
@@ -178,16 +186,30 @@ end
 internals.sendConfigs = function(configs, peers)
 	if not peers then peers = map_players_to_peers end
 
-	print("please send some configs:")
 	local msg = util.TableToJSON(configs)
 
-
 	for _,peer in pairs(peers) do
-		print("-> "..peer)
 		internals.networkSendPacket(channels.config, msg, peer)
+		
+		for worldID,_ in pairs(configs) do
+			chunk_stacks[peer][worldID] = internals.voxGetAllChunks(worldID, Vector(0,0,0)) -- todo fix start point
+		end
 	end
-
 end
+
+-- Chunk Networking
+hook.Add("Think", "Voxelate.ChunkNetworking",function()
+	for peerID,worlds in pairs(chunk_stacks) do
+		for worldID,stack in pairs(worlds) do
+			local chunk_pos = table.remove(stack)
+			internals.voxSendChunk(worldID,peerID,chunk_pos.x,chunk_pos.y,chunk_pos.z)
+		end
+	end
+	--print("yo.")
+	-- internals.voxSendChunk(worldID,peerID,p.x,p.y,p.z)
+end)
+
+
 
 
 --[[local runtime,exports = ...
