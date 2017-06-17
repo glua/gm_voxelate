@@ -23,7 +23,7 @@ function ENT:Initialize()
 		local config = self.config
 		self.config = nil
 
-		--config.sourceEngineEntity = self
+		config.entity = self
 
 		local index = internals.voxNewWorld(config)
 		--config.index = index
@@ -55,19 +55,17 @@ function ENT:OnRemove()
 	configs[index] = nil
 end
 
--- todo
 function ENT:SetupBounds()
+	local index = self:GetInternalIndex()
 
-	local config = {}
+	local bounds = internals.voxBounds(index)
+	if not bounds then return end
 
 	self:EnableCustomCollisions(true)
 	self:SetSolid(SOLID_BBOX)
 
-	local dims = config.dimensions or Vector(16,16,16)
-	local scale = config.scale or 32
-
 	local mins = Vector(0,0,0)
-	local maxs = dims*scale
+	local maxs = bounds
 
 	self.correct_maxs = maxs
 
@@ -87,11 +85,8 @@ function ENT:Think()
 	if CLIENT then
 		if not self.correct_maxs then
 			-- bounds not setup, try setting them up.
-			do return end
-			local config = internals.getConfig(index)
-			if config then
-				self:SetupBounds(config)
-			end
+
+			self:SetupBounds()
 		else
 			-- bounds are set up, see if they need fixed.
 			local _,maxs = self:GetRenderBounds()

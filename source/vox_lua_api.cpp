@@ -226,6 +226,19 @@ LUA_FUNCTION(luaf_voxDraw) {
 	return 0;
 }
 
+LUA_FUNCTION(luaf_voxBounds) {
+	int index = LUA->CheckNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+	if (v != nullptr) {
+		auto bounds = v->getExtents();
+		LUA->PushVector(bounds);
+		return 1;
+	}
+
+	return 0;
+}
+
 /*int luaf_voxGenerateDefault(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
@@ -627,6 +640,9 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 
 	LUA->PushCFunction(luaf_voxGenerateDefault);
 	LUA->SetField(-2, "voxGenerateDefault");*/
+
+	LUA->PushCFunction(luaf_voxBounds);
+	LUA->SetField(-2, "voxBounds");
 
 	LUA->PushCFunction(luaf_voxGet);
 	LUA->SetField(-2, "voxGet");

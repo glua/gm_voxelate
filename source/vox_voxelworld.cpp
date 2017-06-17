@@ -346,7 +346,7 @@ std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(Vector origin) {
 		int dist1 = d1x*d1x + d1y*d1y + d1z*d1z;
 		int dist2 = d2x*d2x + d2y*d2y + d2z*d2z;
 
-		return dist1 < dist2;
+		return dist1 > dist2;
 	};
 
 	std::sort(positions.begin(), positions.end(), sorter);

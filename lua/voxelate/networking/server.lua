@@ -191,8 +191,9 @@ internals.sendConfigs = function(configs, peers)
 	for _,peer in pairs(peers) do
 		internals.networkSendPacket(channels.config, msg, peer)
 		
-		for worldID,_ in pairs(configs) do
-			chunk_stacks[peer][worldID] = internals.voxGetAllChunks(worldID, Vector(0,0,0)) -- todo fix start point
+		local ply = map_peers_to_players[peer]
+		for worldID,config in pairs(configs) do
+			chunk_stacks[peer][worldID] = internals.voxGetAllChunks(worldID, config.entity:WorldToLocal(ply:GetPos())) -- todo fix start point
 		end
 	end
 end
@@ -201,6 +202,7 @@ end
 hook.Add("Think", "Voxelate.ChunkNetworking",function()
 	for peerID,worlds in pairs(chunk_stacks) do
 		for worldID,stack in pairs(worlds) do
+			if #stack == 0 then continue end
 			local chunk_pos = table.remove(stack)
 			internals.voxSendChunk(worldID,peerID,chunk_pos.x,chunk_pos.y,chunk_pos.z)
 		end
