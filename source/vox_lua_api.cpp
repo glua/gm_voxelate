@@ -239,6 +239,20 @@ LUA_FUNCTION(luaf_voxBounds) {
 	return 0;
 }
 
+LUA_FUNCTION(luaf_voxGetBlockScale) {
+	int index = LUA->CheckNumber(1);
+
+	VoxelWorld* v = getIndexedVoxelWorld(index);
+	if (v != nullptr) {
+		double scale = v->getBlockScale();
+		LUA->PushNumber(scale);
+
+		return 1;
+	}
+
+	return 0;
+}
+
 /*int luaf_voxGenerateDefault(lua_State* state) {
 	int index = LUA->GetNumber(1);
 
@@ -643,6 +657,9 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 
 	LUA->PushCFunction(luaf_voxBounds);
 	LUA->SetField(-2, "voxBounds");
+
+	LUA->PushCFunction(luaf_voxGetBlockScale);
+	LUA->SetField(-2, "voxGetBlockScale");
 
 	LUA->PushCFunction(luaf_voxGet);
 	LUA->SetField(-2, "voxGet");

@@ -49,3 +49,45 @@ internals.netListeners[channels.config] = function(data)
 		internals.voxNewWorld(config, index)
 	end
 end
+
+-- Block updates
+
+internals.netListeners[channels.updateBlock] = function(data)
+	local buffer = internals.Reader(data)
+
+	local worldID = buffer:ReadUInt(8)
+	local x = buffer:ReadInt(32)
+	local y = buffer:ReadInt(32)
+	local z = buffer:ReadInt(32)
+	local blockData = buffer:ReadUInt(16)
+
+	internals.voxSet(worldID,x,y,z,blockData)
+end
+
+internals.netListeners[channels.updateRegion] = function(data)
+	local buffer = internals.Reader(data)
+
+	local worldID = buffer:ReadUInt(8)
+	local x = buffer:ReadInt(32)
+	local y = buffer:ReadInt(32)
+	local z = buffer:ReadInt(32)
+	local sx = buffer:ReadInt(32)
+	local sy = buffer:ReadInt(32)
+	local sz = buffer:ReadInt(32)
+	local blockData = buffer:ReadUInt(16)
+
+	internals.voxSetRegion(worldID,x,y,z,sx,sy,sz,blockData)
+end
+
+internals.netListeners[channels.updateSphere] = function(data)
+	local buffer = internals.Reader(data)
+
+	local worldID = buffer:ReadUInt(8)
+	local x = buffer:ReadInt(32)
+	local y = buffer:ReadInt(32)
+	local z = buffer:ReadInt(32)
+	local r = buffer:ReadUInt(16)
+	local blockData = buffer:ReadUInt(16)
+
+	internals.voxSetSphere(worldID,x,y,z,r,blockData)
+end

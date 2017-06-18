@@ -183,6 +183,8 @@ internals.netListeners[channels.auth] = function(data, peer)
 	end
 end
 
+-- Configs
+
 internals.sendConfigs = function(configs, peers)
 	if not peers then peers = map_players_to_peers end
 
@@ -199,6 +201,7 @@ internals.sendConfigs = function(configs, peers)
 end
 
 -- Chunk Networking
+
 hook.Add("Think", "Voxelate.ChunkNetworking",function()
 	for peerID,worlds in pairs(chunk_stacks) do
 		for worldID,stack in pairs(worlds) do
@@ -211,7 +214,63 @@ hook.Add("Think", "Voxelate.ChunkNetworking",function()
 	-- internals.voxSendChunk(worldID,peerID,p.x,p.y,p.z)
 end)
 
+internals.sendBlockUpdate = function(worldID, x, y, z, d)
+	local writer = internals.Writer(16)
 
+	writer:WriteUInt(worldID,8)
+	writer:WriteInt(x,32)
+	writer:WriteInt(y,32)
+	writer:WriteInt(z,32)
+	writer:WriteUInt(d,16)
+
+	local msg = writer:GetWrittenString()
+
+	-- todo filter for yuge worlds
+	for ply, peer in pairs(map_players_to_peers) do
+		internals.networkSendPacket(channels.updateBlock, msg, peer)
+	end
+end
+
+
+internals.sendRegionUpdate = function(worldID, x,y,z,sx,sy,sz,d)
+
+	local writer = internals.Writer(28)
+
+	writer:WriteUInt(worldID,8)
+	writer:WriteInt(x,32)
+	writer:WriteInt(y,32)
+	writer:WriteInt(z,32)
+	writer:WriteInt(sx,32)
+	writer:WriteInt(sy,32)
+	writer:WriteInt(sz,32)
+	writer:WriteUInt(d,16)
+
+	local msg = writer:GetWrittenString()
+
+	-- todo filter for yuge worlds
+	for ply, peer in pairs(map_players_to_peers) do
+		internals.networkSendPacket(channels.updateRegion, msg, peer)
+	end
+end
+
+internals.sendSphereUpdate = function(worldID, x,y,z,r,d)
+
+	local writer = internals.Writer(20)
+
+	writer:WriteUInt(worldID,8)
+	writer:WriteInt(x,32)
+	writer:WriteInt(y,32)
+	writer:WriteInt(z,32)
+	writer:WriteUInt(r,16)
+	writer:WriteUInt(d,16)
+
+	local msg = writer:GetWrittenString()
+
+	-- todo filter for yuge worlds
+	for ply, peer in pairs(map_players_to_peers) do
+		internals.networkSendPacket(channels.updateSphere, msg, peer)
+	end
+end
 
 
 --[[local runtime,exports = ...

@@ -174,107 +174,71 @@ if SERVER then
 		return internals.voxGet(index,x,y,z)
 	end
 
-	function ENT:setBlock(x,y,z,d)
-		local index = self:GetInternalIndex()
-
-		local success = internals.voxSet(index,x,y,z,d)
-		if success then gm_voxelate.channels.blockUpdate:SendBlockUpdate(index,x,y,z,d) end
-		return success
-	end
 
 	function ENT:getAt(pos)
-		local scale = self:GetConfig().scale or 32
+		local index = self:GetInternalIndex()
+		local scale = internals.voxGetBlockScale(index)
 
 		local rel_pos = self:WorldToLocal(pos)/scale
 		return self:getBlock(rel_pos.x,rel_pos.y,rel_pos.z)
 	end
 
-	function ENT:setAt(pos,d)
-		local scale = self:GetConfig().scale or 32
+	if SERVER then
+		function ENT:setBlock(x,y,z,d)
+			local index = self:GetInternalIndex()
 
-		local rel_pos = self:WorldToLocal(pos)/scale
-		self:setBlock(rel_pos.x,rel_pos.y,rel_pos.z,d)
-	end
-
-	-- TODO: implement voxSetRegion in C++ so we can network it separately/faster/efficiently
-	function ENT:setRegion(x,y,z,sx,sy,sz,d) --allow d to be string data
-		local index = self:GetInternalIndex()
-		local set = gm_voxelate.module.voxSet
-
-		local fix = math.floor
-
-		x = fix(x)
-		y = fix(y)
-		z = fix(z)
-		sx = fix(sx)
-		sy = fix(sy)
-		sz = fix(sz)
-
-		local success = false
-
-		for ix=x,x+sx do
-			for iy=y,y+sy do
-				for iz=z,z+sz do
-					success = set(index,ix,iy,iz,d) or success
-				end
-			end
+			local success = internals.voxSet(index,x,y,z,d)
+			if success then internals.sendBlockUpdate(index,x,y,z,d) end
+			return success
 		end
 
-		if success then gm_voxelate.channels.blockUpdate:SendBulkCuboidUpdate(index,x,y,z,sx,sy,sz,d) end
-		return success
-	end
+		function ENT:setAt(pos,d)
+			local index = self:GetInternalIndex()
+			local scale = internals.voxGetBlockScale(index)
 
-	function ENT:setRegionAt(v1,v2,d)
-		local scale = self:GetConfig().scale or 32
-
-		local lower=self:WorldToLocal(v1)/scale
-		local upper=self:WorldToLocal(v2)/scale
-
-		OrderVectors(lower,upper)
-
-		local fix = math.floor
-
-		self:setRegion(lower.x,lower.y,lower.z,fix(upper.x)-fix(lower.x),fix(upper.y)-fix(lower.y),fix(upper.z)-fix(lower.z),d)
-	end
-
-	function ENT:setSphere(x,y,z,r,d)
-		local index = self:GetInternalIndex()
-		local set = internals.voxSet
-
-		local fix = math.floor
-
-		x = fix(x)
-		y = fix(y)
-		z = fix(z)
-		r = fix(r)
-
-		local success = false
-
-		local rsqr = r*r
-		for ix=x-r,x+r do
-			local xsqr = (ix-x)*(ix-x)
-			for iy=y-r,y+r do
-				local xysqr = xsqr+(iy-y)*(iy-y)
-				for iz=z-r,z+r do
-					local xyzsqr = xysqr+(iz-z)*(iz-z)
-					if xyzsqr<=rsqr then
-						success = set(index,ix,iy,iz,d) or success
-					end
-				end
-			end
+			local rel_pos = self:WorldToLocal(pos)/scale
+			self:setBlock(rel_pos.x,rel_pos.y,rel_pos.z,d)
 		end
 
-		if success then gm_voxelate.channels.blockUpdate:SendBulkSphereUpdate(index,x,y,z,r,d) end
-		return success
-	end
+		function ENT:setRegion(x,y,z,sx,sy,sz,d)
+			local index = self:GetInternalIndex()
 
-	function ENT:setSphereAt(pos,r,d)
-		local scale = self:GetConfig().scale or 32
+			local success = internals.voxSetRegion(index,x,y,z,sx,sy,sz,d)
+			if success then internals.sendRegionUpdate(index,x,y,z,sx,sy,sz,d) end
+			return success
+		end
 
-		pos=self:WorldToLocal(pos)/scale
-		r=r/scale
+		function ENT:setRegionAt(v1,v2,d)
+			local index = self:GetInternalIndex()
+			local scale = internals.voxGetBlockScale(index)
 
-		self:setSphere(pos.x,pos.y,pos.z,r,d)
+			local lower=self:WorldToLocal(v1)/scale
+			local upper=self:WorldToLocal(v2)/scale
+
+			OrderVectors(lower,upper)
+
+			local fix = math.floor
+
+			self:setRegion(lower.x,lower.y,lower.z,fix(upper.x)-fix(lower.x),fix(upper.y)-fix(lower.y),fix(upper.z)-fix(lower.z),d)
+		end
+
+		function ENT:setSphere(x,y,z,r,d)
+			local index = self:GetInternalIndex()
+
+			local success = internals.voxSetSphere(index,x,y,z,r,d)
+			if success then internals.sendSphereUpdate(index,x,y,z,r,d) end
+			return success
+		end
+
+		function ENT:setSphereAt(pos,r,d)
+			local index = self:GetInternalIndex()
+			local scale = internals.voxGetBlockScale(index)
+
+			pos=self:WorldToLocal(pos)/scale
+			r=r/scale
+
+			self:setSphere(pos.x,pos.y,pos.z,r,d)
+		end
 	end
 
 	function ENT:save(file_name)

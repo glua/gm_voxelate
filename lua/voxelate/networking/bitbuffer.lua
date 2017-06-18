@@ -1,4 +1,3 @@
-local runtime,exports = ...
 
 --[[
 	DOCUMENTATION
@@ -225,7 +224,7 @@ do -- extending bf_write
 	end
 end
 
-function exports.Writer(bytes)
+function internals.Writer(bytes)
 	local gap = 4 - bytes % 4
 
 	local ucptr = UCHARPTR(bytes + gap)
@@ -233,7 +232,7 @@ function exports.Writer(bytes)
 	return sn_bf_write(ucptr)
 end
 
-function exports.Reader(data)
+function internals.Reader(data)
 	local gap = 4 - #data % 4
 
 	data = data..("\x00"):rep(gap)

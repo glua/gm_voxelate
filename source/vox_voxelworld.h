@@ -136,7 +136,7 @@ public:
 	void initialize();
 
 	Vector getExtents();
-	void getCellExtents(VoxelCoord& x, VoxelCoord &y, VoxelCoord &z);
+	double getBlockScale();
 
 	std::vector<VoxelCoordXYZ> getAllChunkPositions(Vector origin);
 

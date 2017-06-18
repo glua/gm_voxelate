@@ -308,12 +308,16 @@ Vector VoxelWorld::getExtents() {
 	);
 }
 
-void VoxelWorld::getCellExtents(VoxelCoord& x, VoxelCoord& y, VoxelCoord& z) {
+double VoxelWorld::getBlockScale() {
+	return config.scale;
+}
+
+/*void VoxelWorld::getCellExtents(VoxelCoord& x, VoxelCoord& y, VoxelCoord& z) {
 
 	x = config.dims_x;
 	y = config.dims_y;
 	z = config.dims_z;
-}
+}*/
 
 // Get all chunk positions
 // order by distance to localized origin

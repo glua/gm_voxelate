@@ -16,6 +16,8 @@ hook.Add("VoxNetworkPacket","Voxelate.Networking",function(peerID,channelID,payl
 	end
 end)
 
+require("bitbuffer")
+
 if SERVER then
 	require("server")
 else
