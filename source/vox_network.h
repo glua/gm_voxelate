@@ -14,7 +14,7 @@
 
 // looks like we have a max of 255 chans
 #define VOX_NETWORK_CPP_CHANNEL_START 128
-static enet_uint8 VOX_NETWORK_MAX_CHANNELS = 255;
+static enet_uint8 VOX_NETWORK_MAX_CHANNELS = 1;
 
 #include <functional>
 #include <string>
