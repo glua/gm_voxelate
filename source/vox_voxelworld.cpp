@@ -360,7 +360,7 @@ std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(Vector origin) {
 
 void voxelworld_initialise_networking_static() {
 #ifdef VOXELATE_CLIENT
-	vox_networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, [&](int peerID, const char* data, size_t data_len) {
+	vox_networking::channelListen(vox_network_channel::chunk, [&](int peerID, const char* data, size_t data_len) {
 		//vox_print("chunk!");
 
 		bf_read reader;
@@ -391,7 +391,7 @@ void voxelworld_initialise_networking_static() {
 		world->setChunkData(pos[0], pos[1], pos[2], chunkData, dataSize);
 	});
 
-	vox_networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, [&](int peerID, const char* data, size_t data_len) {
+	//vox_networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, [&](int peerID, const char* data, size_t data_len) {
 		// not used.
 
 		/*bf_read reader;
@@ -425,18 +425,19 @@ void voxelworld_initialise_networking_static() {
 				}
 			}
 		}*/
-	});
+	//});
 #endif
 }
 
 #ifdef VOXELATE_SERVER
 
 bool VoxelWorld::sendChunk(int peerID, VoxelCoordXYZ pos) {
-	static char msg[CHUNK_BUFFER_SIZE + 13];
+	static char msg[CHUNK_BUFFER_SIZE + 16];
 
 	bf_write writer;
-	writer.StartWriting(msg, CHUNK_BUFFER_SIZE + 13);
+	writer.StartWriting(msg, CHUNK_BUFFER_SIZE + 16);
 
+	writer.WriteUBitLong(vox_network_channel::chunk, 8);
 	writer.WriteUBitLong(worldID, 8);
 
 	writer.WriteSBitLong(pos[0], 32);
@@ -448,11 +449,11 @@ bool VoxelWorld::sendChunk(int peerID, VoxelCoordXYZ pos) {
 	if (compressed_size == 0)
 		return false;
 
-	return vox_networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE, msg, writer.GetNumBytesWritten() + compressed_size );
+	return vox_networking::channelSend(peerID, msg, writer.GetNumBytesWritten() + compressed_size );
 }
 
 
-bool VoxelWorld::sendChunksAround(int peerID, VoxelCoordXYZ pos, VoxelCoord radius) {
+/*bool VoxelWorld::sendChunksAround(int peerID, VoxelCoordXYZ pos, VoxelCoord radius) {
 	auto maxSize = VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 2 * radius * + 24;
 
 	auto data = new(std::nothrow) uint8_t[maxSize];
@@ -494,7 +495,7 @@ bool VoxelWorld::sendChunksAround(int peerID, VoxelCoordXYZ pos, VoxelCoord radi
 	writer.WriteOneBit(0); // null terminate for good measure
 
 	return vox_networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, data, writer.GetNumBytesWritten());
-}
+}*/
 #endif
 /*
 void VoxelWorld::sortUpdatesByDistance(Vector* origin) {

@@ -23,8 +23,9 @@ static enet_uint8 VOX_NETWORK_MAX_CHANNELS = 255;
 
 typedef std::function<void(int peerID, const char* data, size_t data_len)> networkCallback;
 
-#define VOX_NETWORK_CHANNEL_CHUNKDATA_SINGLE 1
-#define VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS 2
+enum vox_network_channel {
+	chunk = 128
+};
 
 bool vox_network_startup();
 
@@ -34,9 +35,9 @@ void vox_setupLuaNetworkingAPI(GarrysMod::Lua::ILuaBase *LUA);
 
 namespace vox_networking {
 #ifdef VOXELATE_SERVER
-	bool channelSend(int peerID, uint16_t channelID, void* data, int size, bool unreliable = false);
+	bool channelSend(int peerID, void* data, int size, bool unreliable = false);
 #else
-	bool channelSend(uint16_t channelID, void* data, int size, bool unreliable = false);
+	bool channelSend(void* data, int size, bool unreliable = false);
 #endif
 	void channelListen(uint16_t channelID, networkCallback callback);
 };

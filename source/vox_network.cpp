@@ -74,23 +74,17 @@ void vox_network_shutdown() {
 int lua_network_sendpacket(lua_State* state) {
 	size_t size;
 
-	int channel = luaL_checknumber(state, 1);
-	auto Ldata = luaL_checklstring(state, 2, &size);
+	auto Ldata = luaL_checklstring(state, 1, &size);
 	int unreliable = false; // im like a million percent positive we don't never want unreliable messages
 
 	std::string* data = new std::string(Ldata, size);
 
-	if (channel < 0 || channel >= VOX_NETWORK_CPP_CHANNEL_START) {
-		lua_pushstring(state, "attempt to send packet on bad channel");
-		lua_error(state);
-	}
-
 #ifdef VOXELATE_SERVER
-	unsigned int peerID = luaL_checkinteger(state, 3);
+	unsigned int peerID = luaL_checkinteger(state, 2);
 
-	server.send_packet_to(peerID, channel, (const enet_uint8*)data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
+	server.send_packet_to(peerID, 0, (const enet_uint8*)data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 #else
-	client.send_packet(channel, (const enet_uint8*)data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
+	client.send_packet(0, (const enet_uint8*)data->c_str(), size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 #endif
 
 	return 0;
@@ -194,22 +188,27 @@ int lua_network_pollForEvents(lua_State* state) {
 	auto on_data_received = [&](enet_uint8 channelID, const enet_uint8* data, size_t data_size) {
 		unsigned int peerID = 0;
 #endif
-		if (channelID < VOX_NETWORK_CPP_CHANNEL_START) {
+		if (data_size < 2) {
+			return;
+		}
+
+		enet_uint8 msg_type = data[0];
+		
+		int adjustedChannelID = channelID - VOX_NETWORK_CPP_CHANNEL_START;
+
+		auto iter = cppChannelCallbacks.find(msg_type);
+
+		if (iter != cppChannelCallbacks.end()) {
+			iter->second(peerID, (char*)data + 1, data_size - 1);
+		}
+		else {
 			LuaHelpers::PushHookRun(state->luabase, "VoxNetworkPacket");
 
 			lua_pushnumber(state, peerID);
-			lua_pushnumber(state, channelID);
-			lua_pushlstring(state, (char*)data, data_size);
+			lua_pushnumber(state, msg_type);
+			lua_pushlstring(state, (char*)data + 1, data_size - 1);
 
 			LuaHelpers::CallHookRun(state->luabase, 3, 0);
-		}
-		else {
-
-			int adjustedChannelID = channelID - VOX_NETWORK_CPP_CHANNEL_START;
-
-			if (cppChannelCallbacks.find(adjustedChannelID) != cppChannelCallbacks.end()) {
-				cppChannelCallbacks[adjustedChannelID](peerID, (char*)data, data_size);
-			}
 		}
 	};
 
@@ -271,20 +270,16 @@ namespace vox_networking {
 	}
 
 #ifdef VOXELATE_SERVER
-	bool channelSend(int peerID, uint16_t channelID, void* data, int size, bool unreliable) {
+	bool channelSend(int peerID, void* data, int size, bool unreliable) {
 
-		channelID += VOX_NETWORK_CPP_CHANNEL_START;
-
-		server.send_packet_to(peerID, channelID, (const enet_uint8*)data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
+		server.send_packet_to(peerID, 0, (const enet_uint8*)data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 
 		return true;
 	}
 #else
-	bool channelSend(uint16_t channelID, void* data, int size, bool unreliable) {
+	bool channelSend(void* data, int size, bool unreliable) {
 
-		channelID += VOX_NETWORK_CPP_CHANNEL_START;
-
-		client.send_packet(channelID, (const enet_uint8*)data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
+		client.send_packet(0, (const enet_uint8*)data, size, unreliable ? 0 : ENET_PACKET_FLAG_RELIABLE);
 
 		return true;
 	}

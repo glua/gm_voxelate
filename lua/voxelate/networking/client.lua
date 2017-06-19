@@ -31,8 +31,9 @@ end)
 hook.Add("VoxNetworkConnect","Voxelate.Networking",function()
 
 	print("Now connected to server.")
+	local msg = string.char(channels.auth) .. handshakeKey
 
-	internals.networkSendPacket(channels.auth, handshakeKey)
+	internals.networkSendPacket(msg)
 end)
 
 -- Disconnet. Not really much to do.

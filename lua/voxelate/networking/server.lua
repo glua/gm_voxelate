@@ -188,10 +188,10 @@ end
 internals.sendConfigs = function(configs, peers)
 	if not peers then peers = map_players_to_peers end
 
-	local msg = util.TableToJSON(configs)
+	local msg = string.char(channels.config) .. util.TableToJSON(configs)
 
 	for _,peer in pairs(peers) do
-		internals.networkSendPacket(channels.config, msg, peer)
+		internals.networkSendPacket(msg, peer)
 		
 		local ply = map_peers_to_players[peer]
 		for worldID,config in pairs(configs) do
@@ -201,13 +201,19 @@ internals.sendConfigs = function(configs, peers)
 end
 
 -- Chunk Networking
+local CHUNKS_SENT_PER_PEER_PER_TICK = 10
 
 hook.Add("Think", "Voxelate.ChunkNetworking",function()
 	for peerID,worlds in pairs(chunk_stacks) do
+		
+		local quota = CHUNKS_SENT_PER_PEER_PER_TICK
 		for worldID,stack in pairs(worlds) do
-			if #stack == 0 then continue end
-			local chunk_pos = table.remove(stack)
-			internals.voxSendChunk(worldID,peerID,chunk_pos.x,chunk_pos.y,chunk_pos.z)
+			
+			while quota > 0 and #stack > 0 do
+				local chunk_pos = table.remove(stack)
+				internals.voxSendChunk(worldID,peerID,chunk_pos.x,chunk_pos.y,chunk_pos.z)
+				quota = quota - 1
+			end
 		end
 	end
 	--print("yo.")
@@ -217,6 +223,7 @@ end)
 internals.sendBlockUpdate = function(worldID, x, y, z, d)
 	local writer = internals.Writer(16)
 
+	writer:WriteUInt(channels.updateBlock,8)
 	writer:WriteUInt(worldID,8)
 	writer:WriteInt(x,32)
 	writer:WriteInt(y,32)
@@ -227,7 +234,7 @@ internals.sendBlockUpdate = function(worldID, x, y, z, d)
 
 	-- todo filter for yuge worlds
 	for ply, peer in pairs(map_players_to_peers) do
-		internals.networkSendPacket(channels.updateBlock, msg, peer)
+		internals.networkSendPacket(msg, peer)
 	end
 end
 
@@ -236,6 +243,7 @@ internals.sendRegionUpdate = function(worldID, x,y,z,sx,sy,sz,d)
 
 	local writer = internals.Writer(28)
 
+	writer:WriteUInt(channels.updateRegion,8)
 	writer:WriteUInt(worldID,8)
 	writer:WriteInt(x,32)
 	writer:WriteInt(y,32)
@@ -249,7 +257,7 @@ internals.sendRegionUpdate = function(worldID, x,y,z,sx,sy,sz,d)
 
 	-- todo filter for yuge worlds
 	for ply, peer in pairs(map_players_to_peers) do
-		internals.networkSendPacket(channels.updateRegion, msg, peer)
+		internals.networkSendPacket(msg, peer)
 	end
 end
 
@@ -257,6 +265,7 @@ internals.sendSphereUpdate = function(worldID, x,y,z,r,d)
 
 	local writer = internals.Writer(20)
 
+	writer:WriteUInt(channels.updateSphere,8)
 	writer:WriteUInt(worldID,8)
 	writer:WriteInt(x,32)
 	writer:WriteInt(y,32)
@@ -268,7 +277,7 @@ internals.sendSphereUpdate = function(worldID, x,y,z,r,d)
 
 	-- todo filter for yuge worlds
 	for ply, peer in pairs(map_players_to_peers) do
-		internals.networkSendPacket(channels.updateSphere, msg, peer)
+		internals.networkSendPacket(msg, peer)
 	end
 end
 
