@@ -39,7 +39,8 @@ CreateWorkspace({name = "voxelate"})
 
 	project("gm_sourcenet")
 		kind("StaticLib")
-		language("C++11")
+		language("C++")
+		cppdialect("C++11")
 
 		warnings("Off")
 
@@ -77,7 +78,8 @@ CreateWorkspace({name = "voxelate"})
 
 	project("gm_adv_vectors")
 		kind("StaticLib")
-		language("C++11")
+		language("C++")
+		cppdialect("C++11")
 
 
 		includedirs({"../reactphysics3d/src"})
@@ -114,7 +116,8 @@ CreateWorkspace({name = "voxelate"})
 		IncludeSDKTier1()
 
 	CreateProject({serverside = true})
-		language("C++11")
+		language("C++")
+		cppdialect("C++11")
 
 		luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
 			luaEntryPoint("init.lua")
@@ -143,7 +146,8 @@ CreateWorkspace({name = "voxelate"})
 		end
 
 	CreateProject({serverside = false})
-		language("C++11")
+		language("C++")
+		cppdialect("C++11")
 
 		luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
 			luaEntryPoint("init.lua")
@@ -183,7 +187,8 @@ CreateWorkspace({name = "voxelate"})
 		})
 
 	project("reactphysics3d")
-		language "C++11"
+		language("C++")
+		cppdialect("C++11")
 		kind "StaticLib"
 		symbols "On"
 		warnings "Off"
