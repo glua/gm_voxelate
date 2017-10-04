@@ -19,17 +19,7 @@ IPhysicsCollision* IFACE_SV_COLLISION;
 
 // Clientside interfaces
 IMaterialSystem* IFACE_CL_MATERIALS;
-
-// Internal shader dll
-abstract_class IShaderDLLInternal
-{
-public:
-	virtual bool Connect(CreateInterfaceFn factory, bool bIsMaterialSystem) = 0;
-};
-
-#ifdef VOXELATE_CLIENT
-IShaderDLLInternal *GetShaderDLLInternal();
-#endif
+IShaderSystemInternal* IFACE_CL_SHADERS;
 
 #include "vox_util.h"
 
@@ -44,6 +34,9 @@ bool init_interfaces() {
 		return false;
 #else
 	if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, IFACE_CL_MATERIALS))
+		return false;
+
+	if (!LOADINTERFACE("materialsystem", SHADERSYSTEM_INTERFACE_VERSION, IFACE_CL_SHADERS))
 		return false;
 
 	// This initializes some of our module's internal shit that the shader library needs.
