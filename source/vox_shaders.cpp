@@ -78,6 +78,7 @@ uint8_t FindShader_pattern[] = {
 #endif
 
 bool installShaders() {
+	MH_Initialize();
 
 	SymbolFinder finder;
 
