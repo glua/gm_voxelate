@@ -4,3 +4,5 @@ makefile.VoxelShaders
 makefile.VoxelShaders.copy
 uniquefilestocopy.txt
 vcslist.txt
+filelist.txt
+filelistgen.txt
