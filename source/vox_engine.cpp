@@ -27,31 +27,31 @@ public:
 	virtual bool Connect(CreateInterfaceFn factory, bool bIsMaterialSystem) = 0;
 };
 
+#ifdef VOXELATE_CLIENT
 IShaderDLLInternal *GetShaderDLLInternal();
+#endif
 
 #include "vox_util.h"
 
 // Sets up interfaces
 bool init_interfaces() {
+#ifdef VOXELATE_SERVER
+	if (!LOADINTERFACE("engine", INTERFACEVERSION_VENGINESERVER, IFACE_SV_ENGINE))
+		return false;
+	if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, IFACE_SV_PHYSICS))
+		return false;
+	if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, IFACE_SV_COLLISION))
+		return false;
+#else
+	if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, IFACE_CL_MATERIALS))
+		return false;
 
-	if (IS_SERVERSIDE) {
-		if (!LOADINTERFACE("engine", INTERFACEVERSION_VENGINESERVER, IFACE_SV_ENGINE))
-			return false;
-		if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, IFACE_SV_PHYSICS))
-			return false;
-		if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, IFACE_SV_COLLISION))
-			return false;
-	}
-	else {
-		if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, IFACE_CL_MATERIALS))
-			return false;
-
-		// This initializes some of our module's internal shit that the shader library needs.
-		IShaderDLLInternal* shader_dll = GetShaderDLLInternal();
-		CreateInterfaceFn factory = Sys_GetFactory("materialsystem");
-		if (!(shader_dll->Connect(factory, false)))
-			return false;
-	}
+	// This initializes some of our module's internal shit that the shader library needs.
+	IShaderDLLInternal* shader_dll = GetShaderDLLInternal();
+	CreateInterfaceFn factory = Sys_GetFactory("materialsystem");
+	if (!(shader_dll->Connect(factory, false)))
+		return false;
+#endif
 
 	return true;
 }
