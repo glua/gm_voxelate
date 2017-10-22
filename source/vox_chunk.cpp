@@ -251,7 +251,9 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 
 	//final build
 	physicsMeshStop(ent);
-
+#ifdef VOXELATE_CLIENT
+	graphicsMeshStop();
+#endif
 }
 
 void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y, int scaling) {
