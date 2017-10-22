@@ -322,6 +322,7 @@ void VoxelChunk::send(int sys_index, int ply_id, bool init, int chunk_num) {
 }
 */
 void VoxelChunk::meshClearAll() {
+	meshInterface = nullptr;
 
 #ifdef VOXELATE_CLIENT
 	CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
@@ -349,6 +350,8 @@ void VoxelChunk::meshClearAll() {
 }
 
 void VoxelChunk::meshStart() {
+	meshInterface = new btTriangleMesh();
+
 #ifdef VOXELATE_CLIENT
 	verts_remaining = BUILD_MAX_VERTS;
 
@@ -362,6 +365,11 @@ void VoxelChunk::meshStart() {
 }
 
 void VoxelChunk::meshStop(CBaseEntity* ent) {
+	btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface,true,true);
+	meshInterface = nullptr;
+
+	// do something
+	
 #ifdef VOXELATE_CLIENT
 	if (current_mesh == nullptr)
 		return;
@@ -448,6 +456,17 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		meshStart();
 	}
 	verts_remaining -= 4;
+	
+	meshInterface->addTriangle(
+		btVector3(v1.x, v1.y, v1.z),
+		btVector3(v2.x, v2.y, v2.z),
+		btVector3(v3.x, v3.y, v3.z)
+	);
+	meshInterface->addTriangle(
+		btVector3(v1.x, v1.y, v1.z),
+		btVector3(v3.x, v3.y, v3.z),
+		btVector3(v4.x, v4.y, v4.z)
+	);
 
 #ifdef VOXELATE_CLIENT
 	VoxelConfig* cl_config = &(world->config);

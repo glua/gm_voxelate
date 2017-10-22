@@ -64,5 +64,9 @@ private:
 	CPhysPolysoup* phys_soup = nullptr;
 	IPhysicsObject* phys_obj = nullptr;
 	CPhysCollide* phys_collider = nullptr;
+
+	// bullet physics
+	
+	btTriangleMesh* meshInterface;
 };
 

@@ -559,7 +559,7 @@ void VoxelWorld::doUpdates(int count, CBaseEntity* ent, float curTime) {
 		while (accumulator >= timeStep) {
 
 			// Update the Dynamics world with a constant time step 
-			// this->world->update(timeStep);
+			dynamicsWorld->stepSimulation(timeStep, 10);
 
 			// Decrease the accumulated time 
 			accumulator -= timeStep;
