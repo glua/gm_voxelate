@@ -74,7 +74,7 @@ CreateWorkspace({name = "voxelate"})
 
 
 		includedirs({"../bullet3-2.87/src"})
-		links({"Bullet3Common"})
+		links({"BulletDynamics","BulletCollision","LinearMath"})
 
 		files({
 			"../gm_adv_vectors/*.h",
@@ -115,7 +115,7 @@ CreateWorkspace({name = "voxelate"})
 			includeLua("../lua/**")
 
 		includedirs({"../fastlz","../bullet3-2.87/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
-		links({"fastlz","Bullet3Common","enet","gm_sourcenet","gm_adv_vectors"})
+		links({"fastlz","BulletDynamics","BulletCollision","LinearMath","enet","gm_sourcenet","gm_adv_vectors"})
 
 		IncludeSDKCommon()
 		IncludeSDKTier0()
@@ -143,7 +143,7 @@ CreateWorkspace({name = "voxelate"})
 		links({"shaderlib"})
 		libdirs{ "../shaderlib/"..os.target() }
 		includedirs({"../fastlz","../bullet3-2.87/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
-		links({"fastlz","Bullet3Common","enet","gm_sourcenet","gm_adv_vectors"})
+		links({"fastlz","BulletDynamics","BulletCollision","LinearMath","enet","gm_sourcenet","gm_adv_vectors"})
 
 		IncludeSDKCommon()
 		IncludeSDKTier0()

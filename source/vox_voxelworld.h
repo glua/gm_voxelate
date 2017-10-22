@@ -71,4 +71,9 @@ private:
 	VoxelConfig config;
 
 	// physics
+	btDefaultCollisionConfiguration* collisionConfiguration;
+	btCollisionDispatcher* dispatcher;
+	btBroadphaseInterface* overlappingPairCache;
+	btSequentialImpulseConstraintSolver* solver;
+	btDiscreteDynamicsWorld* dynamicsWorld;
 };

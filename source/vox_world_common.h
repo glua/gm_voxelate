@@ -18,6 +18,8 @@
 
 #include "materialsystem/imesh.h"
 
+#include "btBulletDynamicsCommon.h"
+
 const int VOXEL_VERT_FMT = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2) | VERTEX_TEXCOORD_SIZE(1, 2);
 
 #define DIR_X_POS 1
