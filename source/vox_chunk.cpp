@@ -338,7 +338,7 @@ void VoxelChunk::physicsMeshClearAll() {
 	chunkBody = nullptr;
 
 #ifdef VOXELATE_SERVER
-	/*
+	// *
 	if (phys_obj!=nullptr) {
 		IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
 		phys_obj->SetGameData(nullptr);
@@ -351,7 +351,7 @@ void VoxelChunk::physicsMeshClearAll() {
 		//Not sure if we should be calling this, but it may be required to prevent a leak.
 		IFACE_SH_COLLISION->DestroyCollide(phys_collider);
 	}
-	*/
+	// */
 #endif
 }
 
