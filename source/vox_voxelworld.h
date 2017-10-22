@@ -16,6 +16,9 @@
 
 #include "vox_util.h"
 
+// TODO re-calibrate this for greedy meshing
+#define BUILD_MAX_VERTS (VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*4*2)
+
 // Goddamn types.
 typedef uint16 BlockData;
 typedef std::int32_t VoxelCoord;
@@ -145,7 +148,7 @@ public:
 	bool sendChunksAround(int peerID, VoxelCoordXYZ pos, VoxelCoord radius = 10);
 #endif
 
-	void doUpdates(int count, CBaseEntity * ent);
+	void doUpdates(int count, CBaseEntity * ent, float curTime);
 
 	VoxelTraceRes doTrace(Vector startPos, Vector delta);
 	VoxelTraceRes doTraceHull(Vector startPos, Vector delta, Vector extents);
@@ -171,6 +174,8 @@ private:
 	std::set<VoxelCoordXYZ> dirty_chunk_set;
 
 	VoxelConfig config;
+
+	// physics
 };
 
 // Used for building chunk slice meshes.

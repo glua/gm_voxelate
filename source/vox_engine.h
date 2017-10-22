@@ -10,7 +10,7 @@
 
 // Server interfaces
 extern IVEngineServer* IFACE_SV_ENGINE;
-extern IPhysicsCollision* IFACE_SV_COLLISION;
+extern IPhysicsCollision* IFACE_SH_COLLISION;
 extern IPhysics* IFACE_SV_PHYSICS;
 
 // Client interfaces

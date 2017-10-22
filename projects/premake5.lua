@@ -73,8 +73,8 @@ CreateWorkspace({name = "voxelate"})
 		cppdialect("C++11")
 
 
-		includedirs({"../reactphysics3d/src"})
-		links({"reactphysics3d"})
+		includedirs({"../bullet3-2.87/src"})
+		links({"Bullet3Common"})
 
 		files({
 			"../gm_adv_vectors/*.h",
@@ -114,8 +114,8 @@ CreateWorkspace({name = "voxelate"})
 			luaEntryPoint("init.lua")
 			includeLua("../lua/**")
 
-		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
-		links({"fastlz","reactphysics3d","enet","gm_sourcenet","gm_adv_vectors"})
+		includedirs({"../fastlz","../bullet3-2.87/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
+		links({"fastlz","Bullet3Common","enet","gm_sourcenet","gm_adv_vectors"})
 
 		IncludeSDKCommon()
 		IncludeSDKTier0()
@@ -142,8 +142,8 @@ CreateWorkspace({name = "voxelate"})
 
 		links({"shaderlib"})
 		libdirs{ "../shaderlib/"..os.target() }
-		includedirs({"../fastlz","../reactphysics3d/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
-		links({"fastlz","reactphysics3d","enet","gm_sourcenet","gm_adv_vectors"})
+		includedirs({"../fastlz","../bullet3-2.87/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
+		links({"fastlz","Bullet3Common","enet","gm_sourcenet","gm_adv_vectors"})
 
 		IncludeSDKCommon()
 		IncludeSDKTier0()

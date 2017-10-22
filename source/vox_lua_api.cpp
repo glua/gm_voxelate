@@ -384,13 +384,14 @@ LUA_FUNCTION(luaf_voxSet) {
 LUA_FUNCTION(luaf_voxUpdate) {
 	int index = LUA->GetNumber(1);
 	int chunk_count = LUA->GetNumber(2);
+	float curTime = LUA->GetNumber(3);
 
 	CBaseEntity* ent = elua_getEntity(LUA, 3);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 
 	if (v != nullptr) {
-		v->doUpdates(chunk_count, ent);
+		v->doUpdates(chunk_count, ent, curTime);
 	}
 
 	return 0;

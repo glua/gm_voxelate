@@ -18,13 +18,13 @@
 
 #endif
 
-#include "reactphysics3d.h"
-
 #include <memory>
 
+/*
 typedef std::shared_ptr<reactphysics3d::Vector3> VectorPtr;
 
 void setupLuaAdvancedVectors(lua_State* state);
 
 VectorPtr * vox_lua_pushVector(lua_State * state, reactphysics3d::Vector3 * vec);
 reactphysics3d::Vector3* vox_lua_getVector(lua_State* state, int32_t index);
+*/

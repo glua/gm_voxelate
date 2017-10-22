@@ -11,6 +11,7 @@ const char *tostring_format = "%s: %p";
 
 #define LUA state->luabase
 
+/*
 VectorPtr* vox_lua_pushVector(lua_State* state, reactphysics3d::Vector3* vec) {
 	VectorPtr* udata = LUA->NewUserType<VectorPtr>(metatype);
 
@@ -426,10 +427,10 @@ int vox_lua_vector_ctor(lua_State* state) {
 
 	return 1;
 }
-
+*/
 void setupLuaAdvancedVectors(lua_State * state) {
 	metatype = LUA->CreateMetaTable(metaname);
-
+	/*
 	lua_pushcfunction(state, vox_lua_vector_gc);
 	lua_setfield(state, -2, "__gc");
 
@@ -510,9 +511,11 @@ void setupLuaAdvancedVectors(lua_State * state) {
 
 	lua_pushcfunction(state, vox_lua_vector_lt);
 	lua_setfield(state, -2, "__lt");
-
+	*/
 	LUA->Pop(1);
 
+	/*
 	lua_pushcfunction(state, vox_lua_vector_ctor);
 	lua_setglobal(state, metaname);
+	*/
 }

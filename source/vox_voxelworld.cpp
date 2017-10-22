@@ -23,9 +23,6 @@
 
 const int VOXEL_VERT_FMT = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTEX_SHADER | VERTEX_USERDATA_SIZE(4) | VERTEX_TEXCOORD_SIZE(0, 2) | VERTEX_TEXCOORD_SIZE(1, 2);
 
-// TODO re-calibrate this for greedy meshing
-#define BUILD_MAX_VERTS (VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*4*2)
-
 #define DIR_X_POS 1
 #define DIR_Y_POS 2
 #define DIR_Z_POS 3
@@ -93,6 +90,8 @@ VoxelWorld::VoxelWorld(VoxelConfig& config) {
 
 	if (config.atlasMaterial != nullptr)
 		config.atlasMaterial->IncrementReferenceCount();
+
+	// physics
 
 	initialize();
 }
@@ -531,7 +530,7 @@ void VoxelWorld::sortUpdatesByDistance(Vector* origin) {
 // Logic probably okay for huge worlds, although we may have to double check that the chunk still exists,
 // or clean out chunks_flagged_for_update when we unload chunks
 // TODO: convert Vector to AdvancedVector
-void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
+void VoxelWorld::doUpdates(int count, CBaseEntity* ent, float curTime) {
 	// On the server, we -NEED- the entity. Not so important on the client
 	
 	if (!IS_SERVERSIDE || (ent != nullptr && config.buildPhysicsMesh)) {
@@ -545,6 +544,41 @@ void VoxelWorld::doUpdates(int count, CBaseEntity* ent) {
 			if (chunk != nullptr) {
 				chunk->build(ent);
 			}
+		}
+	}
+
+	// verbatim from http://www.reactphysics3d.com/usermanual.html
+	// only updates the physics engine @ 60Hz
+
+	static float previousFrameTime = 0;
+	static float accumulator = 0;
+	
+	if (previousFrameTime == 0) {
+		previousFrameTime = curTime;
+	}
+
+	// Constant physics time step 
+	const float timeStep = 1.0 / 60.0;
+
+	// Compute the time difference between the two frames 
+	float deltaTime = curTime - previousFrameTime;
+
+	// Update the previous time 
+	previousFrameTime = curTime;
+
+	// Add the time difference in the accumulator 
+	accumulator += deltaTime;
+
+	if (accumulator != 0) {
+		// While there is enough accumulated time to take 
+		// one or several physics steps 
+		while (accumulator >= timeStep) {
+
+			// Update the Dynamics world with a constant time step 
+			// this->world->update(timeStep);
+
+			// Decrease the accumulated time 
+			accumulator -= timeStep;
 		}
 	}
 }
@@ -1327,346 +1361,173 @@ void VoxelChunk::send(int sys_index, int ply_id, bool init, int chunk_num) {
 }
 */
 void VoxelChunk::meshClearAll() {
-	if (!IS_SERVERSIDE) {
-		CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 
-		while (meshes.begin() != meshes.end()) {
-			pRenderContext->DestroyStaticMesh(*meshes.begin());
-			meshes.erase(meshes.begin());
-		}
-	}
-	else {
-		if (phys_obj!=nullptr) {
-			IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
-			phys_obj->SetGameData(nullptr);
-			phys_obj->EnableCollisions(false);
-			phys_obj->RecheckCollisionFilter();
-			phys_obj->RecheckContactPoints();
-			env->DestroyObject(phys_obj);
-			phys_obj = nullptr;
+#ifdef VOXELATE_CLIENT
+	CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 
-			//Not sure if we should be calling this, but it may be required to prevent a leak.
-			IFACE_SV_COLLISION->DestroyCollide(phys_collider);
-		}
+	while (meshes.begin() != meshes.end()) {
+		pRenderContext->DestroyStaticMesh(*meshes.begin());
+		meshes.erase(meshes.begin());
 	}
+#elif VOXELATE_SERVER
+	/*
+	if (phys_obj!=nullptr) {
+		IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
+		phys_obj->SetGameData(nullptr);
+		phys_obj->EnableCollisions(false);
+		phys_obj->RecheckCollisionFilter();
+		phys_obj->RecheckContactPoints();
+		env->DestroyObject(phys_obj);
+		phys_obj = nullptr;
+
+		//Not sure if we should be calling this, but it may be required to prevent a leak.
+		IFACE_SH_COLLISION->DestroyCollide(phys_collider);
+	}
+	*/
+#endif
 }
 
 void VoxelChunk::meshStart() {
-	if (!IS_SERVERSIDE) {
-		verts_remaining = BUILD_MAX_VERTS;
+#ifdef VOXELATE_CLIENT
+	verts_remaining = BUILD_MAX_VERTS;
 
-		CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
-		current_mesh = pRenderContext->CreateStaticMesh(VOXEL_VERT_FMT, "");
+	CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
+	current_mesh = pRenderContext->CreateStaticMesh(VOXEL_VERT_FMT, "");
 
-		meshBuilder.Begin(current_mesh, MATERIAL_QUADS, BUILD_MAX_VERTS / 4);
-	}
-	else {
-		phys_soup = IFACE_SV_COLLISION->PolysoupCreate();
-	}
+	meshBuilder.Begin(current_mesh, MATERIAL_QUADS, BUILD_MAX_VERTS / 4);
+#elif VOXELATE_SERVER
+	phys_soup = IFACE_SH_COLLISION->PolysoupCreate();
+#endif
 }
 
 void VoxelChunk::meshStop(CBaseEntity* ent) {
-	if (!IS_SERVERSIDE) {
-		if (current_mesh == nullptr)
-			return;
+#ifdef VOXELATE_CLIENT
+	if (current_mesh == nullptr)
+		return;
 
-		meshBuilder.End();
+	meshBuilder.End();
 		
-		meshes.push_back(current_mesh);
-		current_mesh = nullptr;
+	meshes.push_back(current_mesh);
+	current_mesh = nullptr;
 		
-		verts_remaining = 0;
-	}
-	else {
-		if (phys_soup == nullptr)
-			return;
+	verts_remaining = 0;
+#elif VOXELATE_SERVER
+	// *
+	if (phys_soup == nullptr)
+		return;
 
-		phys_collider = IFACE_SV_COLLISION->ConvertPolysoupToCollide(phys_soup, false); //todo what the fuck is MOPP?
-		IFACE_SV_COLLISION->PolysoupDestroy(phys_soup);
-		phys_soup = nullptr;
+	phys_collider = IFACE_SH_COLLISION->ConvertPolysoupToCollide(phys_soup, false); //todo what the fuck is MOPP?
+	IFACE_SH_COLLISION->PolysoupDestroy(phys_soup);
+	phys_soup = nullptr;
 
-		objectparams_t op = { 0 };
-		op.enableCollisions = true;
-		op.pGameData = static_cast<void *>(ent);
-		op.pName = "voxels";
+	objectparams_t op = { 0 };
+	op.enableCollisions = true;
+	op.pGameData = static_cast<void *>(ent);
+	op.pName = "voxels";
 
-		Vector pos = eent_getPos(ent);
+	Vector pos = eent_getPos(ent);
 
-		IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
-		phys_obj = env->CreatePolyObjectStatic(phys_collider, 3, pos, QAngle(0, 0, 0), &op);
-	}
+	IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
+	phys_obj = env->CreatePolyObjectStatic(phys_collider, 3, pos, QAngle(0, 0, 0), &op);
+	// */
+#endif
 }
 
 void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir) {
-
 	double realStep = world->config.scale;
+	double realX;
+	double realY;
+	double realZ;
 
-	if (!IS_SERVERSIDE) {
-		if (verts_remaining < 4) {
-			meshStop(nullptr);
-			meshStart();
-		}
-		verts_remaining -= 4;
+	Vector v1, v2, v3, v4;
+	switch (dir) {
 
-		VoxelConfig* cl_config = &(world->config);
+	case DIR_X_POS:
 
-		double uMin = ((double)tx / cl_config->atlasWidth);
-		double uMax = ((tx + 1.0) / cl_config->atlasWidth);
+		realX = (slice + posX*VOXEL_CHUNK_SIZE) * realStep;
+		realY = (x + posY*VOXEL_CHUNK_SIZE) * realStep;
+		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
 
-		double vMin = ((double)ty / cl_config->atlasHeight);
-		double vMax = ((ty + 1.0) / cl_config->atlasHeight);
+		v1 = Vector(realX + realStep, realY, realZ);
+		v2 = Vector(realX + realStep, realY, realZ + realStep * h);
+		v3 = Vector(realX + realStep, realY + realStep * w, realZ + realStep * h);
+		v4 = Vector(realX + realStep, realY + realStep * w, realZ);
+		break;
 
-		double realX;
-		double realY;
-		double realZ;
+	case DIR_Y_POS:
 
-		switch (dir) {
+		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
+		realY = (slice + posY*VOXEL_CHUNK_SIZE) * realStep;
+		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
 
-		case DIR_X_POS:
+		v1 = Vector(realX, realY + realStep, realZ);
+		v2 = Vector(realX + realStep * w, realY + realStep, realZ);
+		v3 = Vector(realX + realStep * w, realY + realStep, realZ + realStep * h);
+		v4 = Vector(realX, realY + realStep, realZ + realStep * h);
+		break;
 
-			realX = (slice + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realY = (x + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
+	case DIR_Z_POS:
 
-			meshBuilder.Position3f(realX + realStep, realY, realZ);
-			meshBuilder.TexCoord2f(0, 0, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(1, 0, 0);
-			meshBuilder.AdvanceVertex();
+		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
+		realY = (y + posY*VOXEL_CHUNK_SIZE) * realStep;
+		realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * realStep;
 
-			meshBuilder.Position3f(realX + realStep, realY, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, 0, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(1, 0, 0);
-			meshBuilder.AdvanceVertex();
+		v1 = Vector(realX, realY, realZ + realStep);
+		v2 = Vector(realX, realY + realStep * h, realZ + realStep);
+		v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep);
+		v4 = Vector(realX + realStep * w, realY, realZ + realStep);
+		break;
 
-			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, w, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(1, 0, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ);
-			meshBuilder.TexCoord2f(0, w, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(1, 0, 0);
-			meshBuilder.AdvanceVertex();
-			
-			break;
-
-		case DIR_X_NEG:
-
-			realX = (slice + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realY = (x + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
-
-			meshBuilder.Position3f(realX + realStep, realY, realZ);
-			meshBuilder.TexCoord2f(0, w, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(-1, 0, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ);
-			meshBuilder.TexCoord2f(0, 0, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(-1, 0, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep, realY + realStep * w, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, 0, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(-1, 0, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep, realY, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, w, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(-1, 0, 0);
-			meshBuilder.AdvanceVertex();
-			
-			break;
-
-		case DIR_Y_POS:
-
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realY = (slice + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
-
-			meshBuilder.Position3f(realX, realY + realStep, realZ);
-			meshBuilder.TexCoord2f(0, w, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 1, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ);
-			meshBuilder.TexCoord2f(0, 0, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 1, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, 0, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 1, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX, realY + realStep, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, w, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 1, 0);
-			meshBuilder.AdvanceVertex();
-
-			break;
-		
-		case DIR_Y_NEG:
-
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realY = (slice + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
-
-			meshBuilder.Position3f(realX, realY + realStep, realZ);
-			meshBuilder.TexCoord2f(0, 0, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, -1, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX, realY + realStep, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, 0, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, -1, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ + realStep * h);
-			meshBuilder.TexCoord2f(0, w, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, -1, 0);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep * w, realY + realStep, realZ);
-			meshBuilder.TexCoord2f(0, w, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, -1, 0);
-			meshBuilder.AdvanceVertex();
-
-			break;
-
-		case DIR_Z_POS:
-
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realY = (y + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
-
-			meshBuilder.Position3f(realX, realY, realZ + realStep);
-			meshBuilder.TexCoord2f(0, 0, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 0, 1);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX, realY + realStep * h, realZ + realStep);
-			meshBuilder.TexCoord2f(0, 0, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 0, 1);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep * w, realY + realStep * h, realZ + realStep);
-			meshBuilder.TexCoord2f(0, w, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 0, 1);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep * w, realY, realZ + realStep);
-			meshBuilder.TexCoord2f(0, w, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 0, 1);
-			meshBuilder.AdvanceVertex();
-
-			break;
-
-		case DIR_Z_NEG:
-
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realY = (y + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
-
-			meshBuilder.Position3f(realX, realY, realZ + realStep);
-			meshBuilder.TexCoord2f(0, 0, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 0, -1);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep * w, realY, realZ + realStep);
-			meshBuilder.TexCoord2f(0, w, h);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 0, -1);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX + realStep * w, realY + realStep * h, realZ + realStep);
-			meshBuilder.TexCoord2f(0, w, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 0, -1);
-			meshBuilder.AdvanceVertex();
-
-			meshBuilder.Position3f(realX, realY + realStep * h, realZ + realStep);
-			meshBuilder.TexCoord2f(0, 0, 0);
-			meshBuilder.TexCoord2f(1, uMin, vMin);
-			meshBuilder.Normal3f(0, 0, -1);
-			meshBuilder.AdvanceVertex();
-
-			break;
-		}
-	} else {
-		double realX;
-		double realY;
-		double realZ;
-
-		Vector v1, v2, v3, v4;
-		switch (dir) {
-
-		case DIR_X_POS:
-
-			realX = (slice + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realY = (x + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
-
-			v1 = Vector(realX + realStep, realY, realZ);
-			v2 = Vector(realX + realStep, realY, realZ + realStep * h);
-			v3 = Vector(realX + realStep, realY + realStep * w, realZ + realStep * h);
-			v4 = Vector(realX + realStep, realY + realStep * w, realZ);
-			break;
-
-		case DIR_Y_POS:
-
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realY = (slice + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realZ = (y + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
-
-			v1 = Vector(realX, realY + realStep, realZ);
-			v2 = Vector(realX + realStep * w, realY + realStep, realZ);
-			v3 = Vector(realX + realStep * w, realY + realStep, realZ + realStep * h);
-			v4 = Vector(realX, realY + realStep, realZ + realStep * h);
-			break;
-
-		case DIR_Z_POS:
-
-			realX = (x + posX*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realY = (y + posY*VOXEL_CHUNK_SIZE) * world->config.scale;
-			realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * world->config.scale;
-
-			v1 = Vector(realX, realY, realZ + realStep);
-			v2 = Vector(realX, realY + realStep * h, realZ + realStep);
-			v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep);
-			v4 = Vector(realX + realStep * w, realY, realZ + realStep);
-			break;
-
-		default:
-			return;
-		}
-
-		if (phys_soup == nullptr) {
-			meshStart();
-		}
-
-		IFACE_SV_COLLISION->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
-		IFACE_SV_COLLISION->PolysoupAddTriangle(phys_soup, v1, v3, v4, 3);
+	default:
+		return;
 	}
+
+	if (verts_remaining < 4) {
+		meshStop(nullptr);
+		meshStart();
+	}
+	verts_remaining -= 4;
+
+#ifdef VOXELATE_CLIENT
+	VoxelConfig* cl_config = &(world->config);
+
+	double uMin = ((double)tx / cl_config->atlasWidth);
+	double uMax = ((tx + 1.0) / cl_config->atlasWidth);
+
+	double vMin = ((double)ty / cl_config->atlasHeight);
+	double vMax = ((ty + 1.0) / cl_config->atlasHeight);
+
+	meshBuilder.Position3f(v1.x, v1.y, v1.z);
+	meshBuilder.TexCoord2f(0, 0, h);
+	meshBuilder.TexCoord2f(1, uMin, vMin);
+	meshBuilder.Normal3f(1, 0, 0);
+	meshBuilder.AdvanceVertex();
+
+	meshBuilder.Position3f(v2.x, v2.y, v2.z);
+	meshBuilder.TexCoord2f(0, 0, 0);
+	meshBuilder.TexCoord2f(1, uMin, vMin);
+	meshBuilder.Normal3f(1, 0, 0);
+	meshBuilder.AdvanceVertex();
+
+	meshBuilder.Position3f(v3.x, v3.y, v3.z);
+	meshBuilder.TexCoord2f(0, w, 0);
+	meshBuilder.TexCoord2f(1, uMin, vMin);
+	meshBuilder.Normal3f(1, 0, 0);
+	meshBuilder.AdvanceVertex();
+
+	meshBuilder.Position3f(v4.x, v4.y, v4.z);
+	meshBuilder.TexCoord2f(0, w, h);
+	meshBuilder.TexCoord2f(1, uMin, vMin);
+	meshBuilder.Normal3f(1, 0, 0);
+	meshBuilder.AdvanceVertex();
+#elif VOXELATE_SERVER
+	// *
+	if (phys_soup == nullptr) {
+		meshStart();
+	}
+
+	IFACE_SH_COLLISION->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
+	IFACE_SH_COLLISION->PolysoupAddTriangle(phys_soup, v1, v3, v4, 3);
+	// */
+#endif
 }

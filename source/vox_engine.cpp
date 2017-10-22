@@ -15,7 +15,7 @@
 // Serverside interfaces
 IVEngineServer* IFACE_SV_ENGINE;
 IPhysics* IFACE_SV_PHYSICS;
-IPhysicsCollision* IFACE_SV_COLLISION;
+IPhysicsCollision* IFACE_SH_COLLISION;
 
 // Clientside interfaces
 IMaterialSystem* IFACE_CL_MATERIALS;
@@ -35,12 +35,13 @@ IShaderDLLInternal *GetShaderDLLInternal();
 
 // Sets up interfaces
 bool init_interfaces() {
+	if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, IFACE_SH_COLLISION))
+		return false;
+
 #ifdef VOXELATE_SERVER
 	if (!LOADINTERFACE("engine", INTERFACEVERSION_VENGINESERVER, IFACE_SV_ENGINE))
 		return false;
 	if (!LOADINTERFACE("vphysics", VPHYSICS_INTERFACE_VERSION, IFACE_SV_PHYSICS))
-		return false;
-	if (!LOADINTERFACE("vphysics", VPHYSICS_COLLISION_INTERFACE_VERSION, IFACE_SV_COLLISION))
 		return false;
 #else
 	if (!LOADINTERFACE("materialsystem", MATERIAL_SYSTEM_INTERFACE_VERSION, IFACE_CL_MATERIALS))
