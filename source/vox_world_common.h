@@ -131,3 +131,11 @@ void checkAllVoxelWorldsDeleted();
 
 // Sets up network handlers.
 void voxelworld_initialise_networking_static();
+
+enum ELevelOfDetail {
+	FULL = 0,
+	TWO_MERGE,
+	FOUR_MERGE,
+	EIGHT_MERGE,
+	CHUNK_MERGE,
+};

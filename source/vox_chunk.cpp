@@ -39,7 +39,7 @@ void VoxelChunk::generate() {
 	}
 }
 
-void VoxelChunk::build(CBaseEntity* ent) {
+void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 
 	physicsMeshClearAll();
 
@@ -78,8 +78,20 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 	SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE];
 
+	int scaling = 1;
+
+	switch (lod) {
+	case ELevelOfDetail::FULL:
+		break;
+	case ELevelOfDetail::TWO_MERGE:
+		scaling = 2;
+		break;
+	default:
+		scaling = VOXEL_CHUNK_SIZE;
+	}
+
 	// Slices along x axis!
-	for (int slice_x = lower_slice_x; slice_x < upper_slice_x; slice_x++) {
+	for (int slice_x = lower_slice_x; slice_x < upper_slice_x; slice_x += scaling) {
 
 		for (int z = 0; z < upper_bound_z; z++) {
 			for (int y = 0; y < upper_bound_y; y++) {
@@ -128,11 +140,11 @@ void VoxelChunk::build(CBaseEntity* ent) {
 			}
 		}
 
-		buildSlice(slice_x, DIR_X_POS, faces, upper_bound_y, upper_bound_z);
+		buildSlice(slice_x, DIR_X_POS, faces, upper_bound_y, upper_bound_z, scaling);
 	}
 
 	// Slices along y axis!
-	for (int slice_y = lower_slice_y; slice_y < upper_slice_y; slice_y++) {
+	for (int slice_y = lower_slice_y; slice_y < upper_slice_y; slice_y += scaling) {
 
 		for (int z = 0; z < upper_bound_z; z++) {
 			for (int x = 0; x < upper_bound_x; x++) {
@@ -181,12 +193,12 @@ void VoxelChunk::build(CBaseEntity* ent) {
 			}
 		}
 
-		buildSlice(slice_y, DIR_Y_POS, faces, upper_bound_x, upper_bound_z);
+		buildSlice(slice_y, DIR_Y_POS, faces, upper_bound_x, upper_bound_z, scaling);
 	}
 
 	// Slices along z axis! TODO ALSO PROCESS NON-CUBIC BLOCKS IN -THIS- STAGE
 
-	for (int slice_z = lower_slice_z; slice_z < upper_slice_z; slice_z++) {
+	for (int slice_z = lower_slice_z; slice_z < upper_slice_z; slice_z += scaling) {
 		
 		for (int y = 0; y < upper_bound_y; y++) {
 			for (int x = 0; x < upper_bound_x; x++) {
@@ -234,7 +246,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 			}
 		}
 
-		buildSlice(slice_z, DIR_Z_POS, faces, upper_bound_x, upper_bound_y);
+		buildSlice(slice_z, DIR_Z_POS, faces, upper_bound_x, upper_bound_y, scaling);
 	}
 
 	//final build
@@ -242,10 +254,10 @@ void VoxelChunk::build(CBaseEntity* ent) {
 
 }
 
-void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y) {
+void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y, int scaling) {
 
-	for (int y = 0; y < upper_bound_y; y++) {
-		for (int x = 0; x < upper_bound_x; x++) {
+	for (int y = 0; y < upper_bound_y; y += scaling) {
+		for (int x = 0; x < upper_bound_x; x += scaling) {
 
 			if (faces[y][x].present) {
 				SliceFace& current_face = faces[y][x];
@@ -275,9 +287,9 @@ void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZ
 				int h = end_y - y;
 
 #ifdef VOXELATE_CLIENT
-				addSliceFace(slice, x, y, w, h, current_face.texture.x, current_face.texture.y, current_face.direction ? dir : dir+3);
+				addSliceFace(slice, x, y, w, h, current_face.texture.x, current_face.texture.y, current_face.direction ? dir : dir+3, scaling);
 #else
-				addSliceFace(slice, x, y, w, h, 0, 0, dir);
+				addSliceFace(slice, x, y, w, h, 0, 0, dir, scaling);
 #endif
 			}
 		}
@@ -443,8 +455,8 @@ void VoxelChunk::graphicsMeshStop() {
 }
 #endif
 
-void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir) {
-	double realStep = world->config.scale;
+void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir, int scaling) {
+	double realStep = world->config.scale * scaling;
 	double realX;
 	double realY;
 	double realZ;

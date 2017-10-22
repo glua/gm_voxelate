@@ -526,7 +526,7 @@ void VoxelWorld::doUpdates(int count, CBaseEntity* ent, float curTime) {
 			VoxelChunk* chunk = getChunk(pos[0], pos[1], pos[2]);
 
 			if (chunk != nullptr) {
-				chunk->build(ent);
+				chunk->build(ent, ELevelOfDetail::FULL);
 			}
 		}
 	}
