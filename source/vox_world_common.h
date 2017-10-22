@@ -139,3 +139,5 @@ enum ELevelOfDetail {
 	EIGHT_MERGE,
 	CHUNK_MERGE,
 };
+
+int div_floor(int x, int y);

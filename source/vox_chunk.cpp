@@ -78,23 +78,44 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 
 	SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE];
 
-	int scaling = 1;
+	int scaling_size = 1;
+
+	int adjusted_upper_bound_x = upper_bound_x;
+	int adjusted_upper_bound_y = upper_bound_y;
+	int adjusted_upper_bound_z = upper_bound_z;
 
 	switch (lod) {
 	case ELevelOfDetail::FULL:
 		break;
 	case ELevelOfDetail::TWO_MERGE:
-		scaling = 2;
+		scaling_size = 2;
+		adjusted_upper_bound_x = div_floor(adjusted_upper_bound_x, scaling_size);
+		adjusted_upper_bound_y = div_floor(adjusted_upper_bound_y, scaling_size);
+		adjusted_upper_bound_z = div_floor(adjusted_upper_bound_z, scaling_size);
+		break;
+	case ELevelOfDetail::FOUR_MERGE:
+		scaling_size = 4;
+		adjusted_upper_bound_x = div_floor(adjusted_upper_bound_x, scaling_size);
+		adjusted_upper_bound_y = div_floor(adjusted_upper_bound_y, scaling_size);
+		adjusted_upper_bound_z = div_floor(adjusted_upper_bound_z, scaling_size);
+		break;
+	case ELevelOfDetail::EIGHT_MERGE:
+		scaling_size = 8;
+		adjusted_upper_bound_x = div_floor(adjusted_upper_bound_x, scaling_size);
+		adjusted_upper_bound_y = div_floor(adjusted_upper_bound_y, scaling_size);
+		adjusted_upper_bound_z = div_floor(adjusted_upper_bound_z, scaling_size);
 		break;
 	default:
-		scaling = VOXEL_CHUNK_SIZE;
+		scaling_size = VOXEL_CHUNK_SIZE / 2;
 	}
 
 	// Slices along x axis!
-	for (int slice_x = lower_slice_x; slice_x < upper_slice_x; slice_x += scaling) {
-
-		for (int z = 0; z < upper_bound_z; z++) {
-			for (int y = 0; y < upper_bound_y; y++) {
+	for (int slice_x = lower_slice_x; slice_x < upper_slice_x; slice_x += scaling_size) {
+		int adjusted_x = (slice_x - lower_slice_x) / scaling_size;
+		for (int z = 0; z < upper_bound_z; z += scaling_size) {
+			int adjusted_z = z / scaling_size;
+			for (int y = 0; y < upper_bound_y; y += scaling_size) {
+				int adjusted_y = y / scaling_size;
 
 				// Compute base type
 				BlockData base;
@@ -108,18 +129,18 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 
 				// Compute offset type
 				BlockData offset_x;
-				if (slice_x == VOXEL_CHUNK_SIZE - 1)
+				if (slice_x == (VOXEL_CHUNK_SIZE - scaling_size))
 					if (next_chunk_x == nullptr)
 						offset_x = 0;
 					else
 						offset_x = next_chunk_x->get(0, y, z);
 				else
-					offset_x = get(slice_x + 1 , y, z);
+					offset_x = get(slice_x + scaling_size, y, z);
 
 				VoxelType& offset_x_type = blockTypes[offset_x];
 
 				// Add faces!
-				SliceFace& face = faces[z][y];
+				SliceFace& face = faces[adjusted_z][adjusted_y];
 
 				if (base_type.form == VFORM_CUBE && offset_x_type.form == VFORM_NULL) {
 					face.present = true;
@@ -140,14 +161,16 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 			}
 		}
 
-		buildSlice(slice_x, DIR_X_POS, faces, upper_bound_y, upper_bound_z, scaling);
+		buildSlice(adjusted_x, DIR_X_POS, faces, adjusted_upper_bound_y, adjusted_upper_bound_z, scaling_size);
 	}
 
 	// Slices along y axis!
-	for (int slice_y = lower_slice_y; slice_y < upper_slice_y; slice_y += scaling) {
-
-		for (int z = 0; z < upper_bound_z; z++) {
-			for (int x = 0; x < upper_bound_x; x++) {
+	for (int slice_y = lower_slice_y; slice_y < upper_slice_y; slice_y += scaling_size) {
+		int adjusted_y = (slice_y - lower_slice_y) / scaling_size;
+		for (int z = 0; z < upper_bound_z; z += scaling_size) {
+			int adjusted_z = z / scaling_size;
+			for (int x = 0; x < upper_bound_x; x += scaling_size) {
+				int adjusted_x = x / scaling_size;
 
 				// Compute base type
 				BlockData base;
@@ -161,18 +184,18 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 
 				// Compute offset type
 				BlockData offset_y;
-				if (slice_y == VOXEL_CHUNK_SIZE - 1)
+				if (slice_y == (VOXEL_CHUNK_SIZE - scaling_size))
 					if (next_chunk_y == nullptr)
 						offset_y = 0;
 					else
 						offset_y = next_chunk_y->get(x, 0, z);
 				else
-					offset_y = get(x, slice_y + 1, z);
+					offset_y = get(x, slice_y + scaling_size, z);
 
 				VoxelType& offset_y_type = blockTypes[offset_y];
 
 				// Add faces!
-				SliceFace& face = faces[z][x];
+				SliceFace& face = faces[adjusted_z][adjusted_x];
 
 				if (base_type.form == VFORM_CUBE && offset_y_type.form == VFORM_NULL) {
 					face.present = true;
@@ -193,16 +216,18 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 			}
 		}
 
-		buildSlice(slice_y, DIR_Y_POS, faces, upper_bound_x, upper_bound_z, scaling);
+		buildSlice(adjusted_y, DIR_Y_POS, faces, adjusted_upper_bound_x, adjusted_upper_bound_z, scaling_size);
 	}
 
 	// Slices along z axis! TODO ALSO PROCESS NON-CUBIC BLOCKS IN -THIS- STAGE
 
-	for (int slice_z = lower_slice_z; slice_z < upper_slice_z; slice_z += scaling) {
-		
-		for (int y = 0; y < upper_bound_y; y++) {
-			for (int x = 0; x < upper_bound_x; x++) {
-				
+	for (int slice_z = lower_slice_z; slice_z < upper_slice_z; slice_z += scaling_size) {
+		int adjusted_z = (slice_z - lower_slice_z) / scaling_size;
+		for (int y = 0; y < upper_bound_y; y += scaling_size) {
+			int adjusted_y = y / scaling_size;
+			for (int x = 0; x < upper_bound_x; x += scaling_size) {
+				int adjusted_x = x / scaling_size;
+
 				// Compute base type
 				BlockData base;
 
@@ -215,18 +240,18 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 
 				// Compute offset type
 				BlockData offset_z;
-				if (slice_z == VOXEL_CHUNK_SIZE - 1)
+				if (slice_z == (VOXEL_CHUNK_SIZE - scaling_size))
 					if (next_chunk_z == nullptr)
 						offset_z = 0;
 					else
 						offset_z = next_chunk_z->get(x, y, 0);
 				else
-					offset_z = get(x, y, slice_z + 1);
+					offset_z = get(x, y, slice_z + scaling_size);
 
 				VoxelType& offset_z_type = blockTypes[offset_z];
 
 				// Add faces!
-				SliceFace& face = faces[y][x];
+				SliceFace& face = faces[adjusted_y][adjusted_x];
 
 				if (base_type.form == VFORM_CUBE && offset_z_type.form == VFORM_NULL) {
 					face.present = true;
@@ -246,7 +271,7 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 			}
 		}
 
-		buildSlice(slice_z, DIR_Z_POS, faces, upper_bound_x, upper_bound_y, scaling);
+		buildSlice(adjusted_z, DIR_Z_POS, faces, adjusted_upper_bound_x, adjusted_upper_bound_y, scaling_size);
 	}
 
 	//final build
@@ -256,11 +281,10 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 #endif
 }
 
-void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y, int scaling) {
+void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y, int scaling_size) {
 
-	for (int y = 0; y < upper_bound_y; y += scaling) {
-		for (int x = 0; x < upper_bound_x; x += scaling) {
-
+	for (int y = 0; y < upper_bound_y; y++) {
+		for (int x = 0; x < upper_bound_x; x++) {
 			if (faces[y][x].present) {
 				SliceFace& current_face = faces[y][x];
 
@@ -270,6 +294,11 @@ void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZ
 				for (end_x = x + 1; end_x < upper_bound_x && current_face == faces[y][end_x]; end_x++) {
 					faces[y][end_x].present = false;
 				}
+
+				if (end_x >= upper_bound_x) {
+					end_x = upper_bound_x;
+				}
+
 
 				for (end_y = y + 1; end_y < upper_bound_y; end_y++) {
 					for (int ix = x; ix < end_x; ix++) {
@@ -281,17 +310,39 @@ void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZ
 						faces[end_y][ix].present = false;
 					}
 				}
+
+				if (end_y >= upper_bound_y) {
+					end_y = upper_bound_y;
+				}
 			bail:
 
-				current_face.present = false;
+				// current_face.present = false;
 
 				int w = end_x - x;
 				int h = end_y - y;
 
 #ifdef VOXELATE_CLIENT
-				addSliceFace(slice, x, y, w, h, current_face.texture.x, current_face.texture.y, current_face.direction ? dir : dir+3, scaling);
+				addSliceFace(
+					slice * scaling_size, 
+					x * scaling_size, 
+					y * scaling_size, 
+					w * scaling_size, 
+					h * scaling_size, 
+					current_face.texture.x, 
+					current_face.texture.y, 
+					current_face.direction ? dir : dir + 3
+				);
 #else
-				addSliceFace(slice, x, y, w, h, 0, 0, dir, scaling);
+				addSliceFace(
+					slice * scaling_size, 
+					x * scaling_size, 
+					y * scaling_size, 
+					w * scaling_size, 
+					h * scaling_size, 
+					0, 
+					0, 
+					dir
+				);
 #endif
 			}
 		}
@@ -457,8 +508,8 @@ void VoxelChunk::graphicsMeshStop() {
 }
 #endif
 
-void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir, int scaling) {
-	double realStep = world->config.scale * scaling;
+void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir) {
+	double realStep = world->config.scale;
 	double realX;
 	double realY;
 	double realZ;
@@ -500,6 +551,42 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		v2 = Vector(realX, realY + realStep * h, realZ + realStep);
 		v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep);
 		v4 = Vector(realX + realStep * w, realY, realZ + realStep);
+		break;
+
+	case DIR_X_NEG:
+
+		realX = (slice + posX*VOXEL_CHUNK_SIZE) * realStep;
+		realY = (x + posY*VOXEL_CHUNK_SIZE) * realStep;
+		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
+
+		v1 = Vector(realX + realStep, realY, realZ);
+		v2 = Vector(realX + realStep, realY + realStep * w, realZ);
+		v3 = Vector(realX + realStep, realY + realStep * w, realZ + realStep * h);
+		v4 = Vector(realX + realStep, realY, realZ + realStep * h);
+		break;
+
+	case DIR_Y_NEG:
+
+		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
+		realY = (slice + posY*VOXEL_CHUNK_SIZE) * realStep;
+		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
+
+		v1 = Vector(realX, realY + realStep, realZ);
+		v2 = Vector(realX, realY + realStep, realZ + realStep * h);
+		v3 = Vector(realX + realStep * w, realY + realStep, realZ + realStep * h);
+		v4 = Vector(realX + realStep * w, realY + realStep, realZ);
+		break;
+
+	case DIR_Z_NEG:
+
+		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
+		realY = (y + posY*VOXEL_CHUNK_SIZE) * realStep;
+		realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * realStep;
+
+		v1 = Vector(realX, realY, realZ + realStep);
+		v2 = Vector(realX + realStep * w, realY, realZ + realStep);
+		v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep);
+		v4 = Vector(realX, realY + realStep * h, realZ + realStep);
 		break;
 
 	default:
