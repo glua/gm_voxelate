@@ -14,6 +14,9 @@ VoxelChunk::VoxelChunk(VoxelWorld* sys,int cx, int cy, int cz) {
 
 VoxelChunk::~VoxelChunk() {
 	physicsMeshClearAll();
+#ifdef VOXELATE_CLIENT
+	graphicsMeshClearAll();
+#endif
 }
 
 // todo allow any function to be used for generation, based on config
@@ -322,7 +325,17 @@ void VoxelChunk::send(int sys_index, int ply_id, bool init, int chunk_num) {
 }
 */
 void VoxelChunk::physicsMeshClearAll() {
+	if (chunkBody != nullptr) {
+		world->dynamicsWorld->removeRigidBody(chunkBody);
+		delete chunkBody;
+	}
+
+	if (meshInterface != nullptr) {
+		delete meshInterface;
+	}
+
 	meshInterface = nullptr;
+	chunkBody = nullptr;
 
 #ifdef VOXELATE_SERVER
 	/*
@@ -375,7 +388,7 @@ void VoxelChunk::graphicsMeshStart() {
 void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
 	if (meshInterface != nullptr) {
 		btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface, true, true);
-		meshInterface = nullptr;
+		// meshInterface = nullptr;
 
 		btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
 
@@ -388,10 +401,10 @@ void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
 
 		btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
+		chunkBody = new btRigidBody(rbInfo);
 
 		//add the body to the dynamics world
-		world->dynamicsWorld->addRigidBody(body);
+		world->dynamicsWorld->addRigidBody(chunkBody);
 	}
 	
 #ifdef VOXELATE_SERVER

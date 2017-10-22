@@ -75,5 +75,6 @@ private:
 	// bullet physics
 	
 	btTriangleMesh* meshInterface;
+	btRigidBody* chunkBody;
 };
 
