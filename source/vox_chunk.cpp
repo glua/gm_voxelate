@@ -316,7 +316,7 @@ void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZ
 				}
 			bail:
 
-				// current_face.present = false;
+				current_face.present = false;
 
 				int w = end_x - x;
 				int h = end_y - y;
