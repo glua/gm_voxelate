@@ -238,7 +238,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 	}
 
 	//final build
-	physicsMeshStop(ent);
+	physicsMeshStop();
 
 }
 
@@ -338,7 +338,7 @@ void VoxelChunk::physicsMeshClearAll() {
 	chunkBody = nullptr;
 
 #ifdef VOXELATE_SERVER
-	// *
+	/*
 	if (phys_obj!=nullptr) {
 		IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
 		phys_obj->SetGameData(nullptr);
@@ -351,7 +351,7 @@ void VoxelChunk::physicsMeshClearAll() {
 		//Not sure if we should be calling this, but it may be required to prevent a leak.
 		IFACE_SH_COLLISION->DestroyCollide(phys_collider);
 	}
-	// */
+	*/
 #endif
 }
 
@@ -370,7 +370,7 @@ void VoxelChunk::physicsMeshStart() {
 	meshInterface = new btTriangleMesh();
 
 #ifdef VOXELATE_SERVER
-	phys_soup = IFACE_SH_COLLISION->PolysoupCreate();
+	// phys_soup = IFACE_SH_COLLISION->PolysoupCreate();
 #endif
 }
 
@@ -385,7 +385,7 @@ void VoxelChunk::graphicsMeshStart() {
 }
 #endif
 
-void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
+void VoxelChunk::physicsMeshStop() {
 	if (meshInterface != nullptr) {
 		btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface, true, true);
 		// meshInterface = nullptr;
@@ -408,7 +408,7 @@ void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
 	}
 	
 #ifdef VOXELATE_SERVER
-	// *
+	/*
 	if (phys_soup == nullptr)
 		return;
 
@@ -425,7 +425,7 @@ void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
 
 	IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
 	phys_obj = env->CreatePolyObjectStatic(phys_collider, 3, pos, QAngle(0, 0, 0), &op);
-	// */
+	*/
 #endif
 }
 
@@ -546,13 +546,13 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 	meshBuilder.Normal3f(1, 0, 0);
 	meshBuilder.AdvanceVertex();
 #elif VOXELATE_SERVER
-	// *
+	/*
 	if (phys_soup == nullptr) {
 		physicsMeshStart();
 	}
 
 	IFACE_SH_COLLISION->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);
 	IFACE_SH_COLLISION->PolysoupAddTriangle(phys_soup, v1, v3, v4, 3);
-	// */
+	*/
 #endif
 }

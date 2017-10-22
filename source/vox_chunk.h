@@ -49,7 +49,8 @@ private:
 	void physicsMeshClearAll();
 
 	void physicsMeshStart();
-	void physicsMeshStop(CBaseEntity* ent);
+	// void physicsMeshStop(CBaseEntity* ent);
+	void physicsMeshStop();
 
 #ifdef VOXELATE_CLIENT
 	void graphicsMeshClearAll();
@@ -68,9 +69,9 @@ private:
 	std::list<IMesh*> meshes;
 	int graphics_vertsRemaining = 0;
 
-	CPhysPolysoup* phys_soup = nullptr;
-	IPhysicsObject* phys_obj = nullptr;
-	CPhysCollide* phys_collider = nullptr;
+	// CPhysPolysoup* phys_soup = nullptr;
+	// IPhysicsObject* phys_obj = nullptr;
+	// CPhysCollide* phys_collider = nullptr;
 
 	// bullet physics
 	
