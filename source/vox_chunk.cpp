@@ -13,7 +13,7 @@ VoxelChunk::VoxelChunk(VoxelWorld* sys,int cx, int cy, int cz) {
 }
 
 VoxelChunk::~VoxelChunk() {
-	meshClearAll();
+	physicsMeshClearAll();
 }
 
 // todo allow any function to be used for generation, based on config
@@ -38,7 +38,7 @@ void VoxelChunk::generate() {
 
 void VoxelChunk::build(CBaseEntity* ent) {
 
-	meshClearAll();
+	physicsMeshClearAll();
 
 	VoxelChunk* next_chunk_x = world->getChunk(posX + 1, posY, posZ);
 	VoxelChunk* next_chunk_y = world->getChunk(posX, posY + 1, posZ);
@@ -235,7 +235,7 @@ void VoxelChunk::build(CBaseEntity* ent) {
 	}
 
 	//final build
-	meshStop(ent);
+	physicsMeshStop(ent);
 
 }
 
@@ -321,17 +321,10 @@ void VoxelChunk::send(int sys_index, int ply_id, bool init, int chunk_num) {
 	net_sv_sendChunk(sys_index, ply_id, init, chunk_num , voxel_data, (VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE)*2);
 }
 */
-void VoxelChunk::meshClearAll() {
+void VoxelChunk::physicsMeshClearAll() {
 	meshInterface = nullptr;
 
-#ifdef VOXELATE_CLIENT
-	CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
-
-	while (meshes.begin() != meshes.end()) {
-		pRenderContext->DestroyStaticMesh(*meshes.begin());
-		meshes.erase(meshes.begin());
-	}
-#elif VOXELATE_SERVER
+#ifdef VOXELATE_SERVER
 	/*
 	if (phys_obj!=nullptr) {
 		IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
@@ -349,38 +342,59 @@ void VoxelChunk::meshClearAll() {
 #endif
 }
 
-void VoxelChunk::meshStart() {
+#ifdef VOXELATE_CLIENT
+void VoxelChunk::graphicsMeshClearAll() {
+	CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
+
+	while (meshes.begin() != meshes.end()) {
+		pRenderContext->DestroyStaticMesh(*meshes.begin());
+		meshes.erase(meshes.begin());
+	}
+}
+#endif
+
+void VoxelChunk::physicsMeshStart() {
 	meshInterface = new btTriangleMesh();
 
+#ifdef VOXELATE_SERVER
+	phys_soup = IFACE_SH_COLLISION->PolysoupCreate();
+#endif
+}
+
 #ifdef VOXELATE_CLIENT
-	verts_remaining = BUILD_MAX_VERTS;
+void VoxelChunk::graphicsMeshStart() {
+	graphics_vertsRemaining = BUILD_MAX_VERTS;
 
 	CMatRenderContextPtr pRenderContext(IFACE_CL_MATERIALS);
 	current_mesh = pRenderContext->CreateStaticMesh(VOXEL_VERT_FMT, "");
 
 	meshBuilder.Begin(current_mesh, MATERIAL_QUADS, BUILD_MAX_VERTS / 4);
-#elif VOXELATE_SERVER
-	phys_soup = IFACE_SH_COLLISION->PolysoupCreate();
-#endif
 }
+#endif
 
-void VoxelChunk::meshStop(CBaseEntity* ent) {
-	btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface,true,true);
-	meshInterface = nullptr;
+void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
+	if (meshInterface != nullptr) {
+		btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface, true, true);
+		meshInterface = nullptr;
 
-	// do something
+		btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
+
+		btTransform groundTransform;
+		groundTransform.setIdentity();
+		groundTransform.setOrigin(btVector3(0, -56, 0));
+
+		btScalar mass(0.); // static
+		btVector3 localInertia(0, 0, 0);
+
+		btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
+		btRigidBody* body = new btRigidBody(rbInfo);
+
+		//add the body to the dynamics world
+		world->dynamicsWorld->addRigidBody(body);
+	}
 	
-#ifdef VOXELATE_CLIENT
-	if (current_mesh == nullptr)
-		return;
-
-	meshBuilder.End();
-		
-	meshes.push_back(current_mesh);
-	current_mesh = nullptr;
-		
-	verts_remaining = 0;
-#elif VOXELATE_SERVER
+#ifdef VOXELATE_SERVER
 	// *
 	if (phys_soup == nullptr)
 		return;
@@ -401,6 +415,20 @@ void VoxelChunk::meshStop(CBaseEntity* ent) {
 	// */
 #endif
 }
+
+#ifdef VOXELATE_CLIENT
+void VoxelChunk::graphicsMeshStop() {
+	if (current_mesh == nullptr)
+		return;
+
+	meshBuilder.End();
+
+	meshes.push_back(current_mesh);
+	current_mesh = nullptr;
+
+	graphics_vertsRemaining = 0;
+}
+#endif
 
 void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir) {
 	double realStep = world->config.scale;
@@ -451,11 +479,9 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		return;
 	}
 
-	if (verts_remaining < 4) {
-		meshStop(nullptr);
-		meshStart();
+	if (meshInterface == nullptr) {
+		physicsMeshStart();
 	}
-	verts_remaining -= 4;
 	
 	meshInterface->addTriangle(
 		btVector3(v1.x, v1.y, v1.z),
@@ -469,6 +495,12 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 	);
 
 #ifdef VOXELATE_CLIENT
+	if (graphics_vertsRemaining < 4) {
+		graphicsMeshStop();
+		graphicsMeshStart();
+	}
+	graphics_vertsRemaining -= 4;
+
 	VoxelConfig* cl_config = &(world->config);
 
 	double uMin = ((double)tx / cl_config->atlasWidth);
@@ -503,7 +535,7 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 #elif VOXELATE_SERVER
 	// *
 	if (phys_soup == nullptr) {
-		meshStart();
+		physicsMeshStart();
 	}
 
 	IFACE_SH_COLLISION->PolysoupAddTriangle(phys_soup, v1, v2, v3, 3);

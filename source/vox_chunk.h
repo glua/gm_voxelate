@@ -46,10 +46,17 @@ public:
 
 	BlockData voxel_data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = {};
 private:
-	void meshClearAll();
+	void physicsMeshClearAll();
 
-	void meshStart();
-	void meshStop(CBaseEntity* ent);
+	void physicsMeshStart();
+	void physicsMeshStop(CBaseEntity* ent);
+
+#ifdef VOXELATE_CLIENT
+	void graphicsMeshClearAll();
+
+	void graphicsMeshStart();
+	void graphicsMeshStop();
+#endif
 	
 	void buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y);
 
@@ -59,7 +66,7 @@ private:
 	CMeshBuilder meshBuilder;
 	IMesh* current_mesh = nullptr;
 	std::list<IMesh*> meshes;
-	int verts_remaining = 0;
+	int graphics_vertsRemaining = 0;
 
 	CPhysPolysoup* phys_soup = nullptr;
 	IPhysicsObject* phys_obj = nullptr;
