@@ -1,6 +1,8 @@
 #include "vox_engine.h"
 
 #include <GarrysMod/Interfaces.hpp>
+// #include <GarrysMod/Lua/LuaInterface.h>
+// #include <GarrysMod/Lua/LuaShared.h>
 
 // Deals with different module names on loonix
 // Could use Meta's stuff but W/E
@@ -15,10 +17,13 @@
 // Serverside interfaces
 IVEngineServer* IFACE_SV_ENGINE;
 IPhysics* IFACE_SV_PHYSICS;
-IPhysicsCollision* IFACE_SH_COLLISION;
 
 // Clientside interfaces
 IMaterialSystem* IFACE_CL_MATERIALS;
+
+// Shared interfaces
+IPhysicsCollision* IFACE_SH_COLLISION;
+// GarrysMod::Lua::ILuaShared* IFACE_SH_LUA;
 
 // Internal shader dll
 abstract_class IShaderDLLInternal

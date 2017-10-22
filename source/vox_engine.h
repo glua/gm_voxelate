@@ -16,5 +16,6 @@ extern IPhysics* IFACE_SV_PHYSICS;
 // Client interfaces
 extern IMaterialSystem* IFACE_CL_MATERIALS;
 
+extern lua_State* lastState;
 
 bool init_interfaces();

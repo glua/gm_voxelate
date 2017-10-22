@@ -282,6 +282,7 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 }
 
 void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y, int scaling_size) {
+	// scaling_size = 1;
 
 	for (int y = 0; y < upper_bound_y; y++) {
 		for (int x = 0; x < upper_bound_x; x++) {
@@ -326,22 +327,24 @@ void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZ
 					slice * scaling_size, 
 					x * scaling_size, 
 					y * scaling_size, 
-					w * scaling_size, 
-					h * scaling_size, 
+					w * scaling_size,
+					h * scaling_size,
 					current_face.texture.x, 
 					current_face.texture.y, 
-					current_face.direction ? dir : dir + 3
+					current_face.direction ? dir : dir + 3, 
+					scaling_size
 				);
 #else
 				addSliceFace(
 					slice * scaling_size, 
 					x * scaling_size, 
 					y * scaling_size, 
-					w * scaling_size, 
-					h * scaling_size, 
+					w * scaling_size,
+					h * scaling_size,
 					0, 
 					0, 
-					dir
+					dir,
+					scaling_size
 				);
 #endif
 			}
@@ -349,7 +352,46 @@ void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZ
 	}
 }
 
+extern lua_State* lastState;
+
+#define push_LVEC(x,y,z) \
+	lua_getglobal(lastState, "Vector"); \
+	lua_pushnumber(lastState, x); \
+	lua_pushnumber(lastState, y); \
+	lua_pushnumber(lastState, z); \
+	lua_call(lastState, 3, 1)
+
+#define push_LANG(x,y,z) \
+	lua_getglobal(lastState, "Angle"); \
+	lua_pushnumber(lastState, x); \
+	lua_pushnumber(lastState, y); \
+	lua_pushnumber(lastState, z); \
+	lua_call(lastState, 3, 1)
+
+#define push_LCOL(x,y,z) \
+	lua_getglobal(lastState, "Color"); \
+	lua_pushnumber(lastState, x); \
+	lua_pushnumber(lastState, y); \
+	lua_pushnumber(lastState, z); \
+	lua_call(lastState, 3, 1)
+
 void VoxelChunk::draw(CMatRenderContextPtr& pRenderContext) {
+	/*
+	lua_getglobal(lastState, "render");
+	lua_getfield(lastState, -1, "DrawWireframeBox");
+
+	auto center = getWorldCoords();
+	push_LVEC(center[0], center[1], center[2]);
+	push_LANG(0, 0, 0);
+	push_LVEC(0, 0, 0);
+	push_LVEC(VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE);
+	push_LCOL(255, 0, 0);
+	lua_pushboolean(lastState, false);
+
+	lua_call(lastState, 6, 0);
+	lua_pop(lastState, 1);
+	*/
+
 	for (IMesh* m : meshes) {
 		m->Draw();
 	}
@@ -508,7 +550,7 @@ void VoxelChunk::graphicsMeshStop() {
 }
 #endif
 
-void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir) {
+void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int ty, byte dir, int scale) {
 	double realStep = world->config.scale;
 	double realX;
 	double realY;
@@ -523,10 +565,10 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		realY = (x + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
 
-		v1 = Vector(realX + realStep, realY, realZ);
-		v2 = Vector(realX + realStep, realY, realZ + realStep * h);
-		v3 = Vector(realX + realStep, realY + realStep * w, realZ + realStep * h);
-		v4 = Vector(realX + realStep, realY + realStep * w, realZ);
+		v1 = Vector(realX + realStep * scale, realY, realZ);
+		v2 = Vector(realX + realStep * scale, realY, realZ + realStep * h);
+		v3 = Vector(realX + realStep * scale, realY + realStep * w, realZ + realStep * h);
+		v4 = Vector(realX + realStep * scale, realY + realStep * w, realZ);
 		break;
 
 	case DIR_Y_POS:
@@ -535,10 +577,10 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		realY = (slice + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
 
-		v1 = Vector(realX, realY + realStep, realZ);
-		v2 = Vector(realX + realStep * w, realY + realStep, realZ);
-		v3 = Vector(realX + realStep * w, realY + realStep, realZ + realStep * h);
-		v4 = Vector(realX, realY + realStep, realZ + realStep * h);
+		v1 = Vector(realX, realY + realStep * scale, realZ);
+		v2 = Vector(realX + realStep * w, realY + realStep * scale, realZ);
+		v3 = Vector(realX + realStep * w, realY + realStep * scale, realZ + realStep * h);
+		v4 = Vector(realX, realY + realStep * scale, realZ + realStep * h);
 		break;
 
 	case DIR_Z_POS:
@@ -547,10 +589,10 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		realY = (y + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * realStep;
 
-		v1 = Vector(realX, realY, realZ + realStep);
-		v2 = Vector(realX, realY + realStep * h, realZ + realStep);
-		v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep);
-		v4 = Vector(realX + realStep * w, realY, realZ + realStep);
+		v1 = Vector(realX, realY, realZ + realStep * scale);
+		v2 = Vector(realX, realY + realStep * h, realZ + realStep * scale);
+		v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep * scale);
+		v4 = Vector(realX + realStep * w, realY, realZ + realStep * scale);
 		break;
 
 	case DIR_X_NEG:
@@ -559,10 +601,10 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		realY = (x + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
 
-		v1 = Vector(realX + realStep, realY, realZ);
-		v2 = Vector(realX + realStep, realY + realStep * w, realZ);
-		v3 = Vector(realX + realStep, realY + realStep * w, realZ + realStep * h);
-		v4 = Vector(realX + realStep, realY, realZ + realStep * h);
+		v1 = Vector(realX + realStep * scale, realY, realZ);
+		v2 = Vector(realX + realStep * scale, realY + realStep * w, realZ);
+		v3 = Vector(realX + realStep * scale, realY + realStep * w, realZ + realStep * h);
+		v4 = Vector(realX + realStep * scale, realY, realZ + realStep * h);
 		break;
 
 	case DIR_Y_NEG:
@@ -571,10 +613,10 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		realY = (slice + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
 
-		v1 = Vector(realX, realY + realStep, realZ);
-		v2 = Vector(realX, realY + realStep, realZ + realStep * h);
-		v3 = Vector(realX + realStep * w, realY + realStep, realZ + realStep * h);
-		v4 = Vector(realX + realStep * w, realY + realStep, realZ);
+		v1 = Vector(realX, realY + realStep * scale, realZ);
+		v2 = Vector(realX, realY + realStep * scale, realZ + realStep * h);
+		v3 = Vector(realX + realStep * w, realY + realStep * scale, realZ + realStep * h);
+		v4 = Vector(realX + realStep * w, realY + realStep * scale, realZ);
 		break;
 
 	case DIR_Z_NEG:
@@ -583,10 +625,10 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 		realY = (y + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * realStep;
 
-		v1 = Vector(realX, realY, realZ + realStep);
-		v2 = Vector(realX + realStep * w, realY, realZ + realStep);
-		v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep);
-		v4 = Vector(realX, realY + realStep * h, realZ + realStep);
+		v1 = Vector(realX, realY, realZ + realStep * scale);
+		v2 = Vector(realX + realStep * w, realY, realZ + realStep * scale);
+		v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep * scale);
+		v4 = Vector(realX, realY + realStep * h, realZ + realStep * scale);
 		break;
 
 	default:

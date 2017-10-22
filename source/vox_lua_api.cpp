@@ -215,8 +215,11 @@ LUA_FUNCTION(luaf_voxDeleteWorld) {
 	return 0;
 }
 
+lua_State* lastState;
 LUA_FUNCTION(luaf_voxDraw) {
 	int index = LUA->GetNumber(1);
+
+	lastState = LUA->GetState();
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
