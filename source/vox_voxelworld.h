@@ -37,6 +37,8 @@ public:
 
 	void initialize();
 
+	void forceUpdateAllChunks();
+
 	std::tuple<VoxelCoordXYZ, VoxelCoordXYZ> getExtents();
 	double getBlockScale();
 

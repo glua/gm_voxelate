@@ -33,9 +33,9 @@ const int VOXEL_VERT_FMT = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTE
 // TODO re-calibrate this for greedy meshing
 #define BUILD_MAX_VERTS (VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*4*2)
 
-#ifdef VOXELATE_SERVER
-#define VOXELATE_SERVER_VPHYSICS 1
-#endif
+// #ifdef VOXELATE_SERVER
+// #define VOXELATE_SERVER_VPHYSICS 1
+// #endif
 
 // Goddamn types.
 typedef uint16 BlockData;

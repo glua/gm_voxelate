@@ -322,6 +322,22 @@ void VoxelWorld::initialize() {
 				}
 			}
 		}
+
+		forceUpdateAllChunks();
+	}
+}
+
+void VoxelWorld::forceUpdateAllChunks() {
+	while (!dirty_chunk_queue.empty()) {
+		VoxelCoordXYZ pos = dirty_chunk_queue.front();
+		dirty_chunk_queue.pop_front();
+		dirty_chunk_set.erase(pos);
+
+		VoxelChunk* chunk = getChunk(pos[0], pos[1], pos[2]);
+
+		if (chunk != nullptr) {
+			chunk->build(nullptr, ELevelOfDetail::FULL);
+		}
 	}
 }
 
