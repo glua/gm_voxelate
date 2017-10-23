@@ -86,20 +86,6 @@ LUA_FUNCTION(luaf_voxNewWorld) {
 	VoxelConfig config;
 
 	// Dimensions
-	config.huge = config_bool(LUA, "huge", false);
-
-	Vector temp_dims = config_vector(LUA, "dimensions", Vector(VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE));
-	if (!config.huge) {
-
-		config.dims_x = temp_dims.x;
-		config.dims_y = temp_dims.y;
-		config.dims_z = temp_dims.z;
-
-		if (config.dims_x < 1 || config.dims_y < 1 || config.dims_z < 1) {
-			LUA->ThrowError("Invalid dimensions for voxel world.");
-		}
-	}
-
 	config.scale = config_num(LUA, "scale", 32);
 
 	// Atlas crap
@@ -129,7 +115,6 @@ LUA_FUNCTION(luaf_voxNewWorld) {
 
 	// Mesh building options
 	config.buildPhysicsMesh = config_bool(LUA, "buildPhysicsMesh",false);
-	config.buildExterior = config_bool(LUA, "buildExterior", false);
 
 	// The rest of this is going to have to wait...
 	LUA->GetField(1, "voxelTypes");

@@ -22,6 +22,8 @@ public:
 	int worldID = -1;
 
 	VoxelChunk* initChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z);
+	void updateMinMax(const VoxelCoordXYZ & chunkPos);
+	void fullUpdateMinMax();
 	VoxelChunk* getChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z);
 
 	const int getChunkData(VoxelCoord x, VoxelCoord y, VoxelCoord z, char * out);
@@ -37,6 +39,11 @@ public:
 	double getBlockScale();
 
 	std::vector<VoxelCoordXYZ> getAllChunkPositions(Vector origin);
+
+	VoxelCoordXYZ minChunk = { 0,0,0 };
+	VoxelCoordXYZ maxChunk = { 0,0,0 };
+	VoxelCoordXYZ minPos = { 0,0,0 };
+	VoxelCoordXYZ maxPos = { 0,0,0 };
 
 #ifdef VOXELATE_SERVER
 	bool sendChunk(int peerID, VoxelCoordXYZ pos);

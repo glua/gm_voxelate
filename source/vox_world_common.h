@@ -36,10 +36,15 @@ const int VOXEL_VERT_FMT = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTE
 // Goddamn types.
 typedef uint16 BlockData;
 typedef std::int32_t VoxelCoord;
+typedef double PreciseVoxelCoord;
 typedef std::array<VoxelCoord, 3> VoxelCoordXYZ;
 
 // Size of a chunk. Don't change this.
 const VoxelCoord VOXEL_CHUNK_SIZE = 16;
+
+const VoxelCoord VOXEL_INIT_X = 16;
+const VoxelCoord VOXEL_INIT_Y = 16;
+const VoxelCoord VOXEL_INIT_Z = 16;
 
 // custom specialization of std::hash can be injected in namespace std
 // thanks zerf
@@ -98,17 +103,9 @@ struct VoxelTraceRes {
 };
 
 struct VoxelConfig {
-
-	int dims_x = VOXEL_CHUNK_SIZE;
-	int dims_y = VOXEL_CHUNK_SIZE;
-	int dims_z = VOXEL_CHUNK_SIZE;
-
-	bool huge = false;
-
 	double scale = 32;
 
 	bool buildPhysicsMesh = false;
-	bool buildExterior = false;
 
 	IMaterial* atlasMaterial = nullptr;
 

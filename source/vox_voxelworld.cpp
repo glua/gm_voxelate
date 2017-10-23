@@ -96,16 +96,17 @@ VoxelWorld::~VoxelWorld() {
 }
 
 VoxelChunk* VoxelWorld::initChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
-	auto iter = chunks_map.find({ x, y, z });
+	VoxelCoordXYZ pos = { x, y, z };
+	auto iter = chunks_map.find(pos);
 
 	if (iter != chunks_map.end())
 		return iter->second;
 
 	VoxelChunk* chunk = new VoxelChunk(this, x, y, z);
 
-	chunks_map.insert({ { x, y, z }, chunk });
+	chunks_map.insert({ pos, chunk });
 
-	flagChunk({ x,y,z }, false);
+	flagChunk(pos, false);
 
 	// Flag our three neighbors that share faces
 
@@ -115,7 +116,53 @@ VoxelChunk* VoxelWorld::initChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
 	flagChunk({ x, y - 1, z }, false);
 	flagChunk({ x, y, z - 1 }, false);
 
+	updateMinMax(pos);
+
 	return chunk;
+}
+
+void VoxelWorld::updateMinMax(const VoxelCoordXYZ & chunkPos) {
+	if (minChunk[0] > chunkPos[0]) {
+		// x min
+		minChunk[0] = chunkPos[0];
+		minPos[0] = chunkPos[0] * VOXEL_CHUNK_SIZE;
+	}
+	else if (maxChunk[0] < chunkPos[0]) {
+		// x max
+		maxChunk[0] = chunkPos[0];
+		maxPos[0] = (chunkPos[0] + 1) * VOXEL_CHUNK_SIZE - 1;
+	}
+
+	if (minChunk[1] > chunkPos[1]) {
+		// y min
+		minChunk[1] = chunkPos[1];
+		minPos[1] = chunkPos[1] * VOXEL_CHUNK_SIZE;
+	}
+	else if (maxChunk[1] < chunkPos[1]) {
+		// y max
+		maxChunk[1] = chunkPos[1];
+		maxPos[1] = (chunkPos[1] + 1) * VOXEL_CHUNK_SIZE - 1;
+	}
+
+	if (minChunk[2] > chunkPos[2]) {
+		// z min
+		minChunk[2] = chunkPos[2];
+		minPos[2] = chunkPos[2] * VOXEL_CHUNK_SIZE;
+	}
+	else if (maxChunk[2] < chunkPos[2]) {
+		// z max
+		maxChunk[2] = chunkPos[2];
+		maxPos[2] = (chunkPos[2] + 1) * VOXEL_CHUNK_SIZE - 1;
+	}
+}
+
+void VoxelWorld::fullUpdateMinMax() {
+	minChunk = { 0,0,0 };
+	maxChunk = { 0,0,0 };
+
+	for (auto it : chunks_map) {
+		updateMinMax(it.first);
+	}
 }
 
 VoxelChunk* VoxelWorld::getChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
@@ -258,37 +305,22 @@ void VoxelWorld::initialize() {
 	// TODO: remove this entirely actually, this only generates positive int chunks, but we're going arbitrary...
 	if (IS_SERVERSIDE) {
 		// Only explicitly init the map on the server
-		if (!config.huge) {
-			VoxelCoord max_chunk_x = (config.dims_x - 1) / VOXEL_CHUNK_SIZE;
-			VoxelCoord max_chunk_y = (config.dims_y - 1) / VOXEL_CHUNK_SIZE;
-			VoxelCoord max_chunk_z = (config.dims_z - 1) / VOXEL_CHUNK_SIZE;
 
+		// vox_print("---> %i %i %i",max_chunk_x,max_chunk_y,max_chunk_z);
 
-			//vox_print("---> %i %i %i",max_chunk_x,max_chunk_y,max_chunk_z);
-
-			for (VoxelCoord x = 0; x <= max_chunk_x; x++) {
-				for (VoxelCoord y = 0; y <= max_chunk_y; y++) {
-					for (VoxelCoord z = 0; z <= max_chunk_z; z++) {
-						initChunk(x, y, z)->generate();
-					}
+		for (VoxelCoord x = 0; x <= VOXEL_INIT_X; x++) {
+			for (VoxelCoord y = 0; y <= VOXEL_INIT_Y; y++) {
+				for (VoxelCoord z = 0; z <= VOXEL_INIT_Z; z++) {
+					initChunk(x, y, z)->generate();
 				}
 			}
-			// todo do we do mapgen here?
-		}
-		else {
-			vox_print("HUGE WORLDS NOT IMPLEMENTED YET!");
 		}
 	}
 }
 
 // Warning: We don't give a shit about this with huge worlds!
 Vector VoxelWorld::getExtents() {
-
-	return Vector(
-		config.dims_x*config.scale,
-		config.dims_y*config.scale,
-		config.dims_z*config.scale
-	);
+	return Vector(0,0,0);
 }
 
 double VoxelWorld::getBlockScale() {
@@ -673,7 +705,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 					return VoxelTraceRes();
 				vx += stepX;
 				tMaxX += tDeltaX;
-				if (vx < 0 || vx >= config.dims_x)
+				if (vx < minPos[0] || vx >= maxPos[0])
 					return VoxelTraceRes();
 				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
 			}
@@ -682,7 +714,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= config.dims_z)
+				if (vz < minPos[2] || vz >= maxPos[2])
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -693,7 +725,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 					return VoxelTraceRes();
 				vy += stepY;
 				tMaxY += tDeltaY;
-				if (vy < 0 || vy >= config.dims_y)
+				if (vy < minPos[1] || vy >= maxPos[1])
 					return VoxelTraceRes();
 				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
 			}
@@ -702,7 +734,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= config.dims_z)
+				if (vz < minPos[2] || vz >= maxPos[2])
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -835,7 +867,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 					return VoxelTraceRes();
 				vx += stepX;
 				tMaxX += tDeltaX;
-				if (vx < 0 || vx >= config.dims_x)
+				if (vx < minPos[0] || vx >= maxPos[0])
 					return VoxelTraceRes();
 				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
 			}
@@ -844,7 +876,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= config.dims_z)
+				if (vz < minPos[2] || vz >= maxPos[2])
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -855,7 +887,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 					return VoxelTraceRes();
 				vy += stepY;
 				tMaxY += tDeltaY;
-				if (vy < 0 || vy >= config.dims_y)
+				if (vy < minPos[1] || vy >= maxPos[1])
 					return VoxelTraceRes();
 				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
 			}
@@ -864,7 +896,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 					return VoxelTraceRes();
 				vz += stepZ;
 				tMaxZ += tDeltaZ;
-				if (vz < 0 || vz >= config.dims_z)
+				if (vz < minPos[2] || vz >= maxPos[2])
 					return VoxelTraceRes();
 				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
 			}
@@ -951,7 +983,6 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 				}
 			}
 		}
-
 	}
 
 	vox_print("[bail-hull] %i %i %i", vx, vy, vz);
@@ -993,26 +1024,27 @@ int div_floor(int x, int y) {
 BlockData VoxelWorld::get(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
 	int qx = x / VOXEL_CHUNK_SIZE;
 
-
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	if (chunk == nullptr) {
 		return 0;
 	}
+
 	return chunk->get(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE);
 }
 
 // Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
 bool VoxelWorld::set(VoxelCoord x, VoxelCoord y, VoxelCoord z, BlockData d, bool flagChunks) {
 	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
-	if (chunk == nullptr || (!config.huge && (x >= config.dims_x || y >= config.dims_y || z >= config.dims_z)))
-		return false;
 
+	if (chunk == nullptr) {
+		chunk = initChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
+	}
+	
 	chunk->set(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE, d, flagChunks);
 	return true;
 }
 
-void VoxelWorld::flagChunk(VoxelCoordXYZ chunk_pos, bool high_priority)
-{
+void VoxelWorld::flagChunk(VoxelCoordXYZ chunk_pos, bool high_priority) {
 	if (!dirty_chunk_set.count(chunk_pos)) {
 		dirty_chunk_set.insert(chunk_pos);
 		if (high_priority) {

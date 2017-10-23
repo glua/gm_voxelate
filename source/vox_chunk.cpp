@@ -21,13 +21,13 @@ VoxelChunk::~VoxelChunk() {
 
 // todo allow any function to be used for generation, based on config
 void VoxelChunk::generate() {
-	int offset_x = posX*VOXEL_CHUNK_SIZE;
-	int offset_y = posY*VOXEL_CHUNK_SIZE;
-	int offset_z = posZ*VOXEL_CHUNK_SIZE;
+	int offset_x = posX * VOXEL_CHUNK_SIZE;
+	int offset_y = posY * VOXEL_CHUNK_SIZE;
+	int offset_z = posZ * VOXEL_CHUNK_SIZE;
 
-	int max_x = world->config.huge ? VOXEL_CHUNK_SIZE : MIN(world->config.dims_x - offset_x, VOXEL_CHUNK_SIZE);
-	int max_y = world->config.huge ? VOXEL_CHUNK_SIZE : MIN(world->config.dims_y - offset_y, VOXEL_CHUNK_SIZE);
-	int max_z = world->config.huge ? VOXEL_CHUNK_SIZE : MIN(world->config.dims_z - offset_z, VOXEL_CHUNK_SIZE);
+	static const int max_x = VOXEL_CHUNK_SIZE;
+	static const int max_y = VOXEL_CHUNK_SIZE;
+	static const int max_z = VOXEL_CHUNK_SIZE;
 
 	for (int x = 0; x < max_x; x++) {
 		for (int y = 0; y < max_y; y++) {
@@ -40,39 +40,28 @@ void VoxelChunk::generate() {
 }
 
 void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
-
 	physicsMeshClearAll();
+#ifdef VOXELATE_CLIENT
+	graphicsMeshClearAll();
+#endif
 
 	VoxelChunk* next_chunk_x = world->getChunk(posX + 1, posY, posZ);
 	VoxelChunk* next_chunk_y = world->getChunk(posX, posY + 1, posZ);
 	VoxelChunk* next_chunk_z = world->getChunk(posX, posY, posZ + 1);
 
-	bool huge = world->config.huge;
-	bool buildExterior = world->config.buildExterior;
-
 	// Hoo boy. Get ready to see some shit.
 
-	int hard_upper_bound_x = (world->config.dims_x - posX*VOXEL_CHUNK_SIZE);
-	int hard_upper_bound_y = (world->config.dims_y - posY*VOXEL_CHUNK_SIZE);
-	int hard_upper_bound_z = (world->config.dims_z - posZ*VOXEL_CHUNK_SIZE);
+	static const int upper_bound_x = VOXEL_CHUNK_SIZE;
+	static const int upper_bound_y = VOXEL_CHUNK_SIZE;
+	static const int upper_bound_z = VOXEL_CHUNK_SIZE;
 
-	int upper_bound_x = !huge && hard_upper_bound_x < VOXEL_CHUNK_SIZE ? hard_upper_bound_x : VOXEL_CHUNK_SIZE;
-	int upper_bound_y = !huge && hard_upper_bound_y < VOXEL_CHUNK_SIZE ? hard_upper_bound_y : VOXEL_CHUNK_SIZE;
-	int upper_bound_z = !huge && hard_upper_bound_z < VOXEL_CHUNK_SIZE ? hard_upper_bound_z : VOXEL_CHUNK_SIZE;
+	static const int lower_slice_x = 0;
+	static const int lower_slice_y = 0;
+	static const int lower_slice_z = 0;
 
-	int lower_slice_x = !huge && buildExterior && posX == 0 ? -1 : 0;
-	int lower_slice_y = !huge && buildExterior && posY == 0 ? -1 : 0;
-	int lower_slice_z = !huge && buildExterior && posZ == 0 ? -1 : 0;
-
-	if (!huge && !buildExterior) {
-		hard_upper_bound_x--;
-		hard_upper_bound_y--;
-		hard_upper_bound_z--;
-	}
-
-	int upper_slice_x = !huge && hard_upper_bound_x < VOXEL_CHUNK_SIZE ? hard_upper_bound_x : VOXEL_CHUNK_SIZE;
-	int upper_slice_y = !huge && hard_upper_bound_y < VOXEL_CHUNK_SIZE ? hard_upper_bound_y : VOXEL_CHUNK_SIZE;
-	int upper_slice_z = !huge && hard_upper_bound_z < VOXEL_CHUNK_SIZE ? hard_upper_bound_z : VOXEL_CHUNK_SIZE;
+	static int upper_slice_x = VOXEL_CHUNK_SIZE;
+	static int upper_slice_y = VOXEL_CHUNK_SIZE;
+	static int upper_slice_z = VOXEL_CHUNK_SIZE;
 
 	VoxelType* blockTypes = world->config.voxelTypes;
 
@@ -282,8 +271,6 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 }
 
 void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZE][VOXEL_CHUNK_SIZE], int upper_bound_x, int upper_bound_y, int scaling_size) {
-	// scaling_size = 1;
-
 	for (int y = 0; y < upper_bound_y; y++) {
 		for (int x = 0; x < upper_bound_x; x++) {
 			if (faces[y][x].present) {

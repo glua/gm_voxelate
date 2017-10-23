@@ -21,6 +21,7 @@ newoption({
 local ENET_DIRECTORY = "../enet"
 
 CreateWorkspace({name = "voxelate"})
+	configurations { "Debug", "Release" }
 	defines({
 		"BT_USE_DOUBLE_PRECISION",
 		"RAD_TELEMETRY_DISABLED"
@@ -109,6 +110,9 @@ CreateWorkspace({name = "voxelate"})
 	CreateProject({serverside = true})
 		language("C++")
 		cppdialect("C++11")
+		warnings("Extra")
+		symbols "On"
+		editandcontinue "On"
 
 		luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
 			luaEntryPoint("init.lua")
@@ -135,7 +139,10 @@ CreateWorkspace({name = "voxelate"})
 	CreateProject({serverside = false})
 		language("C++")
 		cppdialect("C++11")
-
+		warnings("Extra")
+		symbols "On"
+		editandcontinue "On"
+		
 		luaProjectEx("voxelate_bootstrap","../lua","../source/vox_lua_src.h")
 			luaEntryPoint("init.lua")
 			includeLua("../lua/**")
@@ -206,21 +213,28 @@ CreateWorkspace({name = "voxelate"})
 			})
 			files(ENET_DIRECTORY .. "/unix.c")
 
+	local oProj = project
+	function project(...)
+		filter "configurations:Release"
+			optimize "On"
+			vectorextensions "SSE2"
+			floatingpoint "Fast"
+			flags { "StaticRuntime", "NoMinimalRebuild"}
+		filter "configurations:Debug"
+			defines {"_DEBUG=1"}
+			symbols "On"
+			editandcontinue "Off"
+			floatingpoint "Fast"
+			flags { "StaticRuntime" , "NoMinimalRebuild"}
+		filter()
+		
+		local p = oProj(...)
 
-	configurations {"Release", "Debug"}
-	configuration "Release"
-		optimize "On"
-		vectorextensions "SSE2"
-		floatingpoint "Fast"
-		flags { "StaticRuntime", "NoMinimalRebuild"}
-	configuration "Debug"
-		defines {"_DEBUG=1"}
-		symbols "On"
-		editandcontinue "Off"
-		floatingpoint "Fast"
-		flags { "StaticRuntime" , "NoMinimalRebuild"}
-	configuration()
+		warnings("Off")
 
+		return p
+	end
+	
 		projectRootDir = os.getcwd().."/../bullet3-2.87/"
 		dofile "../bullet3-2.87/build3/findOpenCL.lua"
 
@@ -236,3 +250,5 @@ CreateWorkspace({name = "voxelate"})
 		include "../bullet3-2.87/src/BulletDynamics"
 		include "../bullet3-2.87/src/BulletCollision"
 		include "../bullet3-2.87/src/LinearMath"
+
+	project = oProj
