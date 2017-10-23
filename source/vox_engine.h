@@ -11,7 +11,7 @@
 // Server interfaces
 extern IVEngineServer* IFACE_SV_ENGINE;
 extern IPhysicsCollision* IFACE_SH_COLLISION;
-extern IPhysics* IFACE_SV_PHYSICS;
+extern IPhysics* IFACE_SH_PHYSICS;
 
 // Client interfaces
 extern IMaterialSystem* IFACE_CL_MATERIALS;

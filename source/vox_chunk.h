@@ -44,7 +44,7 @@ public:
 
 	int posX, posY, posZ;
 
-	BlockData voxel_data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = {};
+	BlockData voxel_data[VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE] = {0};
 private:
 	void physicsMeshClearAll();
 

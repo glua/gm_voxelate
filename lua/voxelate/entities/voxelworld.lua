@@ -17,6 +17,10 @@ function ENT:Initialize()
 	--self.subEntities = {}
 	--self.incrementingSubEntityIndex = 0
 
+	hook.Add("PostDrawTranslucentRenderables","voxl",function()
+		self:Draw()
+	end)
+
 	if SERVER then
 		--self:UpdateVoxelLoadState("LOADING_CHUNKS")
 
@@ -58,14 +62,16 @@ end
 function ENT:SetupBounds()
 	local index = self:GetInternalIndex()
 
-	local bounds = internals.voxBounds(index)
-	if not bounds then return end
+	local mins,maxs = internals.voxBounds(index)
+
+	-- mins = mins + self:GetPos()
+	-- maxs = maxs + self:GetPos()
 
 	self:EnableCustomCollisions(true)
 	self:SetSolid(SOLID_BBOX)
 
-	local mins = Vector(0,0,0)
-	local maxs = bounds
+	-- local mins = Vector(0,0,0)
+	-- local maxs = bounds
 
 	self.correct_maxs = maxs
 
@@ -83,11 +89,7 @@ function ENT:Think()
 	internals.voxUpdate(index,20,self)
 
 	if CLIENT then
-		if not self.correct_maxs then
-			-- bounds not setup, try setting them up.
-
-			self:SetupBounds()
-		else
+		if self.correct_maxs then
 			-- bounds are set up, see if they need fixed.
 			local _,maxs = self:GetRenderBounds()
 			if maxs~=self.correct_maxs then
@@ -97,11 +99,13 @@ function ENT:Think()
 		end
 	end
 
+	self:SetupBounds()
+	
 	self:NextThink(CurTime())
 	return true
 end
 
--- local _self
+-- local _self,chunks
 function ENT:Draw()
 	-- _self = self
 	local index = self:GetInternalIndex()
@@ -145,10 +149,19 @@ end
 -- 	-- end)
 -- 	-- print(chunks[1],player)
 
--- 	center = center / 40 / 16
--- 	center = Vector(math.floor(center.x),math.floor(center.y),math.floor(center.z))
+	-- print("FRAMEDUMP")
 
--- 	chunks = {
+	-- print(center / 40)
+
+	-- center = center / 40 / 16
+	-- center = Vector(math.floor(center.x),math.floor(center.y),math.floor(center.z))
+
+	-- print(center)
+	-- print(pcall(function()
+	-- 	internals.loadChunk(_self:GetInternalIndex(),{center.x,center.y,center.z})
+	-- end))
+
+	-- chunks = {
 -- 		center + Vector(-1,-1,-1),
 -- 		center + Vector(-1,-1,0),
 -- 		center + Vector(-1,-1,1),
@@ -163,7 +176,7 @@ end
 -- 		center + Vector(0,-1,0),
 -- 		center + Vector(0,-1,1),
 -- 		center + Vector(0,0,-1),
--- 		center,
+		-- center,
 -- 		center + Vector(0,0,1),
 -- 		center + Vector(0,1,-1),
 -- 		center + Vector(0,1,0),
@@ -178,7 +191,7 @@ end
 -- 		center + Vector(1,1,-1),
 -- 		center + Vector(1,1,0),
 -- 		center + Vector(1,1,1),
--- 	}
+	-- }
 
 -- 	-- for x=1,16 do
 -- 	-- 	for y=1,16 do
@@ -199,8 +212,8 @@ function ENT:TestCollision(start,delta,isbox,extents)
 	if fraction then
 		hitpos = self:LocalToWorld(hitpos)
 		if isbox and (normal.x~=0 or normal.y~=0) then
-			--debugoverlay.Box(hitpos,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,0,0,0))
-			--debugoverlay.Line(hitpos,hitpos+normal*100,.05,Color(0,0,255))
+			-- debugoverlay.Box(hitpos,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,0,0,0))
+			-- debugoverlay.Line(hitpos,hitpos+normal*100,.05,Color(0,0,255))
 		end
 		return {
 			Fraction = fraction,

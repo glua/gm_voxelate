@@ -174,6 +174,13 @@ VoxelChunk* VoxelWorld::getChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
 	return iter->second;
 }
 
+// takes in CHUNK coordinates
+bool VoxelWorld::isChunkLoaded(VoxelCoordXYZ pos) {
+	auto iter = chunks_map.find(pos);
+
+	return iter != chunks_map.end();
+}
+
 // Fills a buffer at out with COMPRESSED chunk data, returns size.
 
 const int CHUNK_BUFFER_SIZE = 9000;
@@ -308,9 +315,9 @@ void VoxelWorld::initialize() {
 
 		// vox_print("---> %i %i %i",max_chunk_x,max_chunk_y,max_chunk_z);
 
-		for (VoxelCoord x = 0; x <= VOXEL_INIT_X; x++) {
-			for (VoxelCoord y = 0; y <= VOXEL_INIT_Y; y++) {
-				for (VoxelCoord z = 0; z <= VOXEL_INIT_Z; z++) {
+		for (VoxelCoord x = -VOXEL_INIT_X; x <= VOXEL_INIT_X; x++) {
+			for (VoxelCoord y = -VOXEL_INIT_X; y <= VOXEL_INIT_Y; y++) {
+				for (VoxelCoord z = -VOXEL_INIT_X; z <= VOXEL_INIT_Z; z++) {
 					initChunk(x, y, z)->generate();
 				}
 			}
@@ -319,8 +326,8 @@ void VoxelWorld::initialize() {
 }
 
 // Warning: We don't give a shit about this with huge worlds!
-Vector VoxelWorld::getExtents() {
-	return Vector(0,0,0);
+std::tuple<VoxelCoordXYZ, VoxelCoordXYZ> VoxelWorld::getExtents() {
+	return { minPos, maxPos };
 }
 
 double VoxelWorld::getBlockScale() {
@@ -599,52 +606,99 @@ void VoxelWorld::doUpdates(int count, CBaseEntity* ent, float curTime) {
 	}
 }
 
+bool VoxelWorld::isPositionInside(Vector pos) {
+	if (pos.x < maxPos[0]) {
+		if (pos.x > minPos[0]) {
+			if (pos.y < maxPos[1]) {
+				if (pos.y > minPos[1]) {
+					if (pos.z < maxPos[2]) {
+						if (pos.z > minPos[2]) {
+							// welcome to the great pyramids of giza
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+inline btVector3 SourcePositionToBullet(Vector pos) {
+	return btVector3(pos.x, pos.z, -pos.y);
+}
+
+inline Vector BulletPositionToSource(btVector3 pos) {
+	return Vector(pos[0], -pos[2], pos[1]);
+}
+
 // Function for line traces. Re-scales vectors and moves the start to the beggining of the voxel entity,
 // Then calls fast trace function
 VoxelTraceRes VoxelWorld::doTrace(Vector startPos, Vector delta) {
-	Vector voxel_extents = getExtents();
+	return doTrace(SourcePositionToBullet(startPos), SourcePositionToBullet(delta));
+}
 
-	if (startPos.WithinAABox(Vector(0,0,0), voxel_extents)) {
-		return iTrace(startPos/config.scale , delta/config.scale, Vector(0,0,0)) * config.scale;
+VoxelTraceRes VoxelWorld::doTrace(btVector3 startPos, btVector3 delta) {
+	auto endPos = startPos + delta;
+
+	btCollisionWorld::ClosestRayResultCallback RayCallback(startPos, endPos);
+
+	dynamicsWorld->rayTest(startPos, endPos, RayCallback);
+
+	VoxelTraceRes res;
+
+	if (RayCallback.hasHit()) {
+		res.fraction = RayCallback.m_closestHitFraction;
+		res.hitPos = BulletPositionToSource(RayCallback.m_hitPointWorld);
+		res.hitNormal = BulletPositionToSource(RayCallback.m_hitNormalWorld);
 	}
-	else {
-		Ray_t ray;
-		ray.Init(startPos,startPos+delta);
-		CBaseTrace tr;
-		IntersectRayWithBox(ray, Vector(0, 0, 0), voxel_extents, 0, &tr);
 
-		startPos = tr.endpos;
-		delta *= 1-tr.fraction;
-
-		return iTrace(startPos / config.scale, delta / config.scale, tr.plane.normal) * config.scale;
-	}
+	return res;
 }
 
 // Same as above for hull traces.
 // TODO deal with assumption mentioned below...?
 VoxelTraceRes VoxelWorld::doTraceHull(Vector startPos, Vector delta, Vector extents) {
-	Vector voxel_extents = getExtents();
-
-	//Calculate our bounds based on the offsets used by the player hull. This will not work for everything, but will preserve player movement.
-	Vector box_lower = startPos - Vector(extents.x, extents.y, 0);
-
-	Vector box_upper = startPos + Vector(extents.x, extents.y, extents.z*2);
-
-	if (IsBoxIntersectingBox(box_lower,box_upper,Vector(0,0,0),voxel_extents)) {
-		return iTraceHull(startPos/config.scale,delta/config.scale,extents/config.scale, Vector(0,0,0)) * config.scale;
-	}
-	else {
-		Ray_t ray;
-		ray.Init(startPos, startPos + delta, box_lower, box_upper);
-		CBaseTrace tr;
-		IntersectRayWithBox(ray, Vector(0, 0, 0), voxel_extents, 0, &tr);
-
-		startPos = tr.endpos;
-		delta *= 1 - tr.fraction;
-
-		return iTraceHull(startPos / config.scale, delta / config.scale, extents / config.scale, tr.plane.normal) * config.scale;
-	}
+	return doTraceHull(
+		SourcePositionToBullet(startPos),
+		SourcePositionToBullet(delta),
+		SourcePositionToBullet(extents)
+	);
 }
+
+VoxelTraceRes VoxelWorld::doTraceHull(btVector3 startPos, btVector3 delta, btVector3 extents) {
+	auto endPos = startPos + delta;
+
+	btBoxShape *box = new btBoxShape(extents.absolute());
+
+	btCollisionWorld::ClosestConvexResultCallback RayCallback(startPos, endPos);
+
+	btTransform startTransform(btMatrix3x3::getIdentity(), startPos);
+	btTransform endTransform(btMatrix3x3::getIdentity(), endPos);
+
+	dynamicsWorld->convexSweepTest(box, startTransform, endTransform, RayCallback);
+
+	VoxelTraceRes res;
+
+	if (RayCallback.hasHit()) {
+		res.fraction = RayCallback.m_closestHitFraction;
+		if (RayCallback.m_closestHitFraction == 0) {
+			res.hitPos = BulletPositionToSource(startPos);
+			res.hitNormal = Vector(0,0,0);
+		}
+		else {
+			res.hitPos = BulletPositionToSource(RayCallback.m_hitPointWorld);
+			res.hitNormal = BulletPositionToSource(RayCallback.m_hitNormalWorld);
+		}
+	}
+
+	delete box;
+
+	return res;
+}
+
+
 
 // Fast trace function, based on http://www.cse.chalmers.se/edu/year/2011/course/TDA361/Advanced%20Computer%20Graphics/grid.pdf
 VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal) {
@@ -697,7 +751,7 @@ VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal
 	double tDeltaZ = fabs(1 / delta.z);
 
 	int failsafe = 0;
-	while (failsafe++<10000) {
+	while (failsafe++ < 10000) {
 		byte dir = 0;
 		if (tMaxX < tMaxY) {
 			if (tMaxX < tMaxZ) {
@@ -858,8 +912,7 @@ VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector exten
 	double tDeltaZ = fabs(1 / delta.z);
 
 	int failsafe = 0;
-	bool bail = false;
-	while (failsafe++<10000 && !bail) {
+	while (failsafe++ < 10000) {
 		byte dir = 0;
 		if (tMaxX < tMaxY) {
 			if (tMaxX < tMaxZ) {
@@ -1020,6 +1073,16 @@ int div_floor(int x, int y) {
 	return q;
 }
 
+inline VoxelCoord chunkRel(VoxelCoord coord) {
+	coord %= VOXEL_CHUNK_SIZE;
+
+	if (coord < 0) {
+		return coord + VOXEL_CHUNK_SIZE;
+	}
+
+	return coord;
+}
+
 // Gets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
 BlockData VoxelWorld::get(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
 	int qx = x / VOXEL_CHUNK_SIZE;
@@ -1029,7 +1092,7 @@ BlockData VoxelWorld::get(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
 		return 0;
 	}
 
-	return chunk->get(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE);
+	return chunk->get(chunkRel(x % VOXEL_CHUNK_SIZE), chunkRel(y % VOXEL_CHUNK_SIZE), chunkRel(z % VOXEL_CHUNK_SIZE));
 }
 
 // Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
@@ -1040,7 +1103,7 @@ bool VoxelWorld::set(VoxelCoord x, VoxelCoord y, VoxelCoord z, BlockData d, bool
 		chunk = initChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
 	}
 	
-	chunk->set(x % VOXEL_CHUNK_SIZE, y % VOXEL_CHUNK_SIZE, z % VOXEL_CHUNK_SIZE, d, flagChunks);
+	chunk->set(chunkRel(x % VOXEL_CHUNK_SIZE), chunkRel(y % VOXEL_CHUNK_SIZE), chunkRel(z % VOXEL_CHUNK_SIZE), d, flagChunks);
 	return true;
 }
 

@@ -26,6 +26,8 @@ public:
 	void fullUpdateMinMax();
 	VoxelChunk* getChunk(VoxelCoord x, VoxelCoord y, VoxelCoord z);
 
+	bool isChunkLoaded(VoxelCoordXYZ pos);
+
 	const int getChunkData(VoxelCoord x, VoxelCoord y, VoxelCoord z, char * out);
 	bool setChunkData(VoxelCoord x, VoxelCoord y, VoxelCoord z, const char* data_compressed, int data_len);
 
@@ -35,7 +37,7 @@ public:
 
 	void initialize();
 
-	Vector getExtents();
+	std::tuple<VoxelCoordXYZ, VoxelCoordXYZ> getExtents();
 	double getBlockScale();
 
 	std::vector<VoxelCoordXYZ> getAllChunkPositions(Vector origin);
@@ -52,8 +54,12 @@ public:
 
 	void doUpdates(int count, CBaseEntity * ent, float curTime);
 
+	bool isPositionInside(Vector pos);
+
 	VoxelTraceRes doTrace(Vector startPos, Vector delta);
+	VoxelTraceRes doTrace(btVector3 startPos, btVector3 delta);
 	VoxelTraceRes doTraceHull(Vector startPos, Vector delta, Vector extents);
+	VoxelTraceRes doTraceHull(btVector3 startPos, btVector3 delta, btVector3 extents);
 
 	VoxelTraceRes iTrace(Vector startPos, Vector delta, Vector defNormal);
 	VoxelTraceRes iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal);
@@ -65,6 +71,8 @@ public:
 
 	//bool trackUpdates = false;
 	//std::vector<XYZCoordinate> queued_block_updates;
+
+	VoxelConfig config;
 private:
 	//bool initialised = false;
 
@@ -74,8 +82,6 @@ private:
 
 	std::deque<VoxelCoordXYZ> dirty_chunk_queue;
 	std::set<VoxelCoordXYZ> dirty_chunk_set;
-
-	VoxelConfig config;
 
 	// physics
 	btDefaultCollisionConfiguration* collisionConfiguration = nullptr;

@@ -11,8 +11,10 @@
 #include "vox_engine.h"
 #include "vox_util.h"
 #include "vox_voxelworld.h"
+#include "vox_chunk.h"
 
 #include "vox_network.h"
+
 
 #include "GarrysMod/LuaHelpers.hpp"
 
@@ -209,19 +211,6 @@ LUA_FUNCTION(luaf_voxDraw) {
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
 		v->draw();
-	}
-
-	return 0;
-}
-
-LUA_FUNCTION(luaf_voxBounds) {
-	int index = LUA->CheckNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v != nullptr) {
-		auto bounds = v->getExtents();
-		LUA->PushVector(bounds);
-		return 1;
 	}
 
 	return 0;
@@ -534,6 +523,125 @@ LUA_FUNCTION(luaf_voxTrace) {
 	return 0;
 }
 
+#define VOXF(name) \
+	lua_pushcfunction(LUA->GetState(), voxF_##name); \
+	lua_setfield(LUA->GetState(), -2, #name)
+
+#define VOXDEF(name) \
+	int voxF_##name(lua_State* state)
+
+inline VoxelWorld* luaL_checkvoxelworld(lua_State* state, int loc) {
+	int index = luaL_checknumber(state, loc);
+
+	auto world = getIndexedVoxelWorld(index);
+
+	if (world != nullptr) {
+		return world;
+	}
+	else {
+		lua_pushfstring(state, "Invalid voxel world index [%d]!", index);
+		lua_error(state);
+
+		return NULL; // to keep the compiler happy
+	}
+}
+
+inline VoxelCoordXYZ luaL_checkvoxelxyz(lua_State* state, int loc) {
+	luaL_checktype(state, loc, LUA_TTABLE);
+
+	lua_rawgeti(state, loc, 1);
+	int x = luaL_checknumber(state, -1);
+	lua_pop(state, 1);
+
+	lua_rawgeti(state, loc, 2);
+	int y = luaL_checknumber(state, -1);
+	lua_pop(state, 1);
+
+	lua_rawgeti(state, loc, 3);
+	int z = luaL_checknumber(state, -1);
+	lua_pop(state, 1);
+
+	return { x,y,z };
+}
+
+inline void luaL_pushvector(lua_State* state, float x, float y, float z) {
+	lua_getglobal(state, "Vector");
+
+	lua_pushnumber(state, x);
+	lua_pushnumber(state, y);
+	lua_pushnumber(state, z);
+
+	lua_call(state, 3, 1);
+}
+
+inline void luaL_pushvector(lua_State* state, Vector v) {
+	lua_getglobal(state, "Vector");
+
+	lua_pushnumber(state, v.x);
+	lua_pushnumber(state, v.y);
+	lua_pushnumber(state, v.z);
+
+	lua_call(state, 3, 1);
+}
+
+inline void luaL_pushvector(lua_State* state, VoxelCoordXYZ p) {
+	lua_getglobal(state, "Vector");
+
+	lua_pushnumber(state, p[0]);
+	lua_pushnumber(state, p[1]);
+	lua_pushnumber(state, p[2]);
+
+	lua_call(state, 3, 1);
+}
+
+VOXDEF(isChunkLoaded) {
+	auto world = luaL_checkvoxelworld(state, 1);
+	auto pos = luaL_checkvoxelxyz(state, 2);
+
+	lua_pushboolean(state, world->isChunkLoaded(pos));
+
+	return 1;
+}
+
+VOXDEF(loadChunk) {
+	auto world = luaL_checkvoxelworld(state, 1);
+	auto pos = luaL_checkvoxelxyz(state, 2);
+
+	if (!world->isChunkLoaded(pos)) {
+		auto chunk = world->initChunk(pos[0], pos[1], pos[2]);
+		chunk->generate();
+
+		lua_pushboolean(state, true);
+	}
+	else {
+		lua_pushboolean(state, false);
+	}
+
+	return 1;
+}
+
+VOXDEF(voxBounds) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+
+	auto bounds = v->getExtents();
+
+	auto min = std::get<0>(bounds);
+	min[0] *= v->config.scale;
+	min[1] *= v->config.scale;
+	min[2] *= v->config.scale;
+
+	luaL_pushvector(state, min);
+
+	auto max = std::get<1>(bounds);
+	max[0] *= v->config.scale;
+	max[1] *= v->config.scale;
+	max[2] *= v->config.scale;
+
+	luaL_pushvector(state, max);
+
+	return 2;
+}
+
 // Bootstrap shit
 void setupFiles();
 const char* grabBootstrap();
@@ -620,6 +728,10 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 
 	LUA->CreateTable();
 
+	VOXF(isChunkLoaded);
+	VOXF(loadChunk);
+	VOXF(voxBounds);
+
 	LUA->PushCFunction(luaf_voxNewWorld);
 	LUA->SetField(-2, "voxNewWorld");
 
@@ -643,9 +755,6 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 
 	LUA->PushCFunction(luaf_voxGenerateDefault);
 	LUA->SetField(-2, "voxGenerateDefault");*/
-
-	LUA->PushCFunction(luaf_voxBounds);
-	LUA->SetField(-2, "voxBounds");
 
 	LUA->PushCFunction(luaf_voxGetBlockScale);
 	LUA->SetField(-2, "voxGetBlockScale");

@@ -5,6 +5,7 @@ BlockData vox_worldgen_basic(VoxelCoord _x, VoxelCoord _y, VoxelCoord _z) {
 	auto y = static_cast<double>(_y);
 	auto z = static_cast<double>(_z);
 
+	/*
 	z = z - 50 + floor(sin((x + 30) / 32) * 8 + cos((y - 20) / 32) * 8);
 
 	if (z < 40) {
@@ -24,6 +25,17 @@ BlockData vox_worldgen_basic(VoxelCoord _x, VoxelCoord _y, VoxelCoord _z) {
 
 			return 5;
 		}
+	}
+	*/
+
+	if (z < -40) {
+		return 7; // stone
+	}
+	else if (z < 0) {
+		return 8; // dirt
+	}
+	else if (z == 0) {
+		return 1; // grass
 	}
 
 	return 0;

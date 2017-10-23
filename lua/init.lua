@@ -12,6 +12,7 @@ end
 
 local modules = {}
 local INTERNALS = G_VOX_IMPORTS
+voxelate_internals = G_VOX_IMPORTS
 _G.G_VOX_IMPORTS = nil
 
 local FILETABLE = FILETABLE

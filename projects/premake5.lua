@@ -215,20 +215,12 @@ CreateWorkspace({name = "voxelate"})
 
 	local oProj = project
 	function project(...)
-		filter "configurations:Release"
-			optimize "On"
-			vectorextensions "SSE2"
-			floatingpoint "Fast"
-			flags { "StaticRuntime", "NoMinimalRebuild"}
-		filter "configurations:Debug"
-			defines {"_DEBUG=1"}
-			symbols "On"
-			editandcontinue "Off"
-			floatingpoint "Fast"
-			flags { "StaticRuntime" , "NoMinimalRebuild"}
-		filter()
-		
 		local p = oProj(...)
+		
+		optimize "On"
+		vectorextensions "SSE2"
+		floatingpoint "Fast"
+		flags { "StaticRuntime", "NoMinimalRebuild"}
 
 		warnings("Off")
 

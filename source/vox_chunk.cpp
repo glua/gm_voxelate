@@ -379,9 +379,9 @@ void VoxelChunk::draw(CMatRenderContextPtr& pRenderContext) {
 	lua_pop(lastState, 1);
 	*/
 
-	for (IMesh* m : meshes) {
-		m->Draw();
-	}
+	if (meshes.begin() != meshes.end())
+		for (IMesh* m : meshes)
+			m->Draw();
 }
 
 VoxelCoordXYZ VoxelChunk::getWorldCoords() {
@@ -431,10 +431,10 @@ void VoxelChunk::physicsMeshClearAll() {
 	meshInterface = nullptr;
 	chunkBody = nullptr;
 
-#ifdef VOXELATE_SERVER
+#ifdef VOXELATE_SERVER_VPHYSICS
 	// *
 	if (phys_obj!=nullptr) {
-		IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
+		IPhysicsEnvironment* env = IFACE_SH_PHYSICS->GetActiveEnvironmentByIndex(0);
 		phys_obj->SetGameData(nullptr);
 		phys_obj->EnableCollisions(false);
 		phys_obj->RecheckCollisionFilter();
@@ -463,7 +463,7 @@ void VoxelChunk::graphicsMeshClearAll() {
 void VoxelChunk::physicsMeshStart() {
 	meshInterface = new btTriangleMesh();
 
-#ifdef VOXELATE_SERVER
+#ifdef VOXELATE_SERVER_VPHYSICS
 	phys_soup = IFACE_SH_COLLISION->PolysoupCreate();
 #endif
 }
@@ -484,24 +484,22 @@ void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
 		btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface, true, true);
 		// meshInterface = nullptr;
 
-		btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
-
 		btTransform groundTransform;
 		groundTransform.setIdentity();
-		groundTransform.setOrigin(btVector3(0, -56, 0));
+		groundTransform.setOrigin(btVector3(0, 0, 0));
 
 		btScalar mass(0.); // static
 		btVector3 localInertia(0, 0, 0);
 
 		btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
+		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, trimesh, localInertia);
 		chunkBody = new btRigidBody(rbInfo);
 
 		//add the body to the dynamics world
 		world->dynamicsWorld->addRigidBody(chunkBody);
 	}
 	
-#ifdef VOXELATE_SERVER
+#ifdef VOXELATE_SERVER_VPHYSICS
 	// *
 	if (phys_soup == nullptr)
 		return;
@@ -517,7 +515,7 @@ void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
 
 	Vector pos = eent_getPos(ent);
 
-	IPhysicsEnvironment* env = IFACE_SV_PHYSICS->GetActiveEnvironmentByIndex(0);
+	IPhysicsEnvironment* env = IFACE_SH_PHYSICS->GetActiveEnvironmentByIndex(0);
 	phys_obj = env->CreatePolyObjectStatic(phys_collider, 3, pos, QAngle(0, 0, 0), &op);
 	// */
 #endif
@@ -627,14 +625,14 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 	}
 	
 	meshInterface->addTriangle(
-		btVector3(v1.x, v1.y, v1.z),
-		btVector3(v2.x, v2.y, v2.z),
-		btVector3(v3.x, v3.y, v3.z)
+		SourcePositionToBullet(v1),
+		SourcePositionToBullet(v2),
+		SourcePositionToBullet(v3)
 	);
 	meshInterface->addTriangle(
-		btVector3(v1.x, v1.y, v1.z),
-		btVector3(v3.x, v3.y, v3.z),
-		btVector3(v4.x, v4.y, v4.z)
+		SourcePositionToBullet(v1),
+		SourcePositionToBullet(v3),
+		SourcePositionToBullet(v4)
 	);
 
 #ifdef VOXELATE_CLIENT
@@ -675,7 +673,7 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 	meshBuilder.TexCoord2f(1, uMin, vMin);
 	meshBuilder.Normal3f(1, 0, 0);
 	meshBuilder.AdvanceVertex();
-#elif VOXELATE_SERVER
+#elif VOXELATE_SERVER_VPHYSICS
 	// *
 	if (phys_soup == nullptr) {
 		physicsMeshStart();
