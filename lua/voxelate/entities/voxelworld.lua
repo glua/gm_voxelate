@@ -94,102 +94,16 @@ function ENT:Think()
 	return true
 end
 
--- local _self,chunks
 function ENT:Draw()
-	-- _self = self
 	local index = self:GetInternalIndex()
 
 	local m = Matrix()
 	m:Translate(self:GetPos())
 
-	-- TODO: when in an infinite world, place the player at Vec(0,0,0) and render the voxel world around the player
-
 	cam.PushModelMatrix(m)
 	internals.voxDraw(index)
 	cam.PopModelMatrix()
-
-	-- chunks = chunks or {}
-
-	-- for i,pos in ipairs(chunks) do
-	-- -- for i=1,9 do
-	-- 	-- local pos = chunks[i]
-	-- 	-- if not chunks[i] then break end
-	-- 	render.DrawWireframeBox(
-	-- 		pos * 16 * 40 + self:GetPos(),
-	-- 		Angle(0),
-	-- 		Vector(0),
-	-- 		Vector(16 * 40,16 * 40,16 * 40),
-	-- 		Color(255,0,0),
-	-- 		false
-	-- 	)
-	-- end
 end
-
--- timer.Create("Voxelate.DebugMesh",1,0,function()
--- 	if not _self then return end
--- 	local player = LocalPlayer():GetPos()
--- 	local center = _self:WorldToLocal(LocalPlayer():GetPos())
--- 	-- chunks = internals.voxGetAllChunks(_self:GetInternalIndex(),center)
--- 	-- print(center / 40 / 16)
--- 	-- table.sort(chunks,function(c1,c2)
--- 	-- 	local c1pos = c1 * 16 * 40 + _self:GetPos()
--- 	-- 	local c2pos = c2 * 16 * 40 + _self:GetPos()
--- 	-- 	return c1pos:LengthSqr(player) < c2pos:LengthSqr(player)
--- 	-- end)
--- 	-- print(chunks[1],player)
-
-	-- print("FRAMEDUMP")
-
-	-- print(center / 40)
-
-	-- center = center / 40 / 16
-	-- center = Vector(math.floor(center.x),math.floor(center.y),math.floor(center.z))
-
-	-- print(center)
-	-- print(pcall(function()
-	-- 	internals.loadChunk(_self:GetInternalIndex(),{center.x,center.y,center.z})
-	-- end))
-
-	-- chunks = {
--- 		center + Vector(-1,-1,-1),
--- 		center + Vector(-1,-1,0),
--- 		center + Vector(-1,-1,1),
--- 		center + Vector(-1,0,-1),
--- 		center + Vector(-1,0,0),
--- 		center + Vector(-1,0,1),
--- 		center + Vector(-1,1,-1),
--- 		center + Vector(-1,1,0),
--- 		center + Vector(-1,1,1),
-		
--- 		center + Vector(0,-1,-1),
--- 		center + Vector(0,-1,0),
--- 		center + Vector(0,-1,1),
--- 		center + Vector(0,0,-1),
-		-- center,
--- 		center + Vector(0,0,1),
--- 		center + Vector(0,1,-1),
--- 		center + Vector(0,1,0),
--- 		center + Vector(0,1,1),
-
--- 		center + Vector(1,-1,-1),
--- 		center + Vector(1,-1,0),
--- 		center + Vector(1,-1,1),
--- 		center + Vector(1,0,-1),
--- 		center + Vector(1,0,0),
--- 		center + Vector(1,0,1),
--- 		center + Vector(1,1,-1),
--- 		center + Vector(1,1,0),
--- 		center + Vector(1,1,1),
-	-- }
-
--- 	-- for x=1,16 do
--- 	-- 	for y=1,16 do
--- 	-- 		for z=1,16 do
--- 	-- 			chunks[#chunks + 1] = center + Vector(x-1,y-1,z-1)
--- 	-- 		end
--- 	-- 	end
--- 	-- end
--- end)
 
 function ENT:TestCollision(start,delta,isbox,extents)
 	if isbox then
