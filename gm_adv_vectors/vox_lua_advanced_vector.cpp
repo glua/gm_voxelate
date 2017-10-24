@@ -69,7 +69,7 @@ int vox_lua_vector_gc(lua_State* state) {
 int vox_lua_vector_tostring(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	lua_pushfstring(state, tostring_format, metaname, vecptr->x(), -vecptr->z(), vecptr->z());
+	lua_pushfstring(state, tostring_format, metaname, vecptr->x(), -vecptr->z(), vecptr->y());
 
 	return 1;
 }
@@ -80,8 +80,8 @@ int vox_lua_vector_toSourceVector(lua_State* state) {
 	lua_getglobal(state, "Vector");
 
 	lua_pushnumber(state, vecptr->x());
+	lua_pushnumber(state, -vecptr->z());
 	lua_pushnumber(state, vecptr->y());
-	lua_pushnumber(state, vecptr->z());
 
 	lua_call(state, 3, 1);
 
