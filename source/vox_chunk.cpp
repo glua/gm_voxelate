@@ -39,7 +39,7 @@ void VoxelChunk::generate() {
 	}
 }
 
-void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
+void VoxelChunk::build(ELevelOfDetail lod) {
 	physicsMeshClearAll();
 #ifdef VOXELATE_CLIENT
 	graphicsMeshClearAll();
@@ -264,7 +264,7 @@ void VoxelChunk::build(CBaseEntity* ent, ELevelOfDetail lod) {
 	}
 
 	//final build
-	physicsMeshStop(ent);
+	physicsMeshStop();
 #ifdef VOXELATE_CLIENT
 	graphicsMeshStop();
 #endif
@@ -473,7 +473,7 @@ void VoxelChunk::graphicsMeshStart() {
 }
 #endif
 
-void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
+void VoxelChunk::physicsMeshStop() {
 	if (meshInterface != nullptr) {
 		btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface, true, true);
 		// meshInterface = nullptr;

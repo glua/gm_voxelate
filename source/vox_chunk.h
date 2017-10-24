@@ -34,7 +34,7 @@ public:
 
 	void generate();
 
-	void build(CBaseEntity* ent, ELevelOfDetail lod);
+	void build(ELevelOfDetail lod);
 #ifdef VOXELATE_CLIENT
 	void draw(CMatRenderContextPtr& pRenderContext);
 
@@ -55,7 +55,7 @@ private:
 	void physicsMeshClearAll();
 
 	void physicsMeshStart();
-	void physicsMeshStop(CBaseEntity* ent);
+	void physicsMeshStop();
 
 #ifdef VOXELATE_CLIENT
 	void graphicsMeshClearAll();

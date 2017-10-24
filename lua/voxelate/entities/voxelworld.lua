@@ -31,22 +31,16 @@ function ENT:Initialize()
 		config.entityID = self:EntIndex()
 
 		local index = internals.voxNewWorld(config)
-		--config.index = index
-		internals.setSourceWorldPos(index, self:GetPos())
-		
-		configs[index] = config
-
-		internals.sendConfigs({[index] = config})
-
 		self:SetInternalIndex(index)
 
-		self:SetupBounds()
+		config.index = index
+		configs[index] = config
+		
+		internals.setSourceWorldPos(index, self:GetPos())
 
-		--[[if config.generator then
-			self:generate(config.generator)
-		else
-			self:generateDefault()
-		end]]
+		self:SetupBounds()
+		
+		internals.sendConfigs({[index] = config})
 
 		--gm_voxelate.module.voxSetWorldUpdatesEnabled(index,true)
 		--self:UpdateVoxelLoadState("READY")
@@ -68,16 +62,9 @@ function ENT:SetupBounds()
 
 	local mins,maxs = internals.voxBounds(index)
 
-	-- mins = mins + self:GetPos()
-	-- maxs = maxs + self:GetPos()
-
 	self:EnableCustomCollisions(true)
 	self:SetSolid(SOLID_BBOX)
-
-	-- local mins = Vector(0,0,0)
-	-- local maxs = bounds
-
-	self.correct_maxs = maxs
+	self:CollisionRulesChanged()
 
 	self:SetCollisionBounds(mins,maxs)
 	if CLIENT then
@@ -96,6 +83,7 @@ function ENT:Think()
 	self:SetupBounds()
 	
 	self:NextThink(CurTime())
+
 	return true
 end
 
@@ -131,7 +119,7 @@ function ENT:TestCollision(start,delta,isbox,extents)
 
 	local index = self:GetInternalIndex()
 
-	start = internals.voxSourceWorldToBlockPos(index,start)
+	start = internals.voxSourceWorldToVoxelatePos(index,start)
 	delta = AdvancedVectorFromSource(delta)
 	if extents then
 		extents = AdvancedVectorFromSource(extents)
@@ -140,7 +128,7 @@ function ENT:TestCollision(start,delta,isbox,extents)
 	local fraction,hitpos,normal = internals.voxTrace(index,start,delta,isbox,extents)
 
 	if fraction then
-		hitpos = internals.voxBlockPosToSourceWorld(index,hitpos)
+		hitpos = internals.voxVoxelatePosToSourceWorld(index,hitpos)
 
 		return {
 			Fraction = fraction,

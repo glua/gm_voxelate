@@ -595,7 +595,7 @@ VOXDEF(voxTrace) {
 		r = v->doTrace(start, delta);
 	}
 
-	if (r.fraction != 1) {
+	if ((r.fraction != 1) && (r.fraction != -1)) {
 		lua_pushnumber(state, r.fraction);
 		luaL_pushbtVector3(state, r.hitPos);
 		luaL_pushbtVector3(state, r.hitNormal);
@@ -625,6 +625,30 @@ VOXDEF(voxBlockPosToSourceWorld) {
 	auto blockPos = luaL_checkbtVector3(state, 2);
 
 	auto relative = BulletPositionToSource(blockPos) * v->config.scale + v->sourceWorldPos;
+
+	luaL_pushvector(state, relative);
+
+	return 1;
+}
+
+VOXDEF(voxSourceWorldToVoxelatePos) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+	auto worldPos = luaL_checkvector(state, 2);
+
+	auto relative = worldPos - v->sourceWorldPos;
+
+	auto blockPos = SourcePositionToBullet(relative);
+
+	luaL_pushbtVector3(state, blockPos);
+
+	return 1;
+}
+
+VOXDEF(voxVoxelatePosToSourceWorld) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+	auto blockPos = luaL_checkbtVector3(state, 2);
+
+	auto relative = BulletPositionToSource(blockPos) + v->sourceWorldPos;
 
 	luaL_pushvector(state, relative);
 
@@ -742,6 +766,8 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 	VOXF(voxTrace);
 	VOXF(voxSourceWorldToBlockPos);
 	VOXF(voxBlockPosToSourceWorld);
+	VOXF(voxSourceWorldToVoxelatePos);
+	VOXF(voxVoxelatePosToSourceWorld);
 	VOXF(voxReady);
 
 	LUA->PushCFunction(luaf_voxNewWorld);

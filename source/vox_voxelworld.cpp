@@ -307,38 +307,39 @@ std::tuple<char*,size_t> VoxelWorld::writeToString() {
 // used to be called by some stupid shit
 // now always called by ctor
 void VoxelWorld::initialize() {
-
+#ifdef VOXELATE_SERVER
 	// YO 3D LOOP TIME NIGGA
-	// TODO: remove this and only add chunks when entities are nearby
-	// TODO: remove this entirely actually, this only generates positive int chunks, but we're going arbitrary...
-	if (IS_SERVERSIDE) {
-		// Only explicitly init the map on the server
+	// Only explicitly init the map on the server
 
-		// vox_print("---> %i %i %i",max_chunk_x,max_chunk_y,max_chunk_z);
+	Msg("Init chunks...\n");
 
-		for (VoxelCoord x = -VOXEL_INIT_X; x <= VOXEL_INIT_X; x++) {
-			for (VoxelCoord y = -VOXEL_INIT_X; y <= VOXEL_INIT_Y; y++) {
-				for (VoxelCoord z = -VOXEL_INIT_X; z <= VOXEL_INIT_Z; z++) {
-					initChunk(x, y, z)->generate();
-				}
+	for (VoxelCoord x = -VOXEL_INIT_X; x <= VOXEL_INIT_X; x++) {
+		for (VoxelCoord y = -VOXEL_INIT_X; y <= VOXEL_INIT_Y; y++) {
+			for (VoxelCoord z = -VOXEL_INIT_X; z <= VOXEL_INIT_Z; z++) {
+				initChunk(x, y, z)->generate();
 			}
 		}
-
-		forceUpdateAllChunks();
 	}
+
+	Msg("OK! forcing update...\n");
+
+	forceUpdateAllChunks();
+#endif
 }
 
 void VoxelWorld::forceUpdateAllChunks() {
+	Msg("Updating...\n");
 	while (!dirty_chunk_queue.empty()) {
 		VoxelCoordXYZ pos = dirty_chunk_queue.front();
-		dirty_chunk_queue.pop_front();
-		dirty_chunk_set.erase(pos);
 
 		VoxelChunk* chunk = getChunk(pos[0], pos[1], pos[2]);
 
 		if (chunk != nullptr) {
-			chunk->build(nullptr, ELevelOfDetail::FULL);
+			chunk->build(ELevelOfDetail::FULL);
 		}
+
+		dirty_chunk_queue.pop_front();
+		dirty_chunk_set.erase(pos);
 	}
 }
 
@@ -582,7 +583,7 @@ void VoxelWorld::doUpdates(int count, CBaseEntity* ent, float curTime) {
 			VoxelChunk* chunk = getChunk(pos[0], pos[1], pos[2]);
 
 			if (chunk != nullptr) {
-				chunk->build(ent, ELevelOfDetail::FULL);
+				chunk->build(ELevelOfDetail::FULL);
 			}
 		}
 	}
@@ -702,7 +703,8 @@ VoxelTraceRes VoxelWorld::doTraceHull(btVector3 startPos, btVector3 delta, btVec
 		res.fraction = RayCallback.m_closestHitFraction;
 		if (RayCallback.m_closestHitFraction == 0) {
 			res.hitPos = startPos;
-			res.hitNormal = btVector3(0,0,0);
+			res.hitNormal = RayCallback.m_hitNormalWorld;
+			// res.hitNormal = btVector3(0,0,0);
 		}
 		else {
 			res.hitPos = RayCallback.m_hitPointWorld;
