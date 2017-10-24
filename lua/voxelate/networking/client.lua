@@ -48,6 +48,8 @@ internals.netListeners[channels.config] = function(data)
 
 	for index,config in pairs(configs) do
 		internals.voxNewWorld(config, index)
+		local ent = Entity(config.entityID)
+		internals.setSourceWorldPos(index, ent:GetPos())
 	end
 end
 

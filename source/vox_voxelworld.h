@@ -70,6 +70,7 @@ public:
 	btVector3 viewPos = btAdjVector3(0, 0, 0);
 	void draw();
 #endif
+	Vector sourceWorldPos = Vector(0,0,0);
 
 	BlockData get(PreciseVoxelCoord x, PreciseVoxelCoord y, PreciseVoxelCoord z);
 	BlockData get(VoxelCoord x, VoxelCoord y, VoxelCoord z);

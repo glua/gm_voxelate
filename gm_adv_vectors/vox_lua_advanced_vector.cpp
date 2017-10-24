@@ -456,6 +456,9 @@ void setupLuaAdvancedVectors(lua_State * state) {
 	lua_pushcfunction(state, vox_lua_vector_tostring);
 	lua_setfield(state, -2, "__tostring");
 
+	lua_pushcfunction(state, vox_lua_vector_toSourceVector);
+	lua_setfield(state, -2, "toSourceVector");
+
 	lua_pushcfunction(state, vox_lua_vector_setAllValues);
 	lua_setfield(state, -2, "setAllValues");
 

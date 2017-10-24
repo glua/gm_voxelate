@@ -28,23 +28,24 @@ int newIndexedVoxelWorld(int index, VoxelConfig& config) {
 }
 
 VoxelWorld* getIndexedVoxelWorld(int index) {
-	try {
-		return indexedVoxelWorldRegistry.at(index);
+	auto it = indexedVoxelWorldRegistry.find(index);
+
+	if (it != indexedVoxelWorldRegistry.end()) {
+		return it->second;
 	}
-	catch (...) {
-		return nullptr;
-	}
+
+	return nullptr;
 }
 
 void deleteIndexedVoxelWorld(int index) {
-	try {
-		VoxelWorld*& ptr = indexedVoxelWorldRegistry.at(index);
-		if (ptr != nullptr) {
-			delete ptr;
-			ptr = nullptr;
-		}
+	auto it = indexedVoxelWorldRegistry.find(index);
+
+	if (it != indexedVoxelWorldRegistry.end()) {
+		VoxelWorld* ptr = it->second;
+		delete ptr;
+
+		indexedVoxelWorldRegistry.erase(it);
 	}
-	catch (...) {}
 }
 
 void checkAllVoxelWorldsDeleted() {

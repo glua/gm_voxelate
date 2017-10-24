@@ -428,6 +428,10 @@ inline PreciseVoxelCoordXYZ luaL_checkprecisevoxelxyz(lua_State* state, int loc)
 	return { x,y,z };
 }
 
+inline Vector luaL_checkvector(lua_State* state, int loc) {
+	return state->luabase->GetVector(loc);
+}
+
 inline void luaL_pushvector(lua_State* state, float x, float y, float z) {
 	lua_getglobal(state, "Vector");
 
@@ -523,6 +527,22 @@ VOXDEF(getWorldViewPos) {
 }
 #endif
 
+VOXDEF(setSourceWorldPos) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+
+	v->sourceWorldPos = luaL_checkvector(state, 2);
+
+	return 0;
+}
+
+VOXDEF(getSourceWorldPos) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+
+	luaL_pushvector(state, v->sourceWorldPos.x, v->sourceWorldPos.y, v->sourceWorldPos.z);
+
+	return 1;
+}
+
 VOXDEF(preciseToNormalCoords) {
 	PreciseVoxelCoord coord = luaL_checknumber(state, 1);
 
@@ -584,6 +604,40 @@ VOXDEF(voxTrace) {
 	}
 
 	return 0;
+}
+
+VOXDEF(voxSourceWorldToBlockPos) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+	auto worldPos = luaL_checkvector(state, 2);
+
+	auto relative = worldPos - v->sourceWorldPos;
+	relative /= v->config.scale;
+
+	auto blockPos = SourcePositionToBullet(relative);
+
+	luaL_pushbtVector3(state, blockPos);
+
+	return 1;
+}
+
+VOXDEF(voxBlockPosToSourceWorld) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+	auto blockPos = luaL_checkbtVector3(state, 2);
+
+	auto relative = BulletPositionToSource(blockPos) * v->config.scale + v->sourceWorldPos;
+
+	luaL_pushvector(state, relative);
+
+	return 1;
+}
+
+VOXDEF(voxReady) {
+	int index = luaL_checknumber(state, 1);
+	auto world = getIndexedVoxelWorld(index);
+
+	lua_pushboolean(state, world != nullptr);
+
+	return 1;
 }
 
 
@@ -680,10 +734,15 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 	VOXF(setWorldViewPos);
 	VOXF(getWorldViewPos);
 #endif
+	VOXF(setSourceWorldPos);
+	VOXF(getSourceWorldPos);
 	VOXF(preciseToNormalCoords);
 	VOXF(voxGet);
 	VOXF(voxSet);
 	VOXF(voxTrace);
+	VOXF(voxSourceWorldToBlockPos);
+	VOXF(voxBlockPosToSourceWorld);
+	VOXF(voxReady);
 
 	LUA->PushCFunction(luaf_voxNewWorld);
 	LUA->SetField(-2, "voxNewWorld");

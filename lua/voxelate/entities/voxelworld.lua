@@ -28,10 +28,12 @@ function ENT:Initialize()
 		self.config = nil
 
 		config.entity = self
+		config.entityID = self:EntIndex()
 
 		local index = internals.voxNewWorld(config)
 		--config.index = index
-
+		internals.setSourceWorldPos(index, self:GetPos())
+		
 		configs[index] = config
 
 		internals.sendConfigs({[index] = config})
@@ -52,6 +54,7 @@ function ENT:Initialize()
 end
 
 function ENT:OnRemove()
+	if not self:isInternalsReady() then return end
 	local index = self:GetInternalIndex()
 
 	internals.voxDeleteWorld(index)
@@ -60,6 +63,7 @@ function ENT:OnRemove()
 end
 
 function ENT:SetupBounds()
+	if not self:isInternalsReady() then return end
 	local index = self:GetInternalIndex()
 
 	local mins,maxs = internals.voxBounds(index)
@@ -82,6 +86,7 @@ function ENT:SetupBounds()
 end
 
 function ENT:Think()
+	if not self:isInternalsReady() then return end
 	local index = self:GetInternalIndex()
 
 	-- 100 updates per frame is -SERIOUSLY- excessive
@@ -95,6 +100,7 @@ function ENT:Think()
 end
 
 function ENT:Draw()
+	if not self:isInternalsReady() then return end
 	local index = self:GetInternalIndex()
 
 	local m = Matrix()
@@ -105,23 +111,41 @@ function ENT:Draw()
 	cam.PopModelMatrix()
 end
 
-function ENT:TestCollision(start,delta,isbox,extents)
-	if isbox then
-		--debugoverlay.Box(start,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,255,0,0))
+function ENT:SetPos(pos)
+	if self:isInternalsReady() then
+		local index = self:GetInternalIndex()
+		internals.setSourceWorldPos(index,pos)
 	end
-	start=self:WorldToLocal(start)
+
+	debug.getregistry().Entity.SetPos(self,pos)
+end
+
+function ENT:isInternalsReady()
+	if SERVER then return true end
+
+	return internals.voxReady(self:GetInternalIndex())
+end
+
+function ENT:TestCollision(start,delta,isbox,extents)
+	if not self:isInternalsReady() then return end
+
 	local index = self:GetInternalIndex()
+
+	start = internals.voxSourceWorldToBlockPos(index,start)
+	delta = AdvancedVectorFromSource(delta)
+	if extents then
+		extents = AdvancedVectorFromSource(extents)
+	end
+
 	local fraction,hitpos,normal = internals.voxTrace(index,start,delta,isbox,extents)
+
 	if fraction then
-		hitpos = self:LocalToWorld(hitpos)
-		if isbox and (normal.x~=0 or normal.y~=0) then
-			-- debugoverlay.Box(hitpos,Vector(-extents.x,-extents.y,0),Vector(extents.x,extents.y,extents.z*2),.05,Color(255,0,0,0))
-			-- debugoverlay.Line(hitpos,hitpos+normal*100,.05,Color(0,0,255))
-		end
+		hitpos = internals.voxBlockPosToSourceWorld(hitpos)
+
 		return {
 			Fraction = fraction,
-			HitPos=hitpos,
-			Normal=normal
+			HitPos = hitpos,
+			Normal = normal:toSourceVector(),
 		}
 	end
 end
