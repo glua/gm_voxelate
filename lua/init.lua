@@ -44,7 +44,6 @@ local endings = { ".lua", "/init.lua" }
 
 -- My version of require is not as smart as I thought. Beware of tailcalls!
 sandbox.require = function(name)
-
 	local base_path = debug.getinfo(2).short_src:GetPathFromFilename()
 
 	local abs_path = normalizePath(base_path..name)
@@ -58,7 +57,6 @@ sandbox.require = function(name)
 		local source = FILETABLE[full_path]
 
 		if source then
-
 			local func = CompileString(source,full_path)
 			setfenv(func, sandbox)
 
@@ -66,6 +64,7 @@ sandbox.require = function(name)
 			if not module then module = true end
 
 			modules[abs_path] = module
+
 			return module
 		end
 	end
