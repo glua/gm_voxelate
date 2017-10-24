@@ -140,7 +140,7 @@ function ENT:TestCollision(start,delta,isbox,extents)
 	local fraction,hitpos,normal = internals.voxTrace(index,start,delta,isbox,extents)
 
 	if fraction then
-		hitpos = internals.voxBlockPosToSourceWorld(hitpos)
+		hitpos = internals.voxBlockPosToSourceWorld(index,hitpos)
 
 		return {
 			Fraction = fraction,
