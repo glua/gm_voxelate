@@ -88,17 +88,6 @@ function ENT:Think()
 	-- the entire point of queueing updates is so we dont lag balls
 	internals.voxUpdate(index,20,self)
 
-	if CLIENT then
-		if self.correct_maxs then
-			-- bounds are set up, see if they need fixed.
-			local _,maxs = self:GetRenderBounds()
-			if maxs~=self.correct_maxs then
-				self:SetRenderBounds(Vector(),self.correct_maxs)
-				print("Corrected render bounds on Voxel System #"..index..".")
-			end
-		end
-	end
-
 	self:SetupBounds()
 	
 	self:NextThink(CurTime())
@@ -304,7 +293,7 @@ if SERVER then
 
 			local success = internals.voxSetRegion(index,x,y,z,sx,sy,sz,d)
 			if success then internals.sendRegionUpdate(index,x,y,z,sx,sy,sz,d) end
-			
+
 			return success
 		end
 
