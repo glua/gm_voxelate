@@ -20,11 +20,11 @@
 
 #include <memory>
 
-/*
-typedef std::shared_ptr<reactphysics3d::Vector3> VectorPtr;
+#include "btBulletDynamicsCommon.h"
+
+typedef std::shared_ptr<btVector3> VectorPtr;
 
 void setupLuaAdvancedVectors(lua_State* state);
 
-VectorPtr * vox_lua_pushVector(lua_State * state, reactphysics3d::Vector3 * vec);
-reactphysics3d::Vector3* vox_lua_getVector(lua_State* state, int32_t index);
-*/
+btVector3 luaL_checkbtVector3(lua_State* state, int loc);
+void luaL_pushbtVector3(lua_State* state, btVector3 vecSrc);

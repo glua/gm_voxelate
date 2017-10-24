@@ -585,24 +585,6 @@ inline PreciseVoxelCoordXYZ luaL_checkprecisevoxelxyz(lua_State* state, int loc)
 	return { x,y,z };
 }
 
-inline btVector3 luaL_checkbtvector3(lua_State* state, int loc) {
-	luaL_checktype(state, loc, LUA_TTABLE);
-
-	lua_rawgeti(state, loc, 1);
-	int x = luaL_checknumber(state, -1);
-	lua_pop(state, 1);
-
-	lua_rawgeti(state, loc, 2);
-	int y = luaL_checknumber(state, -1);
-	lua_pop(state, 1);
-
-	lua_rawgeti(state, loc, 3);
-	int z = luaL_checknumber(state, -1);
-	lua_pop(state, 1);
-
-	return btVector3(x,z,-y);
-}
-
 inline void luaL_pushvector(lua_State* state, float x, float y, float z) {
 	lua_getglobal(state, "Vector");
 
@@ -685,19 +667,16 @@ VOXDEF(voxBounds) {
 VOXDEF(setWorldViewPos) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 
-	v->viewPos = luaL_checkbtvector3(state, 2);
+	v->viewPos = luaL_checkbtVector3(state, 2);
 
 	return 0;
 }
-
 VOXDEF(getWorldViewPos) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 
-	lua_pushnumber(state, v->viewPos.x());
-	lua_pushnumber(state, -v->viewPos.z());
-	lua_pushnumber(state, v->viewPos.y());
+	luaL_pushbtVector3(state, v->viewPos);
 
-	return 3;
+	return 1;
 }
 #endif
 
@@ -869,7 +848,7 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 #endif
 
 	vox_setupLuaNetworkingAPI(LUA);
-	//setupLuaAdvancedVectors(state);
+	setupLuaAdvancedVectors(LUA->GetState());
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
 

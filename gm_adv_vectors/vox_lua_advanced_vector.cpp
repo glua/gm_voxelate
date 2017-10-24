@@ -4,15 +4,14 @@ static uint8_t metatype = GarrysMod::Lua::Type::NONE;
 static const char *metaname = "AdvancedVector";
 
 #if defined _WIN32
-const char *tostring_format = "%s: %p";
+const char *tostring_format = "%s: [%f, %f, %f]";
 #elif defined __linux || defined __APPLE__
-const char *tostring_format = "%s: %p";
+const char *tostring_format = "%s: [%f, %f, %f]";
 #endif
 
 #define LUA state->luabase
 
-/*
-VectorPtr* vox_lua_pushVector(lua_State* state, reactphysics3d::Vector3* vec) {
+VectorPtr* vox_lua_pushVector(lua_State* state, btVector3* vec) {
 	VectorPtr* udata = LUA->NewUserType<VectorPtr>(metatype);
 
 	udata->reset(vec);
@@ -23,8 +22,8 @@ VectorPtr* vox_lua_pushVector(lua_State* state, reactphysics3d::Vector3* vec) {
 	return udata;
 }
 
-VectorPtr* vox_lua_pushVectorCopy(lua_State* state, reactphysics3d::Vector3 vecSrc) {
-	auto vec = new reactphysics3d::Vector3(vecSrc); // fuck RAII amirite
+VectorPtr* vox_lua_pushVectorCopy(lua_State* state, btVector3 vecSrc) {
+	auto vec = new btVector3(vecSrc); // fuck RAII amirite
 
 	VectorPtr* udata = LUA->NewUserType<VectorPtr>(metatype);
 
@@ -44,7 +43,7 @@ VectorPtr* vox_lua_getVectorPtr(lua_State* state, int32_t index) {
 	return LUA->GetUserType<VectorPtr>(index, metatype);
 }
 
-reactphysics3d::Vector3* vox_lua_getVector(lua_State* state, int32_t index) {
+btVector3* vox_lua_getVector(lua_State* state, int32_t index) {
 	if (!LUA->IsType(index, metatype)) {
 		luaL_typerror(LUA->GetState(), index, metaname);
 	}
@@ -70,7 +69,21 @@ int vox_lua_vector_gc(lua_State* state) {
 int vox_lua_vector_tostring(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	lua_pushfstring(state, tostring_format, metaname, vecptr);
+	lua_pushfstring(state, tostring_format, metaname, vecptr->x(), -vecptr->z(), vecptr->z());
+
+	return 1;
+}
+
+int vox_lua_vector_toSourceVector(lua_State* state) {
+	auto vecptr = vox_lua_getVector(state, 1);
+
+	lua_getglobal(state, "Vector");
+
+	lua_pushnumber(state, vecptr->x());
+	lua_pushnumber(state, vecptr->y());
+	lua_pushnumber(state, vecptr->z());
+
+	lua_call(state, 3, 1);
 
 	return 1;
 }
@@ -82,7 +95,9 @@ int vox_lua_vector_setAllValues(lua_State* state) {
 	double y = luaL_checknumber(state, 3);
 	double z = luaL_checknumber(state, 4);
 
-	vecptr->setAllValues(x, y, z);
+	vecptr->setX(x);
+	vecptr->setY(y);
+	vecptr->setZ(z);
 
 	return 0;
 }
@@ -90,7 +105,7 @@ int vox_lua_vector_setAllValues(lua_State* state) {
 int vox_lua_vector_setToZero(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	vecptr->setToZero();
+	vecptr->setZero();
 
 	return 0;
 }
@@ -106,7 +121,7 @@ int vox_lua_vector_length(lua_State* state) {
 int vox_lua_vector_lengthSquare(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	lua_pushnumber(state, vecptr->lengthSquare());
+	lua_pushnumber(state, vecptr->length2());
 
 	return 1;
 }
@@ -114,16 +129,7 @@ int vox_lua_vector_lengthSquare(lua_State* state) {
 int vox_lua_vector_getUnit(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	auto result = vecptr->getUnit();
-	vox_lua_pushVectorCopy(state, result);
-
-	return 1;
-}
-
-int vox_lua_vector_getOneUnitOrthogonalVector(lua_State* state) {
-	auto vecptr = vox_lua_getVector(state, 1);
-
-	auto result = vecptr->getOneUnitOrthogonalVector();
+	auto result = vecptr->normalized();
 	vox_lua_pushVectorCopy(state, result);
 
 	return 1;
@@ -132,7 +138,7 @@ int vox_lua_vector_getOneUnitOrthogonalVector(lua_State* state) {
 int vox_lua_vector_isUnit(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	lua_pushboolean(state, vecptr->isUnit());
+	lua_pushboolean(state, vecptr->length2() == 1);
 
 	return 1;
 }
@@ -176,7 +182,7 @@ int vox_lua_vector_normalize(lua_State* state) {
 int vox_lua_vector_getAbsoluteVector(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	auto result = vecptr->getAbsoluteVector();
+	auto result = vecptr->absolute();
 	vox_lua_pushVectorCopy(state, result);
 
 	return 0;
@@ -185,7 +191,7 @@ int vox_lua_vector_getAbsoluteVector(lua_State* state) {
 int vox_lua_vector_getMinAxis(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	lua_pushnumber(state, vecptr->getMinAxis());
+	lua_pushnumber(state, vecptr->minAxis());
 
 	return 1;
 }
@@ -193,23 +199,7 @@ int vox_lua_vector_getMinAxis(lua_State* state) {
 int vox_lua_vector_getMaxAxis(lua_State* state) {
 	auto vecptr = vox_lua_getVector(state, 1);
 
-	lua_pushnumber(state, vecptr->getMaxAxis());
-
-	return 1;
-}
-
-int vox_lua_vector_getMinValue(lua_State* state) {
-	auto vecptr = vox_lua_getVector(state, 1);
-
-	lua_pushnumber(state, vecptr->getMinValue());
-
-	return 1;
-}
-
-int vox_lua_vector_getMaxValue(lua_State* state) {
-	auto vecptr = vox_lua_getVector(state, 1);
-
-	lua_pushnumber(state, vecptr->getMaxValue());
+	lua_pushnumber(state, vecptr->maxAxis());
 
 	return 1;
 }
@@ -309,15 +299,15 @@ int vox_lua_vector_index(lua_State* state) {
 		auto idx = lua_tonumber(state, 2);
 
 		if (idx == 1) {
-			lua_pushnumber(state, vecptr->x);
+			lua_pushnumber(state, vecptr->x());
 			return 1;
 		}
 		else if (idx == 2) {
-			lua_pushnumber(state, vecptr->y);
+			lua_pushnumber(state, -vecptr->z());
 			return 1;
 		}
 		else if (idx == 3) {
-			lua_pushnumber(state, vecptr->z);
+			lua_pushnumber(state, vecptr->y());
 			return 1;
 		}
 	}
@@ -326,15 +316,15 @@ int vox_lua_vector_index(lua_State* state) {
 		auto idx = lua_tostring(state, 2);
 
 		if (strcmp(idx, "x") == 0) {
-			lua_pushnumber(state, vecptr->x);
+			lua_pushnumber(state, vecptr->x());
 			return 1;
 		}
 		else if (strcmp(idx, "y") == 0) {
-			lua_pushnumber(state, vecptr->y);
+			lua_pushnumber(state, -vecptr->z());
 			return 1;
 		}
 		else if (strcmp(idx, "z") == 0) {
-			lua_pushnumber(state, vecptr->z);
+			lua_pushnumber(state, vecptr->y());
 			return 1;
 		}
 
@@ -363,15 +353,15 @@ int vox_lua_vector_newindex(lua_State* state) {
 		auto idx = lua_tonumber(state, 2);
 
 		if (idx == 1) {
-			vecptr->x = val;
+			vecptr->setX(val);
 			return 0;
 		}
 		else if (idx == 2) {
-			vecptr->y = val;
+			vecptr->setZ(-val);
 			return 0;
 		}
 		else if (idx == 3) {
-			vecptr->z = val;
+			vecptr->setY(val);
 			return 0;
 		}
 
@@ -383,15 +373,15 @@ int vox_lua_vector_newindex(lua_State* state) {
 		auto idx = lua_tostring(state, 2);
 
 		if (strcmp(idx, "x") == 0) {
-			vecptr->x = val;
+			vecptr->setX(val);
 			return 0;
 		}
 		else if (strcmp(idx, "y") == 0) {
-			vecptr->y = val;
+			vecptr->setZ(-val);
 			return 0;
 		}
 		else if (strcmp(idx, "z") == 0) {
-			vecptr->z = val;
+			vecptr->setY(val);
 			return 0;
 		}
 
@@ -421,16 +411,45 @@ int vox_lua_vector_ctor(lua_State* state) {
 	double y = luaL_checknumber(state, 2);
 	double z = luaL_checknumber(state, 3);
 
-	auto vec = new reactphysics3d::Vector3(x, y, z);
+	auto vec = new btVector3(x, z, -y);
 
 	vox_lua_pushVector(state, vec);
 
 	return 1;
 }
-*/
+
+int vox_lua_vector_fromSource(lua_State* state) {
+	lua_getfield(state, 1, "x");
+	float x = luaL_checknumber(state, -1);
+	lua_pop(state, 1);
+
+	lua_getfield(state, 1, "y");
+	float y = luaL_checknumber(state, -1);
+	lua_pop(state, 1);
+
+	lua_getfield(state, 1, "z");
+	float z = luaL_checknumber(state, -1);
+	lua_pop(state, 1);
+
+	auto vec = new btVector3(x, z, -y);
+
+	vox_lua_pushVector(state, vec);
+
+	return 1;
+}
+
+btVector3 luaL_checkbtVector3(lua_State* state, int loc) {
+	return *vox_lua_getVector(state, loc);
+}
+
+void luaL_pushbtVector3(lua_State* state, btVector3 vecSrc) {
+	auto vec = new btVector3(vecSrc);
+	vox_lua_pushVector(state, vec);
+}
+
 void setupLuaAdvancedVectors(lua_State * state) {
 	metatype = LUA->CreateMetaTable(metaname);
-	/*
+	
 	lua_pushcfunction(state, vox_lua_vector_gc);
 	lua_setfield(state, -2, "__gc");
 
@@ -451,9 +470,6 @@ void setupLuaAdvancedVectors(lua_State * state) {
 
 	lua_pushcfunction(state, vox_lua_vector_getUnit);
 	lua_setfield(state, -2, "getUnit");
-
-	lua_pushcfunction(state, vox_lua_vector_getOneUnitOrthogonalVector);
-	lua_setfield(state, -2, "getOneUnitOrthogonalVector");
 
 	lua_pushcfunction(state, vox_lua_vector_isUnit);
 	lua_setfield(state, -2, "isUnit");
@@ -478,12 +494,6 @@ void setupLuaAdvancedVectors(lua_State * state) {
 
 	lua_pushcfunction(state, vox_lua_vector_getMaxAxis);
 	lua_setfield(state, -2, "getMaxAxis");
-
-	lua_pushcfunction(state, vox_lua_vector_getMinValue);
-	lua_setfield(state, -2, "getMinValue");
-
-	lua_pushcfunction(state, vox_lua_vector_getMaxValue);
-	lua_setfield(state, -2, "getMaxValue");
 
 	lua_pushcfunction(state, vox_lua_vector_eq);
 	lua_setfield(state, -2, "__eq");
@@ -511,11 +521,12 @@ void setupLuaAdvancedVectors(lua_State * state) {
 
 	lua_pushcfunction(state, vox_lua_vector_lt);
 	lua_setfield(state, -2, "__lt");
-	*/
+	
 	LUA->Pop(1);
 
-	/*
 	lua_pushcfunction(state, vox_lua_vector_ctor);
-	lua_setglobal(state, metaname);
-	*/
+	lua_setglobal(state, "AdvancedVector");
+
+	lua_pushcfunction(state, vox_lua_vector_fromSource);
+	lua_setglobal(state, "AdvancedVectorFromSource");
 }
