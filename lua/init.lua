@@ -9,7 +9,6 @@ local function print(...)
 	MsgC( Color(100,255,100), "[Voxelate] ", SERVER and Color(0x91,0xdb,0xe7) or Color(0xe7,0xdb,0x74), table.concat(args,"\t") , "\n" )
 end
 
-
 local modules = {}
 local INTERNALS = G_VOX_IMPORTS
 voxelate_internals = G_VOX_IMPORTS
