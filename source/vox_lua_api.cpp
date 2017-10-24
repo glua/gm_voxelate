@@ -233,40 +233,6 @@ LUA_FUNCTION(luaf_voxGetBlockScale) {
 	return 0;
 }
 
-LUA_FUNCTION(luaf_voxGet) {
-	int index = LUA->GetNumber(1);
-
-	PreciseVoxelCoord x = LUA->CheckNumber(2);
-	PreciseVoxelCoord y = LUA->CheckNumber(3);
-	PreciseVoxelCoord z = LUA->CheckNumber(4);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v != nullptr)
-		LUA->PushNumber(v->get(x, y, z));
-	else
-		LUA->PushNumber(0);
-
-	return 1;
-}
-
-LUA_FUNCTION(luaf_voxSet) {
-	int index = LUA->GetNumber(1);
-
-	PreciseVoxelCoord x = LUA->CheckNumber(2);
-	PreciseVoxelCoord y = LUA->CheckNumber(3);
-	PreciseVoxelCoord z = LUA->CheckNumber(4);
-	BlockData d = LUA->CheckNumber(5);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v != nullptr) {
-		if (v->set(x, y, z, d)) {
-			LUA->PushBool(true);
-			return 1;
-		}
-	}
-	return 0;
-}
-
 LUA_FUNCTION(luaf_voxUpdate) {
 	int index = LUA->GetNumber(1);
 	int chunk_count = LUA->GetNumber(2);
@@ -594,6 +560,36 @@ VOXDEF(preciseToNormalCoords) {
 	return 1;
 }
 
+VOXDEF(voxGet) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+
+	auto x = luaL_checknumber(state, 2);
+	auto y = luaL_checknumber(state, 3);
+	auto z = luaL_checknumber(state, 4);
+
+	lua_pushnumber(state, v->get(x, y, z));
+
+	return 1;
+}
+
+VOXDEF(voxSet) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+
+	auto x = luaL_checknumber(state, 2);
+	auto y = luaL_checknumber(state, 3);
+	auto z = luaL_checknumber(state, 4);
+
+	BlockData d = luaL_checknumber(state, 5);
+
+	if (v->set(x, y, z, d)) {
+		lua_pushboolean(state, true);
+
+		return 1;
+	}
+
+	return 0;
+}
+
 
 // Bootstrap shit
 void setupFiles();
@@ -689,6 +685,8 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 	VOXF(getWorldViewPos);
 #endif
 	VOXF(preciseToNormalCoords);
+	VOXF(voxGet);
+	VOXF(voxSet);
 
 	LUA->PushCFunction(luaf_voxNewWorld);
 	LUA->SetField(-2, "voxNewWorld");
