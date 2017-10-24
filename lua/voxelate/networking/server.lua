@@ -280,4 +280,3 @@ internals.sendSphereUpdate = function(worldID, x,y,z,r,d)
 		internals.networkSendPacket(msg, peer)
 	end
 end
-
