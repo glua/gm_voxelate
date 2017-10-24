@@ -38,7 +38,6 @@ local chunk_stacks = {}
 -- ONCE OPEN, PLAYERS and CONNECTIONS are disconnected if their matching PLAYER or CONNECTION disconnects.
 
 hook.Add("PlayerInitialSpawn","Voxelate.PlayerConnectTimeout",function(ply)
-
 	timer.Simple(TIMEOUT, function()
 		if not map_players_to_peers[ply] and IsValid(ply) then
 			
@@ -46,24 +45,20 @@ hook.Add("PlayerInitialSpawn","Voxelate.PlayerConnectTimeout",function(ply)
 			
 			ply:Kick("Voxelate handshake failed. You need gm_voxelate to play on this server. Server has version "..serverModuleVersion..".")
 		end
-	end )
-
+	end)
 end)
 
 hook.Add("VoxNetworkConnect","Voxelate.Networking",function(peerID,address)
-	
 	timer.Simple(TIMEOUT, function()
 		if not map_peers_to_players[peerID] then
 			internals.networkDisconnectPeer(peerID)
 		end
-	end )
-
+	end)
 end)
 
 -- NEITHER of these seem to work in singleplayer tests. Need to test them better.
 gameevent.Listen("player_disconnect")
 hook.Add("player_disconnect","Voxelate.CleanupConnection",function(data)
-
 	local steamID = data.networkid
 	local bot = data.bot
 
@@ -84,7 +79,6 @@ hook.Add("player_disconnect","Voxelate.CleanupConnection",function(data)
 end)
 
 hook.Add("VoxNetworkDisconnect","Voxelate.CleanupConnection",function(peerID)
-	
 	local ply = map_peers_to_players[peerID]
 	
 	print("DISCONNECT 2")
@@ -100,7 +94,6 @@ hook.Add("VoxNetworkDisconnect","Voxelate.CleanupConnection",function(peerID)
 end)
 
 local function checkCompatibility(serverVer,clientVer)
-		
 	-- Parse server version.
 	local serverMajor,serverMinor,serverPatch = string.match(serverVer,"(%d+)%.(%d+)%.(%d+)")
 	if not serverMajor then
