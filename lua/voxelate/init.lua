@@ -11,4 +11,4 @@ end)
  
 hook.Add("CanTool", "Voxelate.NoTool", function(ply,tr,tool) 
   if IsValid( tr.Entity ) and tr.Entity:GetClass() == "voxel_world" then return false end 
-end) 
+end)
