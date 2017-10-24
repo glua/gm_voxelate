@@ -339,53 +339,47 @@ void VoxelChunk::buildSlice(int slice, byte dir, SliceFace faces[VOXEL_CHUNK_SIZ
 	}
 }
 
-extern lua_State* lastState;
-
-#define push_LVEC(x,y,z) \
-	lua_getglobal(lastState, "Vector"); \
-	lua_pushnumber(lastState, x); \
-	lua_pushnumber(lastState, y); \
-	lua_pushnumber(lastState, z); \
-	lua_call(lastState, 3, 1)
-
-#define push_LANG(x,y,z) \
-	lua_getglobal(lastState, "Angle"); \
-	lua_pushnumber(lastState, x); \
-	lua_pushnumber(lastState, y); \
-	lua_pushnumber(lastState, z); \
-	lua_call(lastState, 3, 1)
-
-#define push_LCOL(x,y,z) \
-	lua_getglobal(lastState, "Color"); \
-	lua_pushnumber(lastState, x); \
-	lua_pushnumber(lastState, y); \
-	lua_pushnumber(lastState, z); \
-	lua_call(lastState, 3, 1)
+#ifdef VOXELATE_CLIENT
+btVector3 VoxelChunk::getViewOffsetVector() {
+	return getScaledVectorWorldCoords() - world->viewPos;
+}
 
 void VoxelChunk::draw(CMatRenderContextPtr& pRenderContext) {
-	/*
-	lua_getglobal(lastState, "render");
-	lua_getfield(lastState, -1, "DrawWireframeBox");
+	VMatrix lastOffset;
+	VMatrix offset;
+	VMatrix newOffset;
 
-	auto center = getWorldCoords();
-	push_LVEC(center[0], center[1], center[2]);
-	push_LANG(0, 0, 0);
-	push_LVEC(0, 0, 0);
-	push_LVEC(VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE, VOXEL_CHUNK_SIZE);
-	push_LCOL(255, 0, 0);
-	lua_pushboolean(lastState, false);
+	offset.Identity();
+	newOffset.Identity();
 
-	lua_call(lastState, 6, 0);
-	lua_pop(lastState, 1);
-	*/
+	offset.SetTranslation(BulletPositionToSource(getViewOffsetVector()));
 
-	if (meshes.begin() != meshes.end())
-		for (IMesh* m : meshes)
-			m->Draw();
+	pRenderContext->GetMatrix(MATERIAL_MODEL, &lastOffset);
+	offset.MatrixMul(lastOffset, newOffset);
+
+	pRenderContext->MatrixMode(MATERIAL_MODEL);
+	pRenderContext->PushMatrix();
+	pRenderContext->LoadMatrix(newOffset);
+
+	for (IMesh* m : meshes) {
+		m->Draw();
+	}
+
+	pRenderContext->MatrixMode(MATERIAL_MODEL);
+	pRenderContext->PopMatrix();
 }
+#endif
 
 VoxelCoordXYZ VoxelChunk::getWorldCoords() {
 	return{ posX*VOXEL_CHUNK_SIZE, posY*VOXEL_CHUNK_SIZE, posZ*VOXEL_CHUNK_SIZE };
+}
+
+btVector3 VoxelChunk::getScaledVectorWorldCoords() {
+	return btAdjVector3(posX*VOXEL_CHUNK_SIZE * world->config.scale, posY*VOXEL_CHUNK_SIZE * world->config.scale, posZ*VOXEL_CHUNK_SIZE * world->config.scale);
+}
+
+btVector3 VoxelChunk::getVectorWorldCoords() {
+	return btAdjVector3(posX*VOXEL_CHUNK_SIZE, posY*VOXEL_CHUNK_SIZE, posZ*VOXEL_CHUNK_SIZE);
 }
 
 BlockData VoxelChunk::get(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
@@ -486,7 +480,7 @@ void VoxelChunk::physicsMeshStop(CBaseEntity* ent) {
 
 		btTransform groundTransform;
 		groundTransform.setIdentity();
-		groundTransform.setOrigin(btVector3(0, 0, 0));
+		groundTransform.setOrigin(getScaledVectorWorldCoords());
 
 		btScalar mass(0.); // static
 		btVector3 localInertia(0, 0, 0);
@@ -541,79 +535,103 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 	double realY;
 	double realZ;
 
-	Vector v1, v2, v3, v4;
+	btVector3 v1, v2, v3, v4;
 	switch (dir) {
 
 	case DIR_X_POS:
-
+		/*
 		realX = (slice + posX*VOXEL_CHUNK_SIZE) * realStep;
 		realY = (x + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
+		*/
+		realX = slice * realStep;
+		realY = x * realStep;
+		realZ = y * realStep;
 
-		v1 = Vector(realX + realStep * scale, realY, realZ);
-		v2 = Vector(realX + realStep * scale, realY, realZ + realStep * h);
-		v3 = Vector(realX + realStep * scale, realY + realStep * w, realZ + realStep * h);
-		v4 = Vector(realX + realStep * scale, realY + realStep * w, realZ);
-		break;
-
-	case DIR_Y_POS:
-
-		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
-		realY = (slice + posY*VOXEL_CHUNK_SIZE) * realStep;
-		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
-
-		v1 = Vector(realX, realY + realStep * scale, realZ);
-		v2 = Vector(realX + realStep * w, realY + realStep * scale, realZ);
-		v3 = Vector(realX + realStep * w, realY + realStep * scale, realZ + realStep * h);
-		v4 = Vector(realX, realY + realStep * scale, realZ + realStep * h);
-		break;
-
-	case DIR_Z_POS:
-
-		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
-		realY = (y + posY*VOXEL_CHUNK_SIZE) * realStep;
-		realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * realStep;
-
-		v1 = Vector(realX, realY, realZ + realStep * scale);
-		v2 = Vector(realX, realY + realStep * h, realZ + realStep * scale);
-		v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep * scale);
-		v4 = Vector(realX + realStep * w, realY, realZ + realStep * scale);
+		v1 = btAdjVector3(realX + realStep * scale, realY, realZ);
+		v2 = btAdjVector3(realX + realStep * scale, realY, realZ + realStep * h);
+		v3 = btAdjVector3(realX + realStep * scale, realY + realStep * w, realZ + realStep * h);
+		v4 = btAdjVector3(realX + realStep * scale, realY + realStep * w, realZ);
 		break;
 
 	case DIR_X_NEG:
-
+		/*
 		realX = (slice + posX*VOXEL_CHUNK_SIZE) * realStep;
 		realY = (x + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
+		*/
+		realX = slice * realStep;
+		realY = x * realStep;
+		realZ = y * realStep;
 
-		v1 = Vector(realX + realStep * scale, realY, realZ);
-		v2 = Vector(realX + realStep * scale, realY + realStep * w, realZ);
-		v3 = Vector(realX + realStep * scale, realY + realStep * w, realZ + realStep * h);
-		v4 = Vector(realX + realStep * scale, realY, realZ + realStep * h);
+		v1 = btAdjVector3(realX + realStep * scale, realY, realZ);
+		v2 = btAdjVector3(realX + realStep * scale, realY + realStep * w, realZ);
+		v3 = btAdjVector3(realX + realStep * scale, realY + realStep * w, realZ + realStep * h);
+		v4 = btAdjVector3(realX + realStep * scale, realY, realZ + realStep * h);
 		break;
 
-	case DIR_Y_NEG:
-
+	case DIR_Y_POS:
+		/*
 		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
 		realY = (slice + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
+		*/
+		realX = x * realStep;
+		realY = slice * realStep;
+		realZ = y * realStep;
 
-		v1 = Vector(realX, realY + realStep * scale, realZ);
-		v2 = Vector(realX, realY + realStep * scale, realZ + realStep * h);
-		v3 = Vector(realX + realStep * w, realY + realStep * scale, realZ + realStep * h);
-		v4 = Vector(realX + realStep * w, realY + realStep * scale, realZ);
+		v1 = btAdjVector3(realX, realY + realStep * scale, realZ);
+		v2 = btAdjVector3(realX + realStep * w, realY + realStep * scale, realZ);
+		v3 = btAdjVector3(realX + realStep * w, realY + realStep * scale, realZ + realStep * h);
+		v4 = btAdjVector3(realX, realY + realStep * scale, realZ + realStep * h);
 		break;
 
-	case DIR_Z_NEG:
+	case DIR_Y_NEG:
+		/*
+		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
+		realY = (slice + posY*VOXEL_CHUNK_SIZE) * realStep;
+		realZ = (y + posZ*VOXEL_CHUNK_SIZE) * realStep;
+		*/
+		realX = x * realStep;
+		realY = slice * realStep;
+		realZ = y * realStep;
 
+		v1 = btAdjVector3(realX, realY + realStep * scale, realZ);
+		v2 = btAdjVector3(realX, realY + realStep * scale, realZ + realStep * h);
+		v3 = btAdjVector3(realX + realStep * w, realY + realStep * scale, realZ + realStep * h);
+		v4 = btAdjVector3(realX + realStep * w, realY + realStep * scale, realZ);
+		break;
+
+	case DIR_Z_POS:
+		/*
 		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
 		realY = (y + posY*VOXEL_CHUNK_SIZE) * realStep;
 		realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * realStep;
+		*/
+		realX = x * realStep;
+		realY = y * realStep;
+		realZ = slice * realStep;
 
-		v1 = Vector(realX, realY, realZ + realStep * scale);
-		v2 = Vector(realX + realStep * w, realY, realZ + realStep * scale);
-		v3 = Vector(realX + realStep * w, realY + realStep * h, realZ + realStep * scale);
-		v4 = Vector(realX, realY + realStep * h, realZ + realStep * scale);
+		v1 = btAdjVector3(realX, realY, realZ + realStep * scale);
+		v2 = btAdjVector3(realX, realY + realStep * h, realZ + realStep * scale);
+		v3 = btAdjVector3(realX + realStep * w, realY + realStep * h, realZ + realStep * scale);
+		v4 = btAdjVector3(realX + realStep * w, realY, realZ + realStep * scale);
+		break;
+
+	case DIR_Z_NEG:
+		/*
+		realX = (x + posX*VOXEL_CHUNK_SIZE) * realStep;
+		realY = (y + posY*VOXEL_CHUNK_SIZE) * realStep;
+		realZ = (slice + posZ*VOXEL_CHUNK_SIZE) * realStep;
+		*/
+		realX = x * realStep;
+		realY = y * realStep;
+		realZ = slice * realStep;
+
+		v1 = btAdjVector3(realX, realY, realZ + realStep * scale);
+		v2 = btAdjVector3(realX + realStep * w, realY, realZ + realStep * scale);
+		v3 = btAdjVector3(realX + realStep * w, realY + realStep * h, realZ + realStep * scale);
+		v4 = btAdjVector3(realX, realY + realStep * h, realZ + realStep * scale);
 		break;
 
 	default:
@@ -625,14 +643,14 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 	}
 	
 	meshInterface->addTriangle(
-		SourcePositionToBullet(v1),
-		SourcePositionToBullet(v2),
-		SourcePositionToBullet(v3)
+		v1,
+		v2,
+		v3
 	);
 	meshInterface->addTriangle(
-		SourcePositionToBullet(v1),
-		SourcePositionToBullet(v3),
-		SourcePositionToBullet(v4)
+		v1,
+		v3,
+		v4
 	);
 
 #ifdef VOXELATE_CLIENT
@@ -650,25 +668,25 @@ void VoxelChunk::addSliceFace(int slice, int x, int y, int w, int h, int tx, int
 	double vMin = ((double)ty / cl_config->atlasHeight);
 	double vMax = ((ty + 1.0) / cl_config->atlasHeight);
 
-	meshBuilder.Position3f(v1.x, v1.y, v1.z);
+	meshBuilder.Position3f(v1.x(), -v1.z(), v1.y());
 	meshBuilder.TexCoord2f(0, 0, h);
 	meshBuilder.TexCoord2f(1, uMin, vMin);
 	meshBuilder.Normal3f(1, 0, 0);
 	meshBuilder.AdvanceVertex();
 
-	meshBuilder.Position3f(v2.x, v2.y, v2.z);
+	meshBuilder.Position3f(v2.x(), -v2.z(), v2.y());
 	meshBuilder.TexCoord2f(0, 0, 0);
 	meshBuilder.TexCoord2f(1, uMin, vMin);
 	meshBuilder.Normal3f(1, 0, 0);
 	meshBuilder.AdvanceVertex();
 
-	meshBuilder.Position3f(v3.x, v3.y, v3.z);
+	meshBuilder.Position3f(v3.x(), -v3.z(), v3.y());
 	meshBuilder.TexCoord2f(0, w, 0);
 	meshBuilder.TexCoord2f(1, uMin, vMin);
 	meshBuilder.Normal3f(1, 0, 0);
 	meshBuilder.AdvanceVertex();
 
-	meshBuilder.Position3f(v4.x, v4.y, v4.z);
+	meshBuilder.Position3f(v4.x(), -v4.z(), v4.y());
 	meshBuilder.TexCoord2f(0, w, h);
 	meshBuilder.TexCoord2f(1, uMin, vMin);
 	meshBuilder.Normal3f(1, 0, 0);

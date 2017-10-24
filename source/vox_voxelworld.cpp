@@ -646,7 +646,7 @@ inline btVector3 SourcePositionToBullet(Vector pos) {
 }
 
 inline Vector BulletPositionToSource(btVector3 pos) {
-	return Vector(pos[0], -pos[2], pos[1]);
+	return Vector(pos.x(), -pos.z(), pos.y());
 }
 
 // Function for line traces. Re-scales vectors and moves the start to the beggining of the voxel entity,
@@ -714,352 +714,9 @@ VoxelTraceRes VoxelWorld::doTraceHull(btVector3 startPos, btVector3 delta, btVec
 	return res;
 }
 
-
-
-// Fast trace function, based on http://www.cse.chalmers.se/edu/year/2011/course/TDA361/Advanced%20Computer%20Graphics/grid.pdf
-VoxelTraceRes VoxelWorld::iTrace(Vector startPos, Vector delta, Vector defNormal) {
-	int vx = startPos.x;
-	int vy = startPos.y;
-	int vz = startPos.z;
-
-	BlockData vdata = get(vx, vy, vz);
-	VoxelType& vt = config.voxelTypes[vdata];
-	if (vt.form == VFORM_CUBE) {
-		VoxelTraceRes res;
-		res.fraction = 0;
-		res.hitPos = startPos;
-		res.hitNormal = defNormal;
-		return res;
-	}
-
-	int stepX, stepY, stepZ;
-	double tMaxX, tMaxY, tMaxZ;
-
-	if (delta.x >= 0) {
-		stepX = 1;
-		tMaxX = (1 - fmod(startPos.x, 1)) / delta.x;
-	}
-	else {
-		stepX = -1;
-		tMaxX = fmod(startPos.x, 1) / -delta.x;
-	}
-
-	if (delta.y >= 0) {
-		stepY = 1;
-		tMaxY = (1 - fmod(startPos.y, 1)) / delta.y;
-	}
-	else {
-		stepY = -1;
-		tMaxY = fmod(startPos.y, 1) / -delta.y;
-	}
-
-	if (delta.z >= 0) {
-		stepZ = 1;
-		tMaxZ = (1 - fmod(startPos.z, 1)) / delta.z;
-	}
-	else {
-		stepZ = -1;
-		tMaxZ = fmod(startPos.z, 1) / -delta.z;
-	}
-
-	double tDeltaX = fabs(1 / delta.x);
-	double tDeltaY = fabs(1 / delta.y);
-	double tDeltaZ = fabs(1 / delta.z);
-
-	int failsafe = 0;
-	while (failsafe++ < 10000) {
-		byte dir = 0;
-		if (tMaxX < tMaxY) {
-			if (tMaxX < tMaxZ) {
-				if (tMaxX>1)
-					return VoxelTraceRes();
-				vx += stepX;
-				tMaxX += tDeltaX;
-				if (vx < minPos[0] || vx >= maxPos[0])
-					return VoxelTraceRes();
-				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
-			}
-			else {
-				if (tMaxZ>1)
-					return VoxelTraceRes();
-				vz += stepZ;
-				tMaxZ += tDeltaZ;
-				if (vz < minPos[2] || vz >= maxPos[2])
-					return VoxelTraceRes();
-				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
-			}
-		}
-		else {
-			if (tMaxY < tMaxZ) {
-				if (tMaxY>1)
-					return VoxelTraceRes();
-				vy += stepY;
-				tMaxY += tDeltaY;
-				if (vy < minPos[1] || vy >= maxPos[1])
-					return VoxelTraceRes();
-				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
-			}
-			else {
-				if (tMaxZ>1)
-					return VoxelTraceRes();
-				vz += stepZ;
-				tMaxZ += tDeltaZ;
-				if (vz < minPos[2] || vz >= maxPos[2])
-					return VoxelTraceRes();
-				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
-			}
-		}
-		BlockData vdata = get(vx, vy, vz);
-		VoxelType& vt = config.voxelTypes[vdata];
-		if (vt.form == VFORM_CUBE) {
-			VoxelTraceRes res;
-			if (dir == DIR_X_POS) {
-				res.fraction = tMaxX -tDeltaX;
-				res.hitNormal = Vector(-1,0,0);
-			}
-			else if (dir == DIR_X_NEG) {
-				res.fraction = tMaxX - tDeltaX;
-				res.hitNormal = Vector(1, 0, 0);
-			}
-			else if (dir == DIR_Y_POS) {
-				res.fraction = tMaxY - tDeltaY;
-				res.hitNormal = Vector(0, -1, 0);
-			}
-			else if (dir == DIR_Y_NEG) {
-				res.fraction = tMaxY - tDeltaY;
-				res.hitNormal = Vector(0, 1, 0);
-			}
-			else if (dir == DIR_Z_POS) {
-				res.fraction = tMaxZ - tDeltaZ;
-				res.hitNormal = Vector(0, 0, -1);
-			}
-			else if (dir == DIR_Z_NEG) {
-				res.fraction = tMaxZ - tDeltaZ;
-				res.hitNormal = Vector(0, 0, 1);
-			}
-			res.hitPos = startPos + res.fraction*delta; // todo plz improve
-			return res;
-		}
-	}
-
-	vox_print("[bail] %f %f %f :: %f %f %f", startPos.x, startPos.y, startPos.z, delta.x, delta.y, delta.z);
-	return VoxelTraceRes();
-}
-
-int floorCrazy(float f) {
-	int floored = floor(f);
-	if (floored == f)
-		return f - 1;
-	return f;
-}
-
-// Same as above, for hull traces.
-// Has a lot of sketchy shit to prevent players getting stuck :(
-VoxelTraceRes VoxelWorld::iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal) {
-	double epsilon = .001;
-
-	for (int ix = startPos.x - extents.x + epsilon; ix <= startPos.x + extents.x-epsilon; ix++) {
-		for (int iy = startPos.y - extents.y + epsilon; iy <= startPos.y + extents.y-epsilon; iy++) {
-			for (int iz = startPos.z + epsilon; iz <= startPos.z + extents.z * 2-epsilon; iz++) {
-				BlockData vdata = get(ix, iy, iz);
-				VoxelType& vt = config.voxelTypes[vdata];
-				if (vt.form == VFORM_CUBE) {
-					VoxelTraceRes res;
-					res.fraction = 0;
-					res.hitPos = startPos;
-					res.hitNormal = defNormal;
-					return res;
-				}
-			}
-		}
-	}
-
-	int vx, vy, vz;
-	int stepX, stepY, stepZ;
-	double tMaxX, tMaxY, tMaxZ;
-
-	if (delta.x >= 0) {
-		vx = startPos.x + extents.x - epsilon;
-		stepX = 1;
-		double mod = fmod(startPos.x + extents.x, 1);
-		if (mod == 0)
-			tMaxX = 0;
-		else
-			tMaxX = (1 - mod) / delta.x;
-	}
-	else {
-		vx = startPos.x - extents.x + epsilon;
-		stepX = -1;
-		tMaxX = fmod(startPos.x - extents.x, 1) / -delta.x;
-	}
-
-	if (delta.y >= 0) {
-		vy = startPos.y + extents.y - epsilon;
-		stepY = 1;
-		double mod = fmod(startPos.y + extents.y, 1);
-		if (mod == 0)
-			tMaxY = 0;
-		else
-			tMaxY = (1 - mod) / delta.y;
-	}
-	else {
-		vy = startPos.y - extents.y + epsilon;
-		stepY = -1;
-		tMaxY = fmod(startPos.y - extents.y, 1) / -delta.y;
-	}
-
-	if (delta.z >= 0) {
-		vz = startPos.z + extents.z * 2 - epsilon;
-		stepZ = 1;
-		double mod = fmod(startPos.z + extents.z * 2, 1);
-		if (mod == 0)
-			tMaxZ = 0;
-		else
-			tMaxZ = (1 - mod) / delta.z;
-	}
-	else {
-		vz = startPos.z + epsilon;
-		stepZ = -1;
-		tMaxZ = fmod(startPos.z, 1) / -delta.z;
-	}
-
-	double tDeltaX = fabs(1 / delta.x);
-	double tDeltaY = fabs(1 / delta.y);
-	double tDeltaZ = fabs(1 / delta.z);
-
-	int failsafe = 0;
-	while (failsafe++ < 10000) {
-		byte dir = 0;
-		if (tMaxX < tMaxY) {
-			if (tMaxX < tMaxZ) {
-				if (tMaxX > 1)
-					return VoxelTraceRes();
-				vx += stepX;
-				tMaxX += tDeltaX;
-				if (vx < minPos[0] || vx >= maxPos[0])
-					return VoxelTraceRes();
-				dir = stepX > 0 ? DIR_X_POS : DIR_X_NEG;
-			}
-			else {
-				if (tMaxZ>1)
-					return VoxelTraceRes();
-				vz += stepZ;
-				tMaxZ += tDeltaZ;
-				if (vz < minPos[2] || vz >= maxPos[2])
-					return VoxelTraceRes();
-				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
-			}
-		}
-		else {
-			if (tMaxY < tMaxZ) {
-				if (tMaxY>1)
-					return VoxelTraceRes();
-				vy += stepY;
-				tMaxY += tDeltaY;
-				if (vy < minPos[1] || vy >= maxPos[1])
-					return VoxelTraceRes();
-				dir = stepY > 0 ? DIR_Y_POS : DIR_Y_NEG;
-			}
-			else {
-				if (tMaxZ>1)
-					return VoxelTraceRes();
-				vz += stepZ;
-				tMaxZ += tDeltaZ;
-				if (vz < minPos[2] || vz >= maxPos[2])
-					return VoxelTraceRes();
-				dir = stepZ > 0 ? DIR_Z_POS : DIR_Z_NEG;
-			}
-		}
-
-		if (dir == DIR_X_POS || dir == DIR_X_NEG) {
-			double t = tMaxX - tDeltaX;
-			double baseY = startPos.y + t*delta.y;
-			double baseZ = startPos.z + t*delta.z;
-			for (int iy = baseY - extents.y + epsilon; iy <= baseY + extents.y - epsilon; iy++) {
-				for (int iz = baseZ + epsilon; iz <= baseZ + extents.z * 2 - epsilon; iz++) {
-					BlockData vdata = get(vx, iy, iz);
-					VoxelType& vt = config.voxelTypes[vdata];
-					if (vt.form == VFORM_CUBE) {
-						VoxelTraceRes res;
-						res.fraction = t;
-
-						res.hitPos = startPos + res.fraction*delta;
-
-						if (dir == DIR_X_POS) {
-							res.hitNormal.x = -1;
-							res.hitPos.x -= epsilon;
-						}
-						else {
-							res.hitNormal.x = 1;
-							res.hitPos.x += epsilon;
-						}
-						return res;
-					}
-				}
-			}
-		}
-		else if (dir == DIR_Y_POS || dir == DIR_Y_NEG) {
-			double t = tMaxY - tDeltaY;
-			double baseX = startPos.x + t*delta.x;
-			double baseZ = startPos.z + t*delta.z;
-			for (int ix = baseX - extents.x + epsilon; ix <= baseX + extents.x - epsilon; ix++) {
-				for (int iz = baseZ + epsilon; iz <= baseZ + extents.z * 2 - epsilon; iz++) {
-					BlockData vdata = get(ix, vy, iz);
-					VoxelType& vt = config.voxelTypes[vdata];
-					if (vt.form == VFORM_CUBE) {
-						VoxelTraceRes res;
-						res.fraction = t;
-
-						res.hitPos = startPos + res.fraction*delta;
-
-						if (dir == DIR_Y_POS) {
-							res.hitNormal.y = -1;
-							res.hitPos.y -= epsilon;
-						}
-						else {
-							res.hitNormal.y = 1;
-							res.hitPos.y += epsilon;
-						}
-						return res;
-					}
-				}
-			}
-		}
-		else {
-			double t = tMaxZ - tDeltaZ;
-			double baseX = startPos.x + t*delta.x;
-			double baseY = startPos.y + t*delta.y;
-			for (int ix = baseX - extents.x + epsilon; ix <= baseX + extents.x - epsilon; ix++) {
-				for (int iy = baseY - extents.y + epsilon; iy <= baseY + extents.y - epsilon; iy++) {
-					BlockData vdata = get(ix, iy, vz);
-					VoxelType& vt = config.voxelTypes[vdata];
-					if (vt.form == VFORM_CUBE) {
-						VoxelTraceRes res;
-						res.fraction = t;
-
-						res.hitPos = startPos + res.fraction*delta;
-
-						if (dir == DIR_Z_POS) {
-							res.hitNormal.z = -1;
-							res.hitPos.z -= epsilon;
-						}
-						else {
-							res.hitNormal.z = 1;
-							res.hitPos.z += epsilon;
-						}
-						return res;
-					}
-				}
-			}
-		}
-	}
-
-	vox_print("[bail-hull] %i %i %i", vx, vy, vz);
-	return VoxelTraceRes();
-}
-
 // Render every single chunk.
 // TODO for huge worlds, only render close chunks
+#ifdef VOXELATE_CLIENT
 void VoxelWorld::draw() {
 
 	IMaterial* atlasMat = config.atlasMaterial;
@@ -1080,6 +737,7 @@ void VoxelWorld::draw() {
 		pair.second->draw(pRenderContext);
 	}
 }
+#endif
 
 //floored division, credit http://www.microhowto.info/howto/round_towards_minus_infinity_when_dividing_integers_in_c_or_c++.html
 int div_floor(int x, int y) {
@@ -1089,37 +747,65 @@ int div_floor(int x, int y) {
 	return q;
 }
 
-inline VoxelCoord chunkRel(VoxelCoord coord) {
-	coord %= VOXEL_CHUNK_SIZE;
-
-	if (coord < 0) {
-		return coord + VOXEL_CHUNK_SIZE;
+VoxelCoord preciseToNormal(PreciseVoxelCoord coord) {
+	if (coord >= 0) {
+		return (VoxelCoord)coord; // cast to int and discard all decimal places
 	}
+	else {
+		return (VoxelCoord)floor(coord); // floor to next "biggest" negative number
+	}
+}
 
-	return coord;
+VoxelCoord chunkRel(VoxelCoord coord, VoxelCoord chunkCoord) {
+	if (coord >= 0) {
+		return coord - chunkCoord * VOXEL_CHUNK_SIZE;
+	}
+	else {
+		return coord + abs(chunkCoord) * VOXEL_CHUNK_SIZE;
+	}
 }
 
 // Gets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
-BlockData VoxelWorld::get(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
-	int qx = x / VOXEL_CHUNK_SIZE;
+BlockData VoxelWorld::get(PreciseVoxelCoord x, PreciseVoxelCoord y, PreciseVoxelCoord z) {
+	return get(preciseToNormal(x), preciseToNormal(y), preciseToNormal(z));
+}
 
-	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
+BlockData VoxelWorld::get(VoxelCoord x, VoxelCoord y, VoxelCoord z) {
+	auto chunkX = div_floor(x, VOXEL_CHUNK_SIZE);
+	auto chunkY = div_floor(y, VOXEL_CHUNK_SIZE);
+	auto chunkZ = div_floor(z, VOXEL_CHUNK_SIZE);
+
+	VoxelChunk* chunk = getChunk(chunkX, chunkY, chunkZ);
 	if (chunk == nullptr) {
 		return 0;
 	}
 
-	return chunk->get(chunkRel(x % VOXEL_CHUNK_SIZE), chunkRel(y % VOXEL_CHUNK_SIZE), chunkRel(z % VOXEL_CHUNK_SIZE));
+	return chunk->get(chunkRel(x, chunkX), chunkRel(y, chunkY), chunkRel(z, chunkZ));
+}
+
+// Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
+bool VoxelWorld::set(PreciseVoxelCoord x, PreciseVoxelCoord y, PreciseVoxelCoord z, BlockData d, bool flagChunks) {
+	auto x2 = preciseToNormal(x);
+	auto y2 = preciseToNormal(y);
+	auto z2 = preciseToNormal(z);
+
+	return set(x2, y2, z2, d, flagChunks);
 }
 
 // Sets a voxel given VOXEL COORDINATES -- NOT WORLD COORDINATES OR COORDINATES LOCAL TO ENT -- THOSE ARE HANDLED BY LUA CHUNK
 bool VoxelWorld::set(VoxelCoord x, VoxelCoord y, VoxelCoord z, BlockData d, bool flagChunks) {
-	VoxelChunk* chunk = getChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
+	auto chunkX = div_floor(x, VOXEL_CHUNK_SIZE);
+	auto chunkY = div_floor(y, VOXEL_CHUNK_SIZE);
+	auto chunkZ = div_floor(z, VOXEL_CHUNK_SIZE);
+
+	VoxelChunk* chunk = getChunk(chunkX, chunkY, chunkZ);
 
 	if (chunk == nullptr) {
-		chunk = initChunk(div_floor(x, VOXEL_CHUNK_SIZE), div_floor(y, VOXEL_CHUNK_SIZE), div_floor(z, VOXEL_CHUNK_SIZE));
+		chunk = initChunk(chunkX, chunkY, chunkZ);
 	}
-	
-	chunk->set(chunkRel(x % VOXEL_CHUNK_SIZE), chunkRel(y % VOXEL_CHUNK_SIZE), chunkRel(z % VOXEL_CHUNK_SIZE), d, flagChunks);
+
+	chunk->set(chunkRel(x, chunkX), chunkRel(y, chunkY), chunkRel(z, chunkZ), d, flagChunks);
+
 	return true;
 }
 

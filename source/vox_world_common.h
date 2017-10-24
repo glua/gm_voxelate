@@ -33,6 +33,8 @@ const int VOXEL_VERT_FMT = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTE
 // TODO re-calibrate this for greedy meshing
 #define BUILD_MAX_VERTS (VOXEL_CHUNK_SIZE*VOXEL_CHUNK_SIZE*4*2)
 
+#define btAdjVector3(x,y,z) btVector3((x),(z),-(y))
+
 // #ifdef VOXELATE_SERVER
 // #define VOXELATE_SERVER_VPHYSICS 1
 // #endif
@@ -42,6 +44,7 @@ typedef uint16 BlockData;
 typedef std::int32_t VoxelCoord;
 typedef double PreciseVoxelCoord;
 typedef std::array<VoxelCoord, 3> VoxelCoordXYZ;
+typedef std::array<PreciseVoxelCoord, 3> PreciseVoxelCoordXYZ;
 
 // Size of a chunk. Don't change this.
 const VoxelCoord VOXEL_CHUNK_SIZE = 16;
@@ -53,6 +56,8 @@ const VoxelCoord VOXEL_INIT_Z = 16;
 extern Vector BulletPositionToSource(btVector3 vec);
 extern btVector3 SourcePositionToBullet(Vector vec);
 
+extern VoxelCoord preciseToNormal(PreciseVoxelCoord coord);
+
 // custom specialization of std::hash can be injected in namespace std
 // thanks zerf
 namespace std {
@@ -61,6 +66,23 @@ namespace std {
 			std::size_t h = 2166136261;
 
 			for (const std::int32_t& e : a) {
+				h = (h ^ (e >> 24)) * 16777619;
+				h = (h ^ ((e >> 16) & 0xff)) * 16777619;
+				h = (h ^ ((e >> 8) & 0xff)) * 16777619;
+				h = (h ^ (e & 0xff)) * 16777619;
+			}
+
+			return h;
+		}
+	};
+
+	template<> struct hash<PreciseVoxelCoordXYZ> {
+		std::size_t operator()(PreciseVoxelCoordXYZ const& a) const {
+			std::size_t h = 2166136261;
+
+			for (const double& _e : a) {
+				auto e = preciseToNormal(_e);
+
 				h = (h ^ (e >> 24)) * 16777619;
 				h = (h ^ ((e >> 16) & 0xff)) * 16777619;
 				h = (h ^ ((e >> 8) & 0xff)) * 16777619;

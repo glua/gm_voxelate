@@ -66,10 +66,15 @@ public:
 	VoxelTraceRes iTrace(Vector startPos, Vector delta, Vector defNormal);
 	VoxelTraceRes iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal);
 
+#ifdef VOXELATE_CLIENT
+	btVector3 viewPos = btAdjVector3(0, 0, 0);
 	void draw();
+#endif
 
+	BlockData get(PreciseVoxelCoord x, PreciseVoxelCoord y, PreciseVoxelCoord z);
 	BlockData get(VoxelCoord x, VoxelCoord y, VoxelCoord z);
-	bool set(VoxelCoord x, VoxelCoord y, VoxelCoord z, BlockData d,bool flagChunks=true);
+	bool set(VoxelCoord x, VoxelCoord y, VoxelCoord z, BlockData d, bool flagChunks = true);
+	bool set(PreciseVoxelCoord x, PreciseVoxelCoord y, PreciseVoxelCoord z, BlockData d,bool flagChunks=true);
 
 	//bool trackUpdates = false;
 	//std::vector<XYZCoordinate> queued_block_updates;

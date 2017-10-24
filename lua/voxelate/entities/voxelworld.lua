@@ -267,8 +267,12 @@ if SERVER then
 		local index = self:GetInternalIndex()
 		local scale = internals.voxGetBlockScale(index)
 
-		local rel_pos = self:WorldToLocal(pos)/scale
-		return self:getBlock(rel_pos.x,rel_pos.y,rel_pos.z)
+		local rel_pos = self:WorldToLocal(pos) / scale
+		return self:getBlock(
+			internals.preciseToNormalCoords(rel_pos.x),
+			internals.preciseToNormalCoords(rel_pos.y),
+			internals.preciseToNormalCoords(rel_pos.z)
+		)
 	end
 
 	if SERVER then
@@ -284,8 +288,15 @@ if SERVER then
 			local index = self:GetInternalIndex()
 			local scale = internals.voxGetBlockScale(index)
 
-			local rel_pos = self:WorldToLocal(pos)/scale
-			self:setBlock(rel_pos.x,rel_pos.y,rel_pos.z,d)
+
+			local rel_pos = self:WorldToLocal(pos) / scale
+
+			self:setBlock(
+				internals.preciseToNormalCoords(rel_pos.x),
+				internals.preciseToNormalCoords(rel_pos.y),
+				internals.preciseToNormalCoords(rel_pos.z),
+				d
+			)
 		end
 
 		function ENT:setRegion(x,y,z,sx,sy,sz,d)
@@ -293,6 +304,7 @@ if SERVER then
 
 			local success = internals.voxSetRegion(index,x,y,z,sx,sy,sz,d)
 			if success then internals.sendRegionUpdate(index,x,y,z,sx,sy,sz,d) end
+			
 			return success
 		end
 
@@ -300,14 +312,23 @@ if SERVER then
 			local index = self:GetInternalIndex()
 			local scale = internals.voxGetBlockScale(index)
 
-			local lower=self:WorldToLocal(v1)/scale
-			local upper=self:WorldToLocal(v2)/scale
+			local lower=self:WorldToLocal(v1) / scale
+			local upper=self:WorldToLocal(v2) / scale
 
 			OrderVectors(lower,upper)
 
 			local fix = math.floor
 
-			self:setRegion(lower.x,lower.y,lower.z,fix(upper.x)-fix(lower.x),fix(upper.y)-fix(lower.y),fix(upper.z)-fix(lower.z),d)
+			self:setRegion(
+				internals.preciseToNormalCoords(lower.x),
+				internals.preciseToNormalCoords(lower.y),
+				internals.preciseToNormalCoords(lower.z),
+				fix(upper.x)
+				-fix(lower.x),
+				fix(upper.y) - fix(lower.y),
+				fix(upper.z) - fix(lower.z),
+				d
+			)
 		end
 
 		function ENT:setSphere(x,y,z,r,d)
@@ -322,10 +343,16 @@ if SERVER then
 			local index = self:GetInternalIndex()
 			local scale = internals.voxGetBlockScale(index)
 
-			pos=self:WorldToLocal(pos)/scale
-			r=r/scale
+			pos=self:WorldToLocal(pos) / scale
+			r = r / scale
 
-			self:setSphere(pos.x,pos.y,pos.z,r,d)
+			self:setSphere(
+				internals.preciseToNormalCoords(pos.x),
+				internals.preciseToNormalCoords(pos.y),
+				internals.preciseToNormalCoords(pos.z),
+				r,
+				d
+			)
 		end
 	end
 

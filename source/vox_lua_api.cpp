@@ -203,6 +203,8 @@ LUA_FUNCTION(luaf_voxDeleteWorld) {
 }
 
 lua_State* lastState;
+
+#ifdef VOXELATE_CLIENT
 LUA_FUNCTION(luaf_voxDraw) {
 	int index = LUA->GetNumber(1);
 
@@ -215,6 +217,7 @@ LUA_FUNCTION(luaf_voxDraw) {
 
 	return 0;
 }
+#endif
 
 LUA_FUNCTION(luaf_voxGetBlockScale) {
 	int index = LUA->CheckNumber(1);
@@ -327,9 +330,9 @@ int luaf_voxSetWorldUpdatesEnabled(lua_State* state) {
 LUA_FUNCTION(luaf_voxGet) {
 	int index = LUA->GetNumber(1);
 
-	int x = LUA->CheckNumber(2);
-	int y = LUA->CheckNumber(3);
-	int z = LUA->CheckNumber(4);
+	PreciseVoxelCoord x = LUA->CheckNumber(2);
+	PreciseVoxelCoord y = LUA->CheckNumber(3);
+	PreciseVoxelCoord z = LUA->CheckNumber(4);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr)
@@ -343,10 +346,10 @@ LUA_FUNCTION(luaf_voxGet) {
 LUA_FUNCTION(luaf_voxSet) {
 	int index = LUA->GetNumber(1);
 
-	int x = LUA->CheckNumber(2);
-	int y = LUA->CheckNumber(3);
-	int z = LUA->CheckNumber(4);
-	int d = LUA->CheckNumber(5);
+	PreciseVoxelCoord x = LUA->CheckNumber(2);
+	PreciseVoxelCoord y = LUA->CheckNumber(3);
+	PreciseVoxelCoord z = LUA->CheckNumber(4);
+	BlockData d = LUA->CheckNumber(5);
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
@@ -550,6 +553,42 @@ inline VoxelCoordXYZ luaL_checkvoxelxyz(lua_State* state, int loc) {
 	luaL_checktype(state, loc, LUA_TTABLE);
 
 	lua_rawgeti(state, loc, 1);
+	VoxelCoord x = preciseToNormal(luaL_checknumber(state, -1));
+	lua_pop(state, 1);
+
+	lua_rawgeti(state, loc, 2);
+	VoxelCoord y = preciseToNormal(luaL_checknumber(state, -1));
+	lua_pop(state, 1);
+
+	lua_rawgeti(state, loc, 3);
+	VoxelCoord z = preciseToNormal(luaL_checknumber(state, -1));
+	lua_pop(state, 1);
+
+	return { x,y,z };
+}
+
+inline PreciseVoxelCoordXYZ luaL_checkprecisevoxelxyz(lua_State* state, int loc) {
+	luaL_checktype(state, loc, LUA_TTABLE);
+
+	lua_rawgeti(state, loc, 1);
+	PreciseVoxelCoord x = luaL_checknumber(state, -1);
+	lua_pop(state, 1);
+
+	lua_rawgeti(state, loc, 2);
+	PreciseVoxelCoord y = luaL_checknumber(state, -1);
+	lua_pop(state, 1);
+
+	lua_rawgeti(state, loc, 3);
+	PreciseVoxelCoord z = luaL_checknumber(state, -1);
+	lua_pop(state, 1);
+
+	return { x,y,z };
+}
+
+inline btVector3 luaL_checkbtvector3(lua_State* state, int loc) {
+	luaL_checktype(state, loc, LUA_TTABLE);
+
+	lua_rawgeti(state, loc, 1);
 	int x = luaL_checknumber(state, -1);
 	lua_pop(state, 1);
 
@@ -561,7 +600,7 @@ inline VoxelCoordXYZ luaL_checkvoxelxyz(lua_State* state, int loc) {
 	int z = luaL_checknumber(state, -1);
 	lua_pop(state, 1);
 
-	return { x,y,z };
+	return btVector3(x,z,-y);
 }
 
 inline void luaL_pushvector(lua_State* state, float x, float y, float z) {
@@ -641,6 +680,35 @@ VOXDEF(voxBounds) {
 
 	return 2;
 }
+
+#ifdef VOXELATE_CLIENT
+VOXDEF(setWorldViewPos) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+
+	v->viewPos = luaL_checkbtvector3(state, 2);
+
+	return 0;
+}
+
+VOXDEF(getWorldViewPos) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+
+	lua_pushnumber(state, v->viewPos.x());
+	lua_pushnumber(state, -v->viewPos.z());
+	lua_pushnumber(state, v->viewPos.y());
+
+	return 3;
+}
+#endif
+
+VOXDEF(preciseToNormalCoords) {
+	PreciseVoxelCoord coord = luaL_checknumber(state, 1);
+
+	lua_pushnumber(state, preciseToNormal(coord));
+
+	return 1;
+}
+
 
 // Bootstrap shit
 void setupFiles();
@@ -731,6 +799,11 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 	VOXF(isChunkLoaded);
 	VOXF(loadChunk);
 	VOXF(voxBounds);
+#ifdef VOXELATE_CLIENT
+	VOXF(setWorldViewPos);
+	VOXF(getWorldViewPos);
+#endif
+	VOXF(preciseToNormalCoords);
 
 	LUA->PushCFunction(luaf_voxNewWorld);
 	LUA->SetField(-2, "voxNewWorld");
@@ -738,8 +811,10 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 	LUA->PushCFunction(luaf_voxDeleteWorld);
 	LUA->SetField(-2, "voxDeleteWorld");
 
+#ifdef VOXELATE_CLIENT
 	LUA->PushCFunction(luaf_voxDraw);
 	LUA->SetField(-2, "voxDraw");
+#endif
 
 	LUA->PushCFunction(luaf_voxUpdate);
 	LUA->SetField(-2, "voxUpdate");

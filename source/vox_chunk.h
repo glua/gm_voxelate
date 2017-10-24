@@ -35,9 +35,15 @@ public:
 	void generate();
 
 	void build(CBaseEntity* ent, ELevelOfDetail lod);
+#ifdef VOXELATE_CLIENT
 	void draw(CMatRenderContextPtr& pRenderContext);
 
+	btVector3 getViewOffsetVector();
+#endif
+
 	VoxelCoordXYZ getWorldCoords();
+	btVector3 getScaledVectorWorldCoords();
+	btVector3 getVectorWorldCoords();
 
 	BlockData get(int x, int y, int z);
 	void set(int x, int y, int z, BlockData d, bool flagChunks);
