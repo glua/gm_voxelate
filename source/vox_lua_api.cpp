@@ -369,35 +369,6 @@ int luaf_voxLoadFromString1(lua_State* state) { // save with format 1
 	return 0;
 }*/
 
-LUA_FUNCTION(luaf_voxTrace) {
-	int index = LUA->GetNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v != nullptr) {
-		Vector start = LUA->GetVector(2);
-
-		Vector delta = LUA->GetVector(3);
-
-		VoxelTraceRes r;
-		if (LUA->GetBool(4)) {
-			Vector extents = LUA->GetVector(5);
-			r = v->doTraceHull(start, delta, extents);
-		}
-		else {
-			r = v->doTrace(start, delta);
-		}
-
-		if (r.fraction != -1) {
-			LUA->PushNumber(r.fraction);
-			LUA->PushVector(r.hitPos);
-			LUA->PushVector(r.hitNormal);
-			return 3;
-		}
-	}
-
-	return 0;
-}
-
 #define VOXF(name) \
 	lua_pushcfunction(LUA->GetState(), voxF_##name); \
 	lua_setfield(LUA->GetState(), -2, #name)
@@ -590,6 +561,31 @@ VOXDEF(voxSet) {
 	return 0;
 }
 
+VOXDEF(voxTrace) {
+	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
+	auto start = luaL_checkbtVector3(state, 2);
+	auto delta = luaL_checkbtVector3(state, 3);
+
+	VoxelTraceRes r;
+	if (lua_toboolean(state, 4)) {
+		auto extents = luaL_checkbtVector3(state, 5);
+		r = v->doTraceHull(start, delta, extents);
+	}
+	else {
+		r = v->doTrace(start, delta);
+	}
+
+	if (r.fraction != 1) {
+		lua_pushnumber(state, r.fraction);
+		luaL_pushbtVector3(state, r.hitPos);
+		luaL_pushbtVector3(state, r.hitNormal);
+
+		return 3;
+	}
+
+	return 0;
+}
+
 
 // Bootstrap shit
 void setupFiles();
@@ -687,6 +683,7 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 	VOXF(preciseToNormalCoords);
 	VOXF(voxGet);
 	VOXF(voxSet);
+	VOXF(voxTrace);
 
 	LUA->PushCFunction(luaf_voxNewWorld);
 	LUA->SetField(-2, "voxNewWorld");
@@ -705,9 +702,6 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 	LUA->PushCFunction(luaf_voxGetAllChunks);
 	LUA->SetField(-2, "voxGetAllChunks");
 
-	LUA->PushCFunction(luaf_voxTrace);
-	LUA->SetField(-2, "voxTrace");
-
 	/*LUA->PushCFunction(luaf_voxGenerate);
 	LUA->SetField(-2, "voxGenerate");
 
@@ -716,12 +710,6 @@ void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string)
 
 	LUA->PushCFunction(luaf_voxGetBlockScale);
 	LUA->SetField(-2, "voxGetBlockScale");
-
-	LUA->PushCFunction(luaf_voxGet);
-	LUA->SetField(-2, "voxGet");
-
-	LUA->PushCFunction(luaf_voxSet);
-	LUA->SetField(-2, "voxSet");
 
 	/*LUA->PushCFunction(luaf_voxGetWorldUpdates); for real? fuck off
 	LUA->SetField(-2, "voxGetWorldUpdates");

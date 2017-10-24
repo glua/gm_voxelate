@@ -666,8 +666,8 @@ VoxelTraceRes VoxelWorld::doTrace(btVector3 startPos, btVector3 delta) {
 
 	if (RayCallback.hasHit()) {
 		res.fraction = RayCallback.m_closestHitFraction;
-		res.hitPos = BulletPositionToSource(RayCallback.m_hitPointWorld);
-		res.hitNormal = BulletPositionToSource(RayCallback.m_hitNormalWorld);
+		res.hitPos = RayCallback.m_hitPointWorld;
+		res.hitNormal = RayCallback.m_hitNormalWorld;
 	}
 
 	return res;
@@ -700,12 +700,12 @@ VoxelTraceRes VoxelWorld::doTraceHull(btVector3 startPos, btVector3 delta, btVec
 	if (RayCallback.hasHit()) {
 		res.fraction = RayCallback.m_closestHitFraction;
 		if (RayCallback.m_closestHitFraction == 0) {
-			res.hitPos = BulletPositionToSource(startPos);
-			res.hitNormal = Vector(0,0,0);
+			res.hitPos = startPos;
+			res.hitNormal = btVector3(0,0,0);
 		}
 		else {
-			res.hitPos = BulletPositionToSource(RayCallback.m_hitPointWorld);
-			res.hitNormal = BulletPositionToSource(RayCallback.m_hitNormalWorld);
+			res.hitPos = RayCallback.m_hitPointWorld;
+			res.hitNormal = RayCallback.m_hitNormalWorld;
 		}
 	}
 

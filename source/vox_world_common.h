@@ -126,8 +126,8 @@ struct VoxelType {
 // Simplified traceres struct.
 struct VoxelTraceRes {
 	double fraction = -1;
-	Vector hitPos;
-	Vector hitNormal = Vector(0,0,0);
+	btVector3 hitPos;
+	btVector3 hitNormal = btVector3(0,0,0);
 	VoxelTraceRes& operator*(double n) { hitPos *= n; return *this; }
 };
 
