@@ -14,16 +14,7 @@ function ENT:SetupDataTables()
 end
 
 function ENT:Initialize()
-	--self.subEntities = {}
-	--self.incrementingSubEntityIndex = 0
-
-	hook.Add("PostDrawTranslucentRenderables","voxl",function()
-		self:Draw()
-	end)
-
 	if SERVER then
-		--self:UpdateVoxelLoadState("LOADING_CHUNKS")
-
 		local config = self.config
 		self.config = nil
 
@@ -41,9 +32,6 @@ function ENT:Initialize()
 		self:SetupBounds()
 		
 		internals.sendConfigs({[index] = config})
-
-		--gm_voxelate.module.voxSetWorldUpdatesEnabled(index,true)
-		--self:UpdateVoxelLoadState("READY")
 	end
 end
 
@@ -138,45 +126,11 @@ function ENT:TestCollision(start,delta,isbox,extents)
 	end
 end
 
---[[function ENT:CreateSubEntity(className)
-	-- negative indexes are clientside-created ents
-	-- positive indexes are serverside-created ents
-
-	if CLIENT then
-		self.incrementingSubEntityIndex = self.incrementingSubEntityIndex - 1
-	else
-		self.incrementingSubEntityIndex = self.incrementingSubEntityIndex + 1
-	end
-
-	local index = self.incrementingSubEntityIndex
-
-	if some_condition_to_be_decided then
-		return CreateVoxelateEngineSubEntity(self,index,gm_voxelate:ResolveSubEntityClassName(className)) -- object used
-	else
-		return CreateSourceEngineSubEntity(self,index,className) -- name used
-	end
-end]]
-
 if SERVER then
-	--[[function ENT:generate(f)
-		local index = self:GetInternalIndex()
-		gm_voxelate.module.voxGenerate(index,f)
-		--gm_voxelate.module.voxReInit(index)
-		--gm_voxelate.module.voxFlagAllChunksForUpdate(index)
-	end
-
-	function ENT:generateDefault()
-		local index = self:GetInternalIndex()
-		gm_voxelate.module.voxGenerateDefault(index)
-		--gm_voxelate.module.voxReInit(index)
-		--gm_voxelate.module.voxFlagAllChunksForUpdate(index)
-	end]]
-
 	function ENT:getBlock(x,y,z)
 		local index = self:GetInternalIndex()
 		return internals.voxGet(index,x,y,z)
 	end
-
 
 	function ENT:getAt(pos)
 		local index = self:GetInternalIndex()
@@ -190,85 +144,83 @@ if SERVER then
 		)
 	end
 
-	if SERVER then
-		function ENT:setBlock(x,y,z,d)
-			local index = self:GetInternalIndex()
+	function ENT:setBlock(x,y,z,d)
+		local index = self:GetInternalIndex()
 
-			local success = internals.voxSet(index,x,y,z,d)
-			if success then internals.sendBlockUpdate(index,x,y,z,d) end
-			return success
-		end
+		local success = internals.voxSet(index,x,y,z,d)
+		if success then internals.sendBlockUpdate(index,x,y,z,d) end
+		return success
+	end
 
-		function ENT:setAt(pos,d)
-			local index = self:GetInternalIndex()
-			local scale = internals.voxGetBlockScale(index)
+	function ENT:setAt(pos,d)
+		local index = self:GetInternalIndex()
+		local scale = internals.voxGetBlockScale(index)
 
 
-			local rel_pos = self:WorldToLocal(pos) / scale
+		local rel_pos = self:WorldToLocal(pos) / scale
 
-			self:setBlock(
-				internals.preciseToNormalCoords(rel_pos.x),
-				internals.preciseToNormalCoords(rel_pos.y),
-				internals.preciseToNormalCoords(rel_pos.z),
-				d
-			)
-		end
+		self:setBlock(
+			internals.preciseToNormalCoords(rel_pos.x),
+			internals.preciseToNormalCoords(rel_pos.y),
+			internals.preciseToNormalCoords(rel_pos.z),
+			d
+		)
+	end
 
-		function ENT:setRegion(x,y,z,sx,sy,sz,d)
-			local index = self:GetInternalIndex()
+	function ENT:setRegion(x,y,z,sx,sy,sz,d)
+		local index = self:GetInternalIndex()
 
-			local success = internals.voxSetRegion(index,x,y,z,sx,sy,sz,d)
-			if success then internals.sendRegionUpdate(index,x,y,z,sx,sy,sz,d) end
+		local success = internals.voxSetRegion(index,x,y,z,sx,sy,sz,d)
+		if success then internals.sendRegionUpdate(index,x,y,z,sx,sy,sz,d) end
 
-			return success
-		end
+		return success
+	end
 
-		function ENT:setRegionAt(v1,v2,d)
-			local index = self:GetInternalIndex()
-			local scale = internals.voxGetBlockScale(index)
+	function ENT:setRegionAt(v1,v2,d)
+		local index = self:GetInternalIndex()
+		local scale = internals.voxGetBlockScale(index)
 
-			local lower=self:WorldToLocal(v1) / scale
-			local upper=self:WorldToLocal(v2) / scale
+		local lower=self:WorldToLocal(v1) / scale
+		local upper=self:WorldToLocal(v2) / scale
 
-			OrderVectors(lower,upper)
+		OrderVectors(lower,upper)
 
-			local fix = math.floor
+		local fix = math.floor
 
-			self:setRegion(
-				internals.preciseToNormalCoords(lower.x),
-				internals.preciseToNormalCoords(lower.y),
-				internals.preciseToNormalCoords(lower.z),
-				fix(upper.x)
-				-fix(lower.x),
-				fix(upper.y) - fix(lower.y),
-				fix(upper.z) - fix(lower.z),
-				d
-			)
-		end
+		self:setRegion(
+			internals.preciseToNormalCoords(lower.x),
+			internals.preciseToNormalCoords(lower.y),
+			internals.preciseToNormalCoords(lower.z),
+			fix(upper.x)
+			-fix(lower.x),
+			fix(upper.y) - fix(lower.y),
+			fix(upper.z) - fix(lower.z),
+			d
+		)
+	end
 
-		function ENT:setSphere(x,y,z,r,d)
-			local index = self:GetInternalIndex()
+	function ENT:setSphere(x,y,z,r,d)
+		local index = self:GetInternalIndex()
 
-			local success = internals.voxSetSphere(index,x,y,z,r,d)
-			if success then internals.sendSphereUpdate(index,x,y,z,r,d) end
-			return success
-		end
+		local success = internals.voxSetSphere(index,x,y,z,r,d)
+		if success then internals.sendSphereUpdate(index,x,y,z,r,d) end
+		return success
+	end
 
-		function ENT:setSphereAt(pos,r,d)
-			local index = self:GetInternalIndex()
-			local scale = internals.voxGetBlockScale(index)
+	function ENT:setSphereAt(pos,r,d)
+		local index = self:GetInternalIndex()
+		local scale = internals.voxGetBlockScale(index)
 
-			pos=self:WorldToLocal(pos) / scale
-			r = r / scale
+		pos=self:WorldToLocal(pos) / scale
+		r = r / scale
 
-			self:setSphere(
-				internals.preciseToNormalCoords(pos.x),
-				internals.preciseToNormalCoords(pos.y),
-				internals.preciseToNormalCoords(pos.z),
-				r,
-				d
-			)
-		end
+		self:setSphere(
+			internals.preciseToNormalCoords(pos.x),
+			internals.preciseToNormalCoords(pos.y),
+			internals.preciseToNormalCoords(pos.z),
+			r,
+			d
+		)
 	end
 
 	function ENT:save(file_name)
