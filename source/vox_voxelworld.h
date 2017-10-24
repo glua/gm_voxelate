@@ -12,6 +12,7 @@
 #include "vox_world_common.h"
 
 class VoxelChunk;
+class VoxelEntity;
 
 class VoxelWorld {
 	friend class VoxelChunk;
@@ -63,9 +64,6 @@ public:
 	VoxelTraceRes doTraceHull(Vector startPos, Vector delta, Vector extents);
 	VoxelTraceRes doTraceHull(btVector3 startPos, btVector3 delta, btVector3 extents);
 
-	VoxelTraceRes iTrace(Vector startPos, Vector delta, Vector defNormal);
-	VoxelTraceRes iTraceHull(Vector startPos, Vector delta, Vector extents, Vector defNormal);
-
 #ifdef VOXELATE_CLIENT
 	btVector3 viewPos = btAdjVector3(0, 0, 0);
 	void draw();
@@ -81,6 +79,8 @@ public:
 	//std::vector<XYZCoordinate> queued_block_updates;
 
 	VoxelConfig config;
+
+	std::unordered_map<EntityID, VoxelEntity*> entities;
 private:
 	//bool initialised = false;
 

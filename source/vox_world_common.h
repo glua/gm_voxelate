@@ -42,6 +42,7 @@ const int VOXEL_VERT_FMT = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_FORMAT_VERTE
 // Goddamn types.
 typedef uint16 BlockData;
 typedef std::int32_t VoxelCoord;
+typedef std::int16_t EntityID;
 typedef double PreciseVoxelCoord;
 typedef std::array<VoxelCoord, 3> VoxelCoordXYZ;
 typedef std::array<PreciseVoxelCoord, 3> PreciseVoxelCoordXYZ;

@@ -10,6 +10,7 @@
 
 #include "vox_engine.h"
 #include "vox_util.h"
+#include "vox_entity.h"
 #include "vox_voxelworld.h"
 #include "vox_chunk.h"
 
