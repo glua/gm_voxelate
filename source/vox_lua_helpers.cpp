@@ -1,7 +1,7 @@
 #include "vox_lua_helpers.h"
 
 inline VoxelWorld* luaL_checkvoxelworld(lua_State* state, int loc) {
-	int index = luaL_checknumber(state, loc);
+	int index = *(state->luabase->GetUserType<int>(loc, VoxelWorldTypeID));
 
 	auto world = getIndexedVoxelWorld(index);
 
@@ -14,6 +14,18 @@ inline VoxelWorld* luaL_checkvoxelworld(lua_State* state, int loc) {
 
 		return NULL; // to keep the compiler happy
 	}
+}
+
+void luaL_pushvoxelworld(lua_State* state, VoxelWorld world) {
+	int* index = state->luabase->NewUserType<int>(VoxelWorldTypeID);
+
+	*index = world.worldID;
+}
+
+void luaL_pushvoxelworld(lua_State* state, int worldID) {
+	int* index = state->luabase->NewUserType<int>(VoxelWorldTypeID);
+
+	*index = worldID;
 }
 
 inline VoxelCoordXYZ luaL_checkvoxelxyz(lua_State* state, int loc) {
@@ -84,4 +96,10 @@ inline void luaL_pushvector(lua_State* state, VoxelCoordXYZ p) {
 	lua_pushnumber(state, p[2]);
 
 	lua_call(state, 3, 1);
+}
+
+inline void luaL_pushbtVector3(lua_State* state, VoxelCoordXYZ p) {
+	btVector3 v(p[0], p[1], p[2]);
+
+	luaL_pushbtVector3(state, v);
 }

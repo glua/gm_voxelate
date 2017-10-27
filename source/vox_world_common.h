@@ -138,12 +138,13 @@ struct VoxelConfig {
 
 	bool buildPhysicsMesh = false;
 
+	const char* atlasMaterialName = "models/debug/debugwhite";
 	IMaterial* atlasMaterial = nullptr;
 
 	int atlasWidth = 1;
 	int atlasHeight = 1;
 
-	VoxelType voxelTypes[256];
+	VoxelType voxelTypes[65536];
 };
 
 class VoxelWorld;

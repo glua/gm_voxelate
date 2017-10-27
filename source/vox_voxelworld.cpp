@@ -359,7 +359,12 @@ double VoxelWorld::getBlockScale() {
 // order by distance to localized origin
 // Can use something similar to get NEARBY chunks later...
 std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(Vector origin) {
-	
+	return getAllChunkPositions(SourcePositionToBullet(origin));
+}
+
+std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(btVector3 origin) {
+	// todo: make this return chunks via a fixed algorithm that radiates outward in a spiral
+
 	// get them chunks
 	std::vector<VoxelCoordXYZ> positions;
 
@@ -371,7 +376,7 @@ std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(Vector origin) {
 	origin /= (VOXEL_CHUNK_SIZE * config.scale);
 
 
-	VoxelCoordXYZ origin_coord = { origin.x, origin.y, origin.z };
+	VoxelCoordXYZ origin_coord = { origin.x(), origin.z(), -origin.y() };
 
 	// sort them chunks
 	auto sorter = [&](VoxelCoordXYZ c1, VoxelCoordXYZ c2) {
@@ -398,10 +403,10 @@ std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(Vector origin) {
 // Logic probably okay for huge worlds, although we may have to double check that the chunk still exists,
 // or clean out chunks_flagged_for_update when we unload chunks
 // TODO: convert Vector to AdvancedVector
-void VoxelWorld::doUpdates(int count, CBaseEntity* ent, float curTime) {
+void VoxelWorld::doUpdates(int count, float curTime) {
 	// On the server, we -NEED- the entity. Not so important on the client
 	
-	if (!IS_SERVERSIDE || (ent != nullptr && config.buildPhysicsMesh)) {
+	if (!IS_SERVERSIDE || (config.buildPhysicsMesh)) {
 		for (int i = 0; i < count && !dirty_chunk_queue.empty(); i++) {
 			VoxelCoordXYZ pos = dirty_chunk_queue.front();
 			dirty_chunk_queue.pop_front();

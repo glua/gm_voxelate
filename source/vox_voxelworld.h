@@ -44,6 +44,7 @@ public:
 	double getBlockScale();
 
 	std::vector<VoxelCoordXYZ> getAllChunkPositions(Vector origin);
+	std::vector<VoxelCoordXYZ> getAllChunkPositions(btVector3 origin);
 
 	VoxelCoordXYZ minChunk = { 0,0,0 };
 	VoxelCoordXYZ maxChunk = { 0,0,0 };
@@ -55,7 +56,7 @@ public:
 	bool sendChunksAround(int peerID, VoxelCoordXYZ pos, VoxelCoord radius = 10);
 #endif
 
-	void doUpdates(int count, CBaseEntity * ent, float curTime);
+	void doUpdates(int count, float curTime);
 
 	bool isPositionInside(Vector pos);
 

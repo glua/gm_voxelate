@@ -12,85 +12,67 @@
 
 using namespace GarrysMod::Lua;
 
-static uint8_t metatype = GarrysMod::Lua::Type::NONE;
-static const char *metaname = "VoxelWorld";
+VOXDEF_LIB(PreciseToNormalCoords) {
+	PreciseVoxelCoord coord = luaL_checknumber(state, 1);
 
-// Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
+	lua_pushnumber(state, preciseToNormal(coord));
 
-CBaseEntity* elua_getEntity(GarrysMod::Lua::ILuaBase* LUA, int index) {
-	if (!IS_SERVERSIDE)
-		return nullptr;
-
-	GarrysMod::Lua::ILuaBase::UserData* ud = LUA->GetUserdata(index);
-
-	int e_index = reinterpret_cast<CBaseHandle*>(ud->data)->GetEntryIndex();
-
-	auto edict = IFACE_SV_ENGINE->PEntityOfEntIndex(e_index);
-
-	if (edict == nullptr)
-		return nullptr;
-	return edict->GetUnknown()->GetBaseEntity();
+	return 1;
 }
-
-bool config_bool(GarrysMod::Lua::ILuaBase* LUA, const char* name, bool default_value) {
-	LUA->GetField(1, name);
-	if (LUA->IsType(-1, GarrysMod::Lua::Type::BOOL))
-		default_value = LUA->GetBool();
-	LUA->Pop();
-
-	return default_value;
-}
-
-double config_num(GarrysMod::Lua::ILuaBase* LUA, const char* name, double default_value) {
-	LUA->GetField(1, name);
-	if (LUA->IsType(-1, GarrysMod::Lua::Type::NUMBER))
-		default_value = LUA->GetNumber();
-	LUA->Pop();
-
-	return default_value;
-}
-
-const char* config_string(GarrysMod::Lua::ILuaBase* LUA, const char* name, const char* default_value) {
-	LUA->GetField(1, name);
-	if (LUA->IsType(-1, GarrysMod::Lua::Type::STRING))
-		default_value = LUA->GetString();
-	LUA->Pop();
-
-	return default_value;
-}
-
-Vector config_vector(GarrysMod::Lua::ILuaBase* LUA, const char* name, Vector default_value) {
-	LUA->GetField(1, name);
-	if (LUA->IsType(-1, GarrysMod::Lua::Type::VECTOR))
-		default_value = LUA->GetVector();
-	LUA->Pop();
-
-	return default_value;
-}
-
 
 //Friend function of VoxelWorld, handles all configuration.
 //Todo use some sort of struct for config and shove it into the voxels class
-LUA_FUNCTION(luaf_voxNewWorld) {
+VOXDEF_LIB(NewWorld) {
+	int index = luaL_optint(state, 1, -1);
 
-	int index = -1;
-
-	if (LUA->IsType(2, GarrysMod::Lua::Type::NUMBER))
-		index = LUA->GetNumber(2);
-
+	// Initialise config
 	VoxelConfig config;
 
+	// but some macros first
+
+#define CONF_BOOL(keyName,def) \
+		lua_getfield(state, -1, #keyName); \
+		if(!lua_isnil(state, -1)) { \
+			config.##keyName = lua_toboolean(state, -1); \
+		} \
+		else { \
+			config.##keyName = def; \
+		} \
+		lua_pop(state, 1)
+
+#define CONF_NUM(keyName,def) \
+		lua_getfield(state, -1, #keyName); \
+		if(lua_isnumber(state, -1)) { \
+			config.##keyName = lua_tonumber(state, -1); \
+		} \
+		else { \
+			config.##keyName = def; \
+		} \
+		lua_pop(state, 1)
+
+#define CONF_STR(keyName, def) \
+		lua_getfield(state, -1, #keyName); \
+		if(lua_isstring(state, -1)) { \
+			config.##keyName = lua_tostring(state, -1); \
+		} \
+		else { \
+			config.##keyName = def; \
+		} \
+		lua_pop(state, 1)
+
 	// Dimensions
-	config.scale = config_num(LUA, "scale", 32);
+	CONF_NUM(scale, 40);
 
 	// Atlas crap
-	if (!IS_SERVERSIDE) {
-		const char* temp_mat_name = config_string(LUA, "atlasMaterial", "models/debug/debugwhite");
-		config.atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(temp_mat_name, nullptr);
+#ifdef VOXELATE_CLIENT
+	CONF_STR(atlasMaterialName, "models/debug/debugwhite");
+	config.atlasMaterial = IFACE_CL_MATERIALS->FindMaterial(config.atlasMaterialName, nullptr);
 
+	// Set atlas variables
+	if(config.atlasMaterial != nullptr) {
 		bool var_found;
 		IMaterialVar* var;
-		
+
 		var = config.atlasMaterial->FindVar("$atlas_w", &var_found);
 		if (var_found && var->GetIntValue() > 0) {
 			config.atlasWidth = var->GetIntValue();
@@ -107,11 +89,13 @@ LUA_FUNCTION(luaf_voxNewWorld) {
 			config.atlasHeight = 1;
 		}
 	}
+#endif
 
 	// Mesh building options
-	config.buildPhysicsMesh = config_bool(LUA, "buildPhysicsMesh",false);
+	CONF_BOOL(buildPhysicsMesh, false);
 
 	// The rest of this is going to have to wait...
+	/*
 	LUA->GetField(1, "voxelTypes");
 	if (LUA->IsType(-1, GarrysMod::Lua::Type::TABLE)) {
 		LUA->PushNil();
@@ -181,82 +165,67 @@ LUA_FUNCTION(luaf_voxNewWorld) {
 		}
 	}
 	LUA->Pop();
+	*/
 
-	index = newIndexedVoxelWorld(index, config);
+	// undef macros
+#undef CONF_STR
+#undef CONF_NUM
+#undef CONF_BOOL
 
-	LUA->PushNumber(index);
+	luaL_pushvoxelworld(state, newIndexedVoxelWorld(index, config));
 
 	return 1;
 }
 
-LUA_FUNCTION(luaf_voxDeleteWorld) {
-	int index = LUA->GetNumber(1);
-	deleteIndexedVoxelWorld(index);
+VOXDEF_META(DeleteWorld) {
+	auto world = luaL_checkvoxelworld(state, 1);
+
+	deleteIndexedVoxelWorld(world->worldID);
+
 	return 0;
 }
 
 #ifdef VOXELATE_CLIENT
-LUA_FUNCTION(luaf_voxDraw) {
-	int index = LUA->GetNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v != nullptr) {
-		v->draw();
-	}
+VOXDEF_META(Draw) {
+	auto v = luaL_checkvoxelworld(state, 1);
+	
+	v->draw();
 
 	return 0;
 }
 #endif
 
-LUA_FUNCTION(luaf_voxGetBlockScale) {
-	int index = LUA->CheckNumber(1);
+VOXDEF_META(GetBlockScale) {
+	auto v = luaL_checkvoxelworld(state, 1);
 
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-	if (v != nullptr) {
-		double scale = v->getBlockScale();
-		LUA->PushNumber(scale);
+	lua_pushnumber(state, v->getBlockScale());
 
-		return 1;
-	}
+	return 1;
+}
+
+VOXDEF_META(Update) {
+	auto v = luaL_checkvoxelworld(state, 1);
+	int chunk_count = luaL_checknumber(state, 2);
+	float curTime = luaL_checknumber(state, 3);
+
+	v->doUpdates(chunk_count, curTime);
 
 	return 0;
 }
 
-LUA_FUNCTION(luaf_voxUpdate) {
-	int index = LUA->GetNumber(1);
-	int chunk_count = LUA->GetNumber(2);
-	float curTime = LUA->GetNumber(3);
+VOXDEF_META(GetAllChunks) {
+	auto v = luaL_checkvoxelworld(state, 1);
 
-	CBaseEntity* ent = elua_getEntity(LUA, 3);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-
-	if (v != nullptr) {
-		v->doUpdates(chunk_count, ent, curTime);
-	}
-
-	return 0;
-}
-
-LUA_FUNCTION(luaf_voxGetAllChunks) {
-	int index = LUA->GetNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-
-	Vector origin = LUA->GetVector(2);
-
-	if (v == nullptr) {
-		return 0;
-	}
+	auto origin = luaL_checkbtVector3(state, 2);
 
 	auto chunk_positions = v->getAllChunkPositions(origin);
-	LUA->CreateTable();
+	lua_newtable(state);
 	int i = 1;
 	for (auto v : chunk_positions) {
-		LUA->PushNumber(i);
-		LUA->PushVector(Vector(v[0], v[1], v[2]));
+		luaL_pushbtVector3(state, btAdjVector3(v[0], v[1], v[2]));
 
-		LUA->SetTable(-3);
+		lua_rawseti(state, -2, i);
+
 		i++;
 	}
 
@@ -264,28 +233,20 @@ LUA_FUNCTION(luaf_voxGetAllChunks) {
 }
 
 #ifdef VOXELATE_SERVER
-LUA_FUNCTION(luaf_voxSendChunk) {
-	int index = LUA->GetNumber(1);
-	int peerID = LUA->GetNumber(2);
-	int x = LUA->GetNumber(3);
-	int y = LUA->GetNumber(4);
-	int z = LUA->GetNumber(5);
+VOXDEF_META(SendChunk) {
+	auto v = luaL_checkvoxelworld(state, 1);
+	int peerID = luaL_checknumber(state, 2);
+	int x = luaL_checknumber(state, 3);
+	int y = luaL_checknumber(state, 4);
+	int z = luaL_checknumber(state, 5);
 
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-
-	if (v != nullptr) {
-		LUA->PushBool(v->sendChunk(peerID, { x, y, z }));
-	}
-	else {
-		LUA->PushBool(false);
-	}
+	lua_pushboolean(state, v->sendChunk(peerID, { x, y, z }));
 
 	return 1;
 }
-
 #endif
 
-VOXDEF(isChunkLoaded) {
+VOXDEF_META(IsChunkLoaded) {
 	auto world = luaL_checkvoxelworld(state, 1);
 	auto pos = luaL_checkvoxelxyz(state, 2);
 
@@ -294,7 +255,7 @@ VOXDEF(isChunkLoaded) {
 	return 1;
 }
 
-VOXDEF(loadChunk) {
+VOXDEF_META(LoadChunk) {
 	auto world = luaL_checkvoxelworld(state, 1);
 	auto pos = luaL_checkvoxelxyz(state, 2);
 
@@ -311,7 +272,7 @@ VOXDEF(loadChunk) {
 	return 1;
 }
 
-VOXDEF(voxBounds) {
+VOXDEF_META(GetBounds) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 
 	auto bounds = v->getExtents();
@@ -321,27 +282,27 @@ VOXDEF(voxBounds) {
 	min[1] *= v->config.scale;
 	min[2] *= v->config.scale;
 
-	luaL_pushvector(state, min);
+	luaL_pushbtVector3(state, min);
 
 	auto max = std::get<1>(bounds);
 	max[0] *= v->config.scale;
 	max[1] *= v->config.scale;
 	max[2] *= v->config.scale;
 
-	luaL_pushvector(state, max);
+	luaL_pushbtVector3(state, max);
 
 	return 2;
 }
 
 #ifdef VOXELATE_CLIENT
-VOXDEF(setWorldViewPos) {
+VOXDEF_META(SetWorldViewPos) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 
 	v->viewPos = luaL_checkbtVector3(state, 2);
 
 	return 0;
 }
-VOXDEF(getWorldViewPos) {
+VOXDEF_META(GetWorldViewPos) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 
 	luaL_pushbtVector3(state, v->viewPos);
@@ -350,7 +311,7 @@ VOXDEF(getWorldViewPos) {
 }
 #endif
 
-VOXDEF(setSourceWorldPos) {
+VOXDEF_META(SetSourceWorldPos) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 
 	v->sourceWorldPos = luaL_checkvector(state, 2);
@@ -358,7 +319,7 @@ VOXDEF(setSourceWorldPos) {
 	return 0;
 }
 
-VOXDEF(getSourceWorldPos) {
+VOXDEF_META(GetSourceWorldPos) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 
 	luaL_pushvector(state, v->sourceWorldPos.x, v->sourceWorldPos.y, v->sourceWorldPos.z);
@@ -366,15 +327,7 @@ VOXDEF(getSourceWorldPos) {
 	return 1;
 }
 
-VOXDEF(preciseToNormalCoords) {
-	PreciseVoxelCoord coord = luaL_checknumber(state, 1);
-
-	lua_pushnumber(state, preciseToNormal(coord));
-
-	return 1;
-}
-
-VOXDEF(voxGet) {
+VOXDEF_META(GetBlockID) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 
 	auto x = luaL_checknumber(state, 2);
@@ -386,7 +339,7 @@ VOXDEF(voxGet) {
 	return 1;
 }
 
-VOXDEF(voxSet) {
+VOXDEF_META(SetBlockID) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 
 	auto x = luaL_checknumber(state, 2);
@@ -404,7 +357,7 @@ VOXDEF(voxSet) {
 	return 0;
 }
 
-VOXDEF(voxTrace) {
+VOXDEF_META(DoTrace) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 	auto start = luaL_checkbtVector3(state, 2);
 	auto delta = luaL_checkbtVector3(state, 3);
@@ -429,7 +382,7 @@ VOXDEF(voxTrace) {
 	return 0;
 }
 
-VOXDEF(voxSourceWorldToBlockPos) {
+VOXDEF_META(SourceWorldToScaledBlockPos) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 	auto worldPos = luaL_checkvector(state, 2);
 
@@ -443,7 +396,7 @@ VOXDEF(voxSourceWorldToBlockPos) {
 	return 1;
 }
 
-VOXDEF(voxBlockPosToSourceWorld) {
+VOXDEF_META(ScaledBlockPosToSourceWorld) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 	auto blockPos = luaL_checkbtVector3(state, 2);
 
@@ -454,7 +407,7 @@ VOXDEF(voxBlockPosToSourceWorld) {
 	return 1;
 }
 
-VOXDEF(voxSourceWorldToVoxelatePos) {
+VOXDEF_META(SourceWorldToBlockPos) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 	auto worldPos = luaL_checkvector(state, 2);
 
@@ -467,7 +420,7 @@ VOXDEF(voxSourceWorldToVoxelatePos) {
 	return 1;
 }
 
-VOXDEF(voxVoxelatePosToSourceWorld) {
+VOXDEF_META(BlockPosToSourceWorld) {
 	VoxelWorld* v = luaL_checkvoxelworld(state, 1);
 	auto blockPos = luaL_checkbtVector3(state, 2);
 
@@ -478,15 +431,15 @@ VOXDEF(voxVoxelatePosToSourceWorld) {
 	return 1;
 }
 
-VOXDEF(voxReady) {
-	int index = luaL_checknumber(state, 1);
+VOXDEF_META(IsValid) {
+	int index = *state->luabase->GetUserType<int>(1, VoxelWorldTypeID);
+
 	auto world = getIndexedVoxelWorld(index);
 
 	lua_pushboolean(state, world != nullptr);
 
 	return 1;
 }
-
 
 // Bootstrap shit
 void setupFiles();
@@ -552,7 +505,7 @@ void runBootstrap(lua_State* state) {
 #include <string>
 #include <streambuf>
 
-int luaf_voxReadFile(lua_State* state) {
+VOXDEF_LIB(ReadFileUnrestricted) {
 	std::string path = luaL_checkstring(state, 1);
 
 	std::ifstream t(path);
@@ -570,87 +523,48 @@ int luaf_voxReadFile(lua_State* state) {
 #endif
 
 void vox_init_lua_api(GarrysMod::Lua::ILuaBase *LUA, const char* version_string) {
+	VoxelWorldTypeID = LUA->CreateMetaTable(VoxelWorldTypeName);
+
+	VOXREG_META(DeleteWorld);
+	VOXREG_META(IsChunkLoaded);
+	VOXREG_META(LoadChunk);
+	VOXREG_META(GetBounds);
+#ifdef VOXELATE_CLIENT
+	VOXREG_META(SetWorldViewPos);
+	VOXREG_META(GetWorldViewPos);
+#endif
+	VOXREG_META(SetSourceWorldPos);
+	VOXREG_META(GetSourceWorldPos);
+	VOXREG_META(GetBlockID);
+	VOXREG_META(SetBlockID);
+	VOXREG_META(DoTrace);
+	VOXREG_META(SourceWorldToBlockPos);
+	VOXREG_META(BlockPosToSourceWorld);
+	VOXREG_META(SourceWorldToScaledBlockPos);
+	VOXREG_META(ScaledBlockPosToSourceWorld);
+	VOXREG_META(IsValid);
+
+	LUA->Pop(1);
+
 	LUA->PushSpecial(SPECIAL_GLOB);
 
 	LUA->CreateTable();
 
-	VOXF(isChunkLoaded);
-	VOXF(loadChunk);
-	VOXF(voxBounds);
-#ifdef VOXELATE_CLIENT
-	VOXF(setWorldViewPos);
-	VOXF(getWorldViewPos);
-#endif
-	VOXF(setSourceWorldPos);
-	VOXF(getSourceWorldPos);
-	VOXF(preciseToNormalCoords);
-	VOXF(voxGet);
-	VOXF(voxSet);
-	VOXF(voxTrace);
-	VOXF(voxSourceWorldToBlockPos);
-	VOXF(voxBlockPosToSourceWorld);
-	VOXF(voxSourceWorldToVoxelatePos);
-	VOXF(voxVoxelatePosToSourceWorld);
-	VOXF(voxReady);
-
-	LUA->PushCFunction(luaf_voxNewWorld);
-	LUA->SetField(-2, "voxNewWorld");
-
-	LUA->PushCFunction(luaf_voxDeleteWorld);
-	LUA->SetField(-2, "voxDeleteWorld");
-
-#ifdef VOXELATE_CLIENT
-	LUA->PushCFunction(luaf_voxDraw);
-	LUA->SetField(-2, "voxDraw");
-#endif
-
-	LUA->PushCFunction(luaf_voxUpdate);
-	LUA->SetField(-2, "voxUpdate");
-
-	LUA->PushCFunction(luaf_voxGetAllChunks);
-	LUA->SetField(-2, "voxGetAllChunks");
-
-	/*LUA->PushCFunction(luaf_voxGenerate);
-	LUA->SetField(-2, "voxGenerate");
-
-	LUA->PushCFunction(luaf_voxGenerateDefault);
-	LUA->SetField(-2, "voxGenerateDefault");*/
-
-	LUA->PushCFunction(luaf_voxGetBlockScale);
-	LUA->SetField(-2, "voxGetBlockScale");
-
-	/*LUA->PushCFunction(luaf_voxGetWorldUpdates); for real? fuck off
-	LUA->SetField(-2, "voxGetWorldUpdates");
-
-	LUA->PushCFunction(luaf_voxSetWorldUpdatesEnabled);
-	LUA->SetField(-2, "voxSetWorldUpdatesEnabled");*/
-
-	/*LUA->PushCFunction(luaf_voxLoadFromString1);
-	LUA->SetField(-2, "voxLoadFromString1");
-
-	LUA->PushCFunction(luaf_voxSaveToString1);
-	LUA->SetField(-2, "voxSaveToString1");*/
+	VOXREG_LIB(NewWorld);
+	VOXREG_LIB(PreciseToNormalCoords);
 
 	LUA->PushString(version_string);
 	LUA->SetField(-2, "VERSION");
 
-#ifdef VOXELATE_SERVER
-	LUA->PushCFunction(luaf_voxSendChunk);
-	LUA->SetField(-2, "voxSendChunk");
-
-	//LUA->PushCFunction(luaf_voxSendChunks);
-	//LUA->SetField(-2, "voxSendChunks");
-#endif
-
 #ifdef VOXELATE_LUA_HOTLOADING
-	LUA->PushCFunction(luaf_voxReadFile);
-	LUA->SetField(-2, "readFileUnrestricted");
+	VOXREG_LIB(ReadFileUnrestricted);
 #endif
 
 	vox_setupLuaNetworkingAPI(LUA);
-	setupLuaAdvancedVectors(LUA->GetState());
 
 	LUA->SetField(-2, "G_VOX_IMPORTS");
+
+	setupLuaAdvancedVectors(LUA->GetState());
 
 	runBootstrap(LUA->GetState());
 
