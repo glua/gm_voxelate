@@ -11,7 +11,6 @@ struct name __Declaration__; \
 __pragma( pack(pop) )
 #else
 #define NETWORK_STRUCT( name, __Declaration__ ) \
-__pragma( pack(push, 1) ) \
 struct name __Declaration__ \
 __attribute__((__packed__));
 #endif
