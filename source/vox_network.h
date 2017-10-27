@@ -3,6 +3,20 @@
 // TODO allow the server to specify a port.
 #define VOX_NETWORK_PORT 42069
 
+// avert eyes
+#ifdef _MSC_VER
+#define NETWORK_STRUCT( name, __Declaration__ ) \
+__pragma( pack(push, 1) ) \
+struct name __Declaration__; \
+__pragma( pack(pop) )
+#else
+#define NETWORK_STRUCT( name, __Declaration__ ) \
+__pragma( pack(push, 1) ) \
+struct name __Declaration__ \
+__attribute__((__packed__));
+#endif
+
+
 // This whole fuckin thing is gonna need to be changed.
 // All world data should run over the same channel, so will probably just
 // add my own channel/messge type field on top of ENet...
@@ -25,10 +39,6 @@ typedef std::function<void(int peerID, const char* data, size_t data_len)> netwo
 
 enum vox_network_channel {
 	chunk = 128
-};
-
-struct BaseNetworkMessage {
-	uint8_t channelID;
 };
 
 bool vox_network_startup();

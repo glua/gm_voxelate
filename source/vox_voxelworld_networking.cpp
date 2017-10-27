@@ -2,12 +2,14 @@
 #include "vox_chunk.h"
 #include "vox_network.h"
 
-struct SingleChunkMessage : BaseNetworkMessage {
+NETWORK_STRUCT(SingleChunkMessage, {
 	uint8_t channelID = vox_network_channel::chunk;
 	uint8_t worldID;
-	VoxelCoordXYZ pos;
+	VoxelCoord posX;
+	VoxelCoord posY;
+	VoxelCoord posZ;
 	char chunkData[CHUNK_BUFFER_SIZE] { 0 };
-};
+});
 
 void voxelworld_initialise_networking_static() {
 #ifdef VOXELATE_CLIENT
@@ -34,9 +36,9 @@ void voxelworld_initialise_networking_static() {
 		}
 
 		world->setChunkData(
-			msg.pos[0],
-			msg.pos[1],
-			msg.pos[2],
+			msg.posX,
+			msg.posY,
+			msg.posZ,
 			msg.chunkData,
 			CHUNK_BUFFER_SIZE - sizeof(SingleChunkMessage) + data_len
 		);
@@ -49,7 +51,9 @@ bool VoxelWorld::sendChunk(int peerID, VoxelCoordXYZ pos) {
 	SingleChunkMessage msg;
 
 	msg.worldID = worldID;
-	msg.pos = pos;
+	msg.posX = pos[0];
+	msg.posY = pos[1];
+	msg.posZ = pos[2];
 
 	int compressed_size = getChunkData(pos[0], pos[1], pos[2], msg.chunkData);
 

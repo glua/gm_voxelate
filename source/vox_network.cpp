@@ -199,7 +199,7 @@ int lua_network_pollForEvents(lua_State* state) {
 		auto iter = cppChannelCallbacks.find(msg_type);
 
 		if (iter != cppChannelCallbacks.end()) {
-			iter->second(peerID, (char*)data + 1, data_size - 1);
+			iter->second(peerID, (char*)data, data_size);
 		}
 		else {
 			LuaHelpers::PushHookRun(state->luabase, "VoxNetworkPacket");
