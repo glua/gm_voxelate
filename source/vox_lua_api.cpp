@@ -1,29 +1,21 @@
 
 #include <materialsystem/imaterialvar.h>
 
-#include "glua.h"
-
-#include "vox_lua_advanced_vector.hpp"
-
 #include "vox_lua_api.h"
 #include "vox_lua_src.h"
 
-#include "vox_engine.h"
 #include "vox_util.h"
-#include "vox_entity.h"
-#include "vox_voxelworld.h"
-#include "vox_chunk.h"
 
 #include "vox_network.h"
-
-
-#include "GarrysMod/LuaHelpers.hpp"
 
 #include <tuple>
 
 using namespace GarrysMod::Lua;
 
-//Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
+static uint8_t metatype = GarrysMod::Lua::Type::NONE;
+static const char *metaname = "VoxelWorld";
+
+// Utility functions for pulling ents, vectors directly from the lua with limited amounts of fuckery.
 
 CBaseEntity* elua_getEntity(GarrysMod::Lua::ILuaBase* LUA, int index) {
 	if (!IS_SERVERSIDE)
@@ -203,13 +195,9 @@ LUA_FUNCTION(luaf_voxDeleteWorld) {
 	return 0;
 }
 
-lua_State* lastState;
-
 #ifdef VOXELATE_CLIENT
 LUA_FUNCTION(luaf_voxDraw) {
 	int index = LUA->GetNumber(1);
-
-	lastState = LUA->GetState();
 
 	VoxelWorld* v = getIndexedVoxelWorld(index);
 	if (v != nullptr) {
@@ -249,20 +237,6 @@ LUA_FUNCTION(luaf_voxUpdate) {
 
 	return 0;
 }
-
-/*int luaf_voxSortUpdatesByDistance(lua_State* state) {
-	int index = LUA->GetNumber(1);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-
-	auto origin = LUA->GetVector(2);
-
-	if (v != nullptr) {
-		v->sortUpdatesByDistance(&origin);
-	}
-
-	return 0;
-}*/
 
 LUA_FUNCTION(luaf_voxGetAllChunks) {
 	int index = LUA->GetNumber(1);
@@ -309,159 +283,7 @@ LUA_FUNCTION(luaf_voxSendChunk) {
 	return 1;
 }
 
-/*LUA_FUNCTION(luaf_voxSendChunks) {
-	int index = LUA->GetNumber(1);
-	int peerID = LUA->GetNumber(2);
-	int x = LUA->GetNumber(3);
-	int y = LUA->GetNumber(4);
-	int z = LUA->GetNumber(5);
-	int radius = LUA->GetNumber(6);
-
-	VoxelWorld* v = getIndexedVoxelWorld(index);
-
-	if (v != nullptr) {
-		LUA->PushBool(v->sendChunksAround(peerID, {x, y, z}, radius));
-	}
-	else {
-		lua_pushboolean(state, false);
-	}
-
-	return 1;
-}*/
 #endif
-
-/*int luaf_voxSaveToString1(lua_State* state) { // save with format 1
-	// int index = LUA->GetNumber(1);
-
-	// VoxelWorld* v = getIndexedVoxelWorld(index);
-	// if (v != nullptr) {
-	// 	auto ret = v->writeToString();
-	// 	auto data = std::get<0>(ret);
-	// 	auto size = std::get<1>(ret);
-
-	// 	lua_pushlstring(state, data, size);
-
-	// 	delete[size] data;
-
-	// 	return 1;
-	// }
-
-	return 0;
-}
-
-int luaf_voxLoadFromString1(lua_State* state) { // save with format 1
-	// int index = LUA->GetNumber(1);
-
-	// VoxelWorld* v = getIndexedVoxelWorld(index);
-	// if (v != nullptr) {
-	// 	size_t size;
-
-	// 	auto Ldata = luaL_checklstring(state, 2, &size);
-
-	// 	std::string data(Ldata, size);
-
-	// 	auto success = v->loadFromString(data);
-
-	// 	lua_pushboolean(state, success);
-
-	// 	return 1;
-	// }
-
-	return 0;
-}*/
-
-#define VOXF(name) \
-	lua_pushcfunction(LUA->GetState(), voxF_##name); \
-	lua_setfield(LUA->GetState(), -2, #name)
-
-#define VOXDEF(name) \
-	int voxF_##name(lua_State* state)
-
-inline VoxelWorld* luaL_checkvoxelworld(lua_State* state, int loc) {
-	int index = luaL_checknumber(state, loc);
-
-	auto world = getIndexedVoxelWorld(index);
-
-	if (world != nullptr) {
-		return world;
-	}
-	else {
-		lua_pushfstring(state, "Invalid voxel world index [%d]!", index);
-		lua_error(state);
-
-		return NULL; // to keep the compiler happy
-	}
-}
-
-inline VoxelCoordXYZ luaL_checkvoxelxyz(lua_State* state, int loc) {
-	luaL_checktype(state, loc, LUA_TTABLE);
-
-	lua_rawgeti(state, loc, 1);
-	VoxelCoord x = preciseToNormal(luaL_checknumber(state, -1));
-	lua_pop(state, 1);
-
-	lua_rawgeti(state, loc, 2);
-	VoxelCoord y = preciseToNormal(luaL_checknumber(state, -1));
-	lua_pop(state, 1);
-
-	lua_rawgeti(state, loc, 3);
-	VoxelCoord z = preciseToNormal(luaL_checknumber(state, -1));
-	lua_pop(state, 1);
-
-	return { x,y,z };
-}
-
-inline PreciseVoxelCoordXYZ luaL_checkprecisevoxelxyz(lua_State* state, int loc) {
-	luaL_checktype(state, loc, LUA_TTABLE);
-
-	lua_rawgeti(state, loc, 1);
-	PreciseVoxelCoord x = luaL_checknumber(state, -1);
-	lua_pop(state, 1);
-
-	lua_rawgeti(state, loc, 2);
-	PreciseVoxelCoord y = luaL_checknumber(state, -1);
-	lua_pop(state, 1);
-
-	lua_rawgeti(state, loc, 3);
-	PreciseVoxelCoord z = luaL_checknumber(state, -1);
-	lua_pop(state, 1);
-
-	return { x,y,z };
-}
-
-inline Vector luaL_checkvector(lua_State* state, int loc) {
-	return state->luabase->GetVector(loc);
-}
-
-inline void luaL_pushvector(lua_State* state, float x, float y, float z) {
-	lua_getglobal(state, "Vector");
-
-	lua_pushnumber(state, x);
-	lua_pushnumber(state, y);
-	lua_pushnumber(state, z);
-
-	lua_call(state, 3, 1);
-}
-
-inline void luaL_pushvector(lua_State* state, Vector v) {
-	lua_getglobal(state, "Vector");
-
-	lua_pushnumber(state, v.x);
-	lua_pushnumber(state, v.y);
-	lua_pushnumber(state, v.z);
-
-	lua_call(state, 3, 1);
-}
-
-inline void luaL_pushvector(lua_State* state, VoxelCoordXYZ p) {
-	lua_getglobal(state, "Vector");
-
-	lua_pushnumber(state, p[0]);
-	lua_pushnumber(state, p[1]);
-	lua_pushnumber(state, p[2]);
-
-	lua_call(state, 3, 1);
-}
 
 VOXDEF(isChunkLoaded) {
 	auto world = luaL_checkvoxelworld(state, 1);

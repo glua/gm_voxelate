@@ -10,7 +10,6 @@
 #include "vox_util.h"
 #include "vox_engine.h"
 // #include "vox_lua_net.h"
-#include "vox_network.h"
 
 #include "fastlz.h"
 
@@ -53,6 +52,8 @@ const VoxelCoord VOXEL_CHUNK_SIZE = 16;
 const VoxelCoord VOXEL_INIT_X = 16;
 const VoxelCoord VOXEL_INIT_Y = 16;
 const VoxelCoord VOXEL_INIT_Z = 16;
+
+const size_t CHUNK_BUFFER_SIZE = 9000;
 
 extern Vector BulletPositionToSource(btVector3 vec);
 extern btVector3 SourcePositionToBullet(Vector vec);

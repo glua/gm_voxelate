@@ -27,6 +27,10 @@ enum vox_network_channel {
 	chunk = 128
 };
 
+struct BaseNetworkMessage {
+	uint8_t channelID;
+};
+
 bool vox_network_startup();
 
 void vox_network_shutdown();

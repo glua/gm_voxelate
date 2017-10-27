@@ -7,6 +7,7 @@
 #include "icliententitylist.h"
 #include "eiface.h"
 // #include "eifacev21.h"
+#include "mathlib/vector.h"
 
 // Server interfaces
 extern IVEngineServer* IFACE_SV_ENGINE;
@@ -15,7 +16,5 @@ extern IPhysics* IFACE_SH_PHYSICS;
 
 // Client interfaces
 extern IMaterialSystem* IFACE_CL_MATERIALS;
-
-extern lua_State* lastState;
 
 bool init_interfaces();

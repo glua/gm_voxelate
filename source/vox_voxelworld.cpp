@@ -1,8 +1,6 @@
 #include "vox_voxelworld.h"
 #include "vox_chunk.h"
 
-#include "GarrysMod/LuaHelpers.hpp"
-
 std::unordered_map<int,VoxelWorld*> indexedVoxelWorldRegistry;
 
 int newIndexedVoxelWorld(int index, VoxelConfig& config) {
@@ -183,8 +181,6 @@ bool VoxelWorld::isChunkLoaded(VoxelCoordXYZ pos) {
 }
 
 // Fills a buffer at out with COMPRESSED chunk data, returns size.
-
-const int CHUNK_BUFFER_SIZE = 9000;
 
 const int VoxelWorld::getChunkData(VoxelCoord x, VoxelCoord y, VoxelCoord z,char* out) {
 	auto iter = chunks_map.find({ x, y, z });
@@ -397,175 +393,6 @@ std::vector<VoxelCoordXYZ> VoxelWorld::getAllChunkPositions(Vector origin) {
 
 	return positions;
 }
-
-void voxelworld_initialise_networking_static() {
-#ifdef VOXELATE_CLIENT
-	vox_networking::channelListen(vox_network_channel::chunk, [&](int peerID, const char* data, size_t data_len) {
-		//vox_print("chunk!");
-
-		bf_read reader;
-		reader.StartReading(data, data_len);
-
-		int worldID = reader.ReadUBitLong(8);
-		//vox_print("hello? %i",worldID);
-
-		auto world = getIndexedVoxelWorld(worldID);
-
-		if (world == NULL) {
-			return;
-		}
-
-		VoxelCoordXYZ pos = {
-			reader.ReadSBitLong(32),
-			reader.ReadSBitLong(32),
-			reader.ReadSBitLong(32)
-		};
-
-		//vox_print("Get chunk %i %i %i %i", worldID, pos[0], pos[1], pos[2]);
-
-		auto dataSize = reader.GetNumBytesLeft();
-
-		char chunkData[CHUNK_BUFFER_SIZE];
-		reader.ReadBytes(chunkData, dataSize);
-
-		world->setChunkData(pos[0], pos[1], pos[2], chunkData, dataSize);
-	});
-
-	//vox_networking::channelListen(VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, [&](int peerID, const char* data, size_t data_len) {
-		// not used.
-
-		/*bf_read reader;
-		reader.StartReading(data, data_len);
-
-		int worldID = reader.ReadUBitLong(8);
-
-		auto world = getIndexedVoxelWorld(worldID);
-
-		if (world == NULL) {
-			return;
-		}
-
-		VoxelCoord radius = reader.ReadUBitLong(8);
-
-		XYZCoordinate origin = {
-			reader.ReadSBitLong(32),
-			reader.ReadSBitLong(32),
-			reader.ReadSBitLong(32)
-		};
-
-		for (Coord x = 0; x < radius; x++) {
-			for (Coord y = 0; y < radius; y++) {
-				for (Coord z = 0; z < radius; z++) {
-					auto dataSize = reader.ReadUBitLong(16);
-
-					char chunkData[CHUNK_BUFFER_SIZE];
-					reader.ReadBytes(chunkData, dataSize);
-
-					world->setChunkData(origin[0] + x, origin[1] + y, origin[2] + z, chunkData, dataSize);
-				}
-			}
-		}*/
-	//});
-#endif
-}
-
-#ifdef VOXELATE_SERVER
-
-bool VoxelWorld::sendChunk(int peerID, VoxelCoordXYZ pos) {
-	static char msg[CHUNK_BUFFER_SIZE + 16];
-
-	bf_write writer;
-	writer.StartWriting(msg, CHUNK_BUFFER_SIZE + 16);
-
-	writer.WriteUBitLong(vox_network_channel::chunk, 8);
-	writer.WriteUBitLong(worldID, 8);
-
-	writer.WriteSBitLong(pos[0], 32);
-	writer.WriteSBitLong(pos[1], 32);
-	writer.WriteSBitLong(pos[2], 32);
-
-	int compressed_size = getChunkData(pos[0], pos[1], pos[2], msg + writer.GetNumBytesWritten());
-
-	if (compressed_size == 0)
-		return false;
-
-	return vox_networking::channelSend(peerID, msg, writer.GetNumBytesWritten() + compressed_size );
-}
-
-
-/*bool VoxelWorld::sendChunksAround(int peerID, VoxelCoordXYZ pos, VoxelCoord radius) {
-	auto maxSize = VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 2 * radius * + 24;
-
-	auto data = new(std::nothrow) uint8_t[maxSize];
-
-	bf_write writer;
-
-	writer.StartWriting(data, maxSize);
-
-	if (data == NULL) {
-		return false;
-	}
-
-	// write voxel ID
-
-	writer.WriteUBitLong(worldID, 8);
-
-	// write chunk num
-
-	writer.WriteUBitLong(radius, 8);
-
-	// write origin
-
-	writer.WriteSBitLong(pos[0], 32);
-	writer.WriteSBitLong(pos[1], 32);
-	writer.WriteSBitLong(pos[2], 32);
-
-	for (VoxelCoord x = 0; x < radius; x++) {
-		for (VoxelCoord y = 0; y < radius; y++) {
-			for (VoxelCoord z = 0; z < radius; z++) {
-				char chunkData[CHUNK_BUFFER_SIZE];
-				int len = getChunkData(pos[0] + x, pos[1] + y, pos[2] + z, chunkData);
-
-				writer.WriteUBitLong(len, 16);
-				writer.WriteBytes(chunkData, len);
-			}
-		}
-	}
-
-	writer.WriteOneBit(0); // null terminate for good measure
-
-	return vox_networking::channelSend(peerID, VOX_NETWORK_CHANNEL_CHUNKDATA_RADIUS, data, writer.GetNumBytesWritten());
-}*/
-#endif
-/*
-void VoxelWorld::sortUpdatesByDistance(Vector* origin) {
-	// std::function<bool(VoxelChunk*,VoxelChunk*)>
-
-	if (origin != NULL) {
-		auto sorter = [&](VoxelChunk* c1, VoxelChunk* c2) {
-			auto c1pos = c1->getWorldCoords();
-			auto c2pos = c2->getWorldCoords();
-
-			if (c1pos[0] == c2pos[0]) {
-				if (c1pos[1] == c2pos[1]) {
-					auto Zdist1 = std::pow(c1pos[2] - origin->z, 2);
-					auto Zdist2 = std::pow(c2pos[2] - origin->z, 2);
-
-					return Zdist1 < Zdist2;
-				}
-			}
-
-			auto dist1 = std::pow(c1pos[0] - origin->x, 2) + std::pow(c1pos[1] - origin->y, 2);
-			auto dist2 = std::pow(c2pos[0] - origin->x, 2) + std::pow(c2pos[1] - origin->y, 2);
-
-			return dist1 < dist2;
-		};
-
-		vox_print("no sorting allowed.");
-		//std::sort(chunks_flagged_for_update.begin(), chunks_flagged_for_update.end(), sorter);
-	}
-}
-*/
 
 // Updates up to n chunks
 // Logic probably okay for huge worlds, although we may have to double check that the chunk still exists,

@@ -8,4 +8,9 @@ class VoxelEntity {
 public:
 	VoxelWorld* world;
     EntityID id;
+
+	btVector3 pos;
+	btQuaternion angQuat;
+
+	btRigidBody* physicsBody;
 };
