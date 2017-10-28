@@ -118,8 +118,23 @@ CreateWorkspace({name = "voxelate"})
 			luaEntryPoint("init.lua")
 			includeLua("../lua/**")
 
-		includedirs({"../fastlz","../bullet3-2.87/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
-		links({"fastlz","BulletDynamics","BulletCollision","LinearMath","enet","gm_sourcenet","gm_adv_vectors"})
+		includedirs({
+			"../fastlz",
+			"../bullet3-2.87/src",
+			"../enet/include",
+			"../enetpp/include",
+			"../gm_sourcenet",
+			"../gm_adv_vectors",
+		})
+		links({
+			"fastlz",
+			"BulletDynamics",
+			"BulletCollision",
+			"LinearMath",
+			"enet",
+			"gm_sourcenet",
+			"gm_adv_vectors"
+		})
 
 		IncludeSDKCommon()
 		IncludeSDKTier0()
@@ -149,8 +164,25 @@ CreateWorkspace({name = "voxelate"})
 
 		links({"shaderlib"})
 		libdirs{ "../shaderlib/"..os.target() }
-		includedirs({"../fastlz","../bullet3-2.87/src","../enet/include","../enetpp/include","../gm_sourcenet","../gm_adv_vectors"})
-		links({"fastlz","BulletDynamics","BulletCollision","LinearMath","enet","gm_sourcenet","gm_adv_vectors"})
+		includedirs({
+			"../voxtex2",
+			"../fastlz",
+			"../bullet3-2.87/src",
+			"../enet/include",
+			"../enetpp/include",
+			"../gm_sourcenet",
+			"../gm_adv_vectors",
+		})
+		links({
+			"voxtex",
+			"fastlz",
+			"BulletDynamics",
+			"BulletCollision",
+			"LinearMath",
+			"enet",
+			"gm_sourcenet",
+			"gm_adv_vectors",
+		})
 
 		IncludeSDKCommon()
 		IncludeSDKTier0()
@@ -168,6 +200,21 @@ CreateWorkspace({name = "voxelate"})
 		if _OPTIONS.luahotloading then
 			defines({"VOXELATE_LUA_HOTLOADING"})
 		end
+
+	project("voxtex")
+		language("C++")
+		kind("StaticLib")
+		warnings "Off"
+		files({
+			"../voxtex2/*.cpp",
+			"../voxtex2/*.h",
+		})
+
+		IncludeSDKCommon()
+		IncludeSDKTier0()
+		IncludeSDKTier1()
+		IncludeSDKBitmap()
+		IncludeSDKVTF()
 
 	project("fastlz")
 		language("C")
